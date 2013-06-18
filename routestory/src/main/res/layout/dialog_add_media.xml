@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:background="@drawable/startup_screen_gradient">
+    
+    <LinearLayout
+        android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:orientation="horizontal">
+	    <net.routestory.parts.HapticImageButton
+	        android:text=""
+	        android:id="@+id/addTextNote"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:background="@drawable/leave_a_note"
+	         />
+	    <net.routestory.parts.HapticImageButton
+	        android:text=""
+	        android:id="@+id/addVoiceNote"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:background="@drawable/record_sound"
+	         />
+    </LinearLayout>
+    
+    <LinearLayout
+        android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:orientation="horizontal">
+	    <net.routestory.parts.HapticImageButton
+	        android:text=""
+	        android:id="@+id/addHeartbeat"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:background="@drawable/record_heartbeat"
+	         />
+		<net.routestory.parts.HapticImageButton
+		    android:text=""
+		    android:id="@+id/addPhoto"
+		    android:layout_width="wrap_content"
+		    android:layout_height="wrap_content"
+		    android:background="@drawable/take_a_picture"
+		     />
+	</LinearLayout>
+
+</LinearLayout>

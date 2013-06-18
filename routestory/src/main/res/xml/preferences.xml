@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+    <PreferenceCategory android:title="@string/recorddefaults">
+        <CheckBoxPreference android:title="@string/pref_autoaudio" android:key="pref_autoaudio" android:summary="@string/pref_hint_autoaudio" android:defaultValue="true"/>
+    	<CheckBoxPreference android:title="@string/pref_makeprivate" android:key="pref_makeprivate" android:summary="@string/pref_hint_makeprivate" android:defaultValue="false"/>
+    </PreferenceCategory>
+</PreferenceScreen>

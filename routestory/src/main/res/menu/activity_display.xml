@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/followStory"
+        android:title="@string/menu_display_follow"
+        android:orderInCategory="100"
+        android:showAsAction="always" />
+    
+    <item android:id="@+id/shareStory"
+        android:title="@string/menu_display_share"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom" />
+    
+    <item android:id="@+id/storeNfc"
+        android:title="@string/menu_display_storenfc"
+        android:orderInCategory="100"
+        android:showAsAction="never" />
+    
+    <item android:id="@+id/deleteStory"
+        android:title="@string/menu_display_delete"
+        android:orderInCategory="100"
+        android:showAsAction="never" />
+</menu>

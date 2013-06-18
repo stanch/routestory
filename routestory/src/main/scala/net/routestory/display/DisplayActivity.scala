@@ -1,0 +1,252 @@
+package net.routestory.display
+
+import java.io.IOException
+import java.nio.charset.Charset
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.future
+
+import org.scaloid.common._
+
+import com.actionbarsherlock.app.ActionBar
+import com.actionbarsherlock.app.SherlockFragmentActivity
+import com.actionbarsherlock.view.Menu
+import com.actionbarsherlock.view.MenuItem
+
+import android.app.AlertDialog
+import android.app.PendingIntent
+import android.content.DialogInterface
+import android.content.Intent
+import android.content.IntentFilter
+import android.net.Uri
+import android.nfc.FormatException
+import android.nfc.NdefMessage
+import android.nfc.NdefRecord
+import android.nfc.NfcAdapter
+import android.nfc.Tag
+import android.nfc.tech.Ndef
+import android.nfc.tech.NdefFormatable
+import android.os.Bundle
+import android.view.Window
+import android.widget.FrameLayout
+import android.widget.Toast
+import net.routestory.MainActivity
+import net.routestory.R
+import net.routestory.StoryApplication
+import net.routestory.model._
+import net.routestory.parts._
+import scala.concurrent._
+import akka.dataflow._
+import java.lang.String
+
+trait HazStory {
+    def getStory: Future[Story]
+}
+
+object DisplayActivity {
+    object NfcIntent {
+        def unapply(i: Intent): Option[Uri] = if (i.getAction == NfcAdapter.ACTION_NDEF_DISCOVERED) {
+            val rawMsgs = i.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
+            if (rawMsgs != null) {
+                val msg = rawMsgs(0).asInstanceOf[NdefMessage]
+                val rec = msg.getRecords()(0)
+                Some(new String(rec.getPayload))
+            } else None
+        } else None
+    }
+    object ViewIntent {
+        def unapply(i: Intent): Option[Uri] = if (i.getAction == Intent.ACTION_VIEW) {
+            Some(i.getData)
+        } else None
+    }
+    object PlainIntent {
+        def unapply(i: Intent): Option[String] = if (i.hasExtra("id")) Some(i.getStringExtra("id")) else None
+    }
+}
+
+class DisplayActivity extends SherlockFragmentActivity with StoryActivity with HazStory {
+    import DisplayActivity._
+
+    private var id: String = _
+
+    private lazy val mStory = flow {
+        val story = app.getObject[Story](id).apply()
+        val author = app.getObject[Author](story.authorId).apply()
+        story.author = author
+        story
+    }
+
+    var mShareable = false
+    var mStartTab: Int = 0
+
+    override def getStory = mStory
+
+    lazy val mNfcAdapter: NfcAdapter = NfcAdapter.getDefaultAdapter(getApplicationContext)
+
+    override def onCreate(savedInstanceState: Bundle) {
+        super.onCreate(savedInstanceState)
+        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS.asInstanceOf[Long])
+        setContentView(new FrameLayout(this))
+
+        if (savedInstanceState != null && savedInstanceState.containsKey("tab")) {
+            mStartTab = savedInstanceState.getInt("tab")
+        }
+
+        id = getIntent match {
+            case NfcIntent(uri) ⇒
+                "story-" + uri.getLastPathSegment
+            case ViewIntent(uri) ⇒
+                "story-" + uri.getLastPathSegment
+            case PlainIntent(i) ⇒
+                i
+            case _ ⇒
+                finish()
+                return
+        }
+
+        setProgressBarIndeterminateVisibility(true)
+
+        mStory onSuccessUI { case _ =>
+            setProgressBarIndeterminateVisibility(false)
+        } onFailureUI { case _ =>
+            toast("Failed to load the story")
+            finish()
+        }
+
+        future {
+            for (i ← 1 to 4) {
+                if (app.remoteContains(id)) {
+                    mShareable = true
+                    runOnUiThread {
+                        supportInvalidateOptionsMenu()
+                    }
+                }
+                Thread.sleep(5000)
+            }
+        }
+
+        bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
+        bar.setDisplayShowHomeEnabled(true)
+        bar.setDisplayHomeAsUpEnabled(true)
+
+        mStory onSuccessUI { case story ⇒
+            bar.setTitle(if (story.title != null && story.title.length() > 0) story.title else getResources.getString(R.string.untitled))
+            bar.setSubtitle(if (story.author != null) "by " + story.author.name else "by me")
+        }
+
+        List(R.string.title_tab_storypreview, R.string.title_tab_storydescription, R.string.title_tab_storyoverview) zip
+            List("preview", "description", "map") zip
+            List(0, 1, 2) zip
+            List(classOf[PreviewFragment], classOf[DescriptionFragment], classOf[OverviewFragment]) foreach { case (((title, tag), n), c) ⇒
+            bar.addTab(bar.newTab().setText(title).setTabListener(new TabListener(DisplayActivity.this, tag, c)), n, n == mStartTab)
+        }
+    }
+
+    override def onCreateOptionsMenu(menu: Menu): Boolean = {
+        getSupportMenuInflater.inflate(R.menu.activity_display, menu)
+        if (mNfcAdapter == null) {
+            menu.findItem(R.id.storeNfc).setEnabled(false)
+        }
+        if (!getApplication.asInstanceOf[StoryApplication].localContains(id)) {
+            menu.findItem(R.id.deleteStory).setVisible(false)
+        }
+        menu.findItem(R.id.followStory).setVisible(false) // TODO: fix the follow mode!
+        true
+    }
+
+    override def onPrepareOptionsMenu(menu: Menu): Boolean = {
+        menu.findItem(R.id.shareStory).setEnabled(mShareable)
+        menu.findItem(R.id.storeNfc).setEnabled(mNfcAdapter != null && mShareable)
+        true
+    }
+
+    override def onOptionsItemSelected(item: MenuItem): Boolean = {
+        super.onOptionsItemSelected(item)
+        item.getItemId match {
+            case R.id.storeNfc ⇒ {
+                val intent = PendingIntent.getActivity(this, 0, new Intent(this, classOf[DisplayActivity]).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0)
+                val filter = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED)
+                val techs = Array(Array(classOf[NdefFormatable].getName, classOf[Ndef].getName))
+                mNfcAdapter.enableForegroundDispatch(this, intent, Array(filter), techs)
+                toast("Waiting for the tag...") // TODO: strings.xml
+                true
+                //			} case R.id.followStory => {
+                //				val intent = SIntent[FollowActivity]
+                //				intent.putExtra("id", id)
+                //	            startActivityForResult(intent, 0)
+                //	            true
+            }
+            case R.id.shareStory ⇒ {
+                val intent = new Intent(Intent.ACTION_SEND)
+                intent.setType("text/plain")
+                intent.putExtra(Intent.EXTRA_SUBJECT, getResources.getString(R.string.share_subject))
+                intent.putExtra(
+                    Intent.EXTRA_TEXT,
+                    getResources.getString(R.string.share_body) + " http://story.stanch.me/" + id.replace("-", "/")
+                )
+                startActivity(Intent.createChooser(intent, getResources.getString(R.string.share_chooser)))
+                true
+            }
+            case R.id.deleteStory => {
+                new AlertDialog.Builder(this) {
+                    setMessage(R.string.message_deletestory)
+                    setPositiveButton(R.string.button_yes, { (dialog: DialogInterface, which: Int) ⇒
+                        mStory onSuccessUI { case story =>
+                            app.deleteStory(story)
+                            app.sync()
+                            finish()
+                            val intent = SIntent[MainActivity]
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            startActivity(intent)
+                        }
+                    })
+                    setNegativeButton(R.string.button_no, { (dialog: DialogInterface, which: Int) ⇒
+                        // pass
+                    })
+                }.create().show()
+                true
+            }
+            case android.R.id.home ⇒ {
+                val intent = SIntent[MainActivity]
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                startActivity(intent)
+                true
+            }
+            case _ ⇒ false
+        }
+    }
+
+    override def onSaveInstanceState(savedInstanceState: Bundle) {
+        super.onSaveInstanceState(savedInstanceState)
+        savedInstanceState.putInt("tab", getSupportActionBar.getSelectedTab.getPosition)
+    }
+
+    override def onNewIntent(intent: Intent) {
+        Toast.makeText(this, "Found a tag, writing...", Toast.LENGTH_SHORT).show()
+        // TODO: strings.xml
+        val tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG).asInstanceOf[Tag]
+        val uri = ("http://story.stanch.me/" + id.replace("story-", "story/")).getBytes(Charset.forName("US-ASCII"))
+        val payload = new Array[Byte](uri.length + 1)
+        payload(0) = 0.toByte
+        System.arraycopy(uri, 0, payload, 1, uri.length)
+        val rec = new NdefRecord(NdefRecord.TNF_WELL_KNOWN, NdefRecord.RTD_URI, new Array[Byte](0), payload)
+        val msg = new NdefMessage(Array(rec))
+        val ndef = Ndef.get(tag)
+        try {
+            ndef.connect()
+            ndef.writeNdefMessage(msg)
+            ndef.close()
+        } catch {
+            case e: FormatException => e.printStackTrace()
+            case e: IOException => e.printStackTrace()
+        }
+        toast("Done!") // TODO: strings.xml
+    }
+
+    override def onPause() {
+        super.onPause()
+        if (mNfcAdapter != null) {
+            mNfcAdapter.disableForegroundDispatch(this)
+        }
+    }
+}
