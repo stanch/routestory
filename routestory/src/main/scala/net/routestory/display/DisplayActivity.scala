@@ -182,7 +182,7 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
                 intent.putExtra(Intent.EXTRA_SUBJECT, getResources.getString(R.string.share_subject))
                 intent.putExtra(
                     Intent.EXTRA_TEXT,
-                    getResources.getString(R.string.share_body) + " http://story.stanch.me/" + id.replace("-", "/")
+                    getResources.getString(R.string.share_body) + " http://www.routestory.net/" + id.replace("-", "/")
                 )
                 startActivity(Intent.createChooser(intent, getResources.getString(R.string.share_chooser)))
                 true
@@ -225,7 +225,7 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
         Toast.makeText(this, "Found a tag, writing...", Toast.LENGTH_SHORT).show()
         // TODO: strings.xml
         val tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG).asInstanceOf[Tag]
-        val uri = ("http://story.stanch.me/" + id.replace("story-", "story/")).getBytes(Charset.forName("US-ASCII"))
+        val uri = ("http://www.routestory.net/" + id.replace("story-", "story/")).getBytes(Charset.forName("US-ASCII"))
         val payload = new Array[Byte](uri.length + 1)
         payload(0) = 0.toByte
         System.arraycopy(uri, 0, payload, 1, uri.length)

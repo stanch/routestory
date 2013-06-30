@@ -154,9 +154,9 @@ class AccountActivity extends SherlockFragmentActivity with StoryActivity {
 					val token = bundle.getString(AccountManager.KEY_AUTHTOKEN) // cool, we have a token
 					val progress = spinnerDialog("", ctx.getResources.getString(R.string.toast_signingin))
 					future {
-					    val url = new URL("http://story.stanch.me/signin?mobiletoken=" + URLEncoder.encode(token, "UTF-8"))
+					    val url = new URL("https://www-routestory-net.herokuapp.com/signin?mobiletoken=" + URLEncoder.encode(token, "UTF-8"))
 						val conn = url.openConnection().asInstanceOf[HttpURLConnection]
-					    val response = IOUtils.toString(conn.getInputStream())
+					    val response = IOUtils.toString(conn.getInputStream)
 					    // the response is: author_id;hashed_authentication_token
 					    app.setAuthData(response.split(";"))
 					    app.isSignedIn

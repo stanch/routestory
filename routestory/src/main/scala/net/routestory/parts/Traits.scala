@@ -9,9 +9,14 @@ import android.view.View
 import net.routestory.StoryApplication
 import android.content.Context
 import scala.util.continuations._
+import com.actionbarsherlock.app.SherlockFragmentActivity
+import com.actionbarsherlock.app.SherlockFragmentActivity
+import com.actionbarsherlock.app.SherlockFragmentActivity
+import com.actionbarsherlock.app.SherlockFragmentActivity
+import com.actionbarsherlock.app.SherlockFragmentActivity
 
 trait StoryUI {
-	class RichFuture[A](val value: Future[A]) {
+	implicit class RichFuture[A](val value: Future[A]) {
 	    def onSuccessUI(f: PartialFunction[A, Any])(implicit c: ExecutionContext): Future[A] = {
 	        value onSuccess { case v =>
 	            runOnUiThread {
@@ -37,15 +42,17 @@ trait StoryUI {
 	    }
 	}
 
-    def switchToUiThread(): Unit @cps[Future[Any]] = {
-        shift { f: (Unit ⇒ Future[Any]) ⇒
-            runOnUiThread(f)
-            Future.successful(Unit)
-        }
+    import akka.dataflow.DataflowFuture
+    def await[A](f: Future[A]) = f.apply()
+
+    def switchToUiThread(): Unit @cps[Future[Any]] = shift { f: (Unit ⇒ Future[Any]) ⇒
+        val uiPromise = Promise[Any]()
+        handler.post(new Runnable {
+            def run() { uiPromise.completeWith(f()) }
+        })
+        uiPromise.future
     }
-    
-    implicit def enrichFuture[A](value: Future[A]) = new RichFuture[A](value)
-    
+
     implicit def cacher2Future[A](c: Cacher[A])(implicit ctx: Context): Future[A] = {
         if (c.isCached(ctx)) {
             Future.successful(c.get(ctx))
@@ -58,41 +65,41 @@ trait StoryUI {
 }
 
 trait StoryActivity extends SherlockFragmentActivity with StoryUI with SActivity {
-    lazy val app = getApplication().asInstanceOf[StoryApplication]
-    lazy val bar = getSupportActionBar()
+    lazy val app = getApplication.asInstanceOf[StoryApplication]
+    lazy val bar = getSupportActionBar
     
     def findView[A <: View](id: Int) = findViewById(id).asInstanceOf[A]
-    def findFrag[A <: Fragment](tag: String) = getSupportFragmentManager().findFragmentByTag(tag).asInstanceOf[A]
+    def findFrag[A <: Fragment](tag: String) = getSupportFragmentManager.findFragmentByTag(tag).asInstanceOf[A]
     
     var everStarted = false    
     def onFirstStart() {}
     def onEveryStart() {}
     override def onStart() {
-        super.onStart();
+        super.onStart()
         if (!everStarted) {
-            onFirstStart();
-            everStarted = true;
+            onFirstStart()
+            everStarted = true
         }
-        onEveryStart();
+        onEveryStart()
     }
 }
 
 trait StoryFragment extends Fragment with StoryUI {
-    lazy val app = getActivity().getApplication().asInstanceOf[StoryApplication]
-    implicit lazy val ctx = getActivity()
+    lazy val app = getActivity.getApplication.asInstanceOf[StoryApplication]
+    implicit lazy val ctx = getActivity
     
-    def findView[A <: View](id: Int) = getView().findViewById(id).asInstanceOf[A]
-    def findFrag[A <: Fragment](tag: String) = getChildFragmentManager().findFragmentByTag(tag).asInstanceOf[A]
+    def findView[A <: View](id: Int) = getView.findViewById(id).asInstanceOf[A]
+    def findFrag[A <: Fragment](tag: String) = getChildFragmentManager.findFragmentByTag(tag).asInstanceOf[A]
     
     var everStarted = false    
     def onFirstStart() {}
     def onEveryStart() {}
     override def onStart() {
-        super.onStart();
+        super.onStart()
         if (!everStarted) {
-            onFirstStart();
-            everStarted = true;
+            onFirstStart()
+            everStarted = true
         }
-        onEveryStart();
+        onEveryStart()
     }
 }

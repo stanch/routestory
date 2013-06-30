@@ -12,9 +12,9 @@ import net.routestory.explore.ExploreActivity
 import net.routestory.parts.HapticButton
 import net.routestory.recording.RecordActivity
 import android.preference.PreferenceManager
+import net.routestory.parts.StoryActivity
 
-class MainActivity extends SherlockFragmentActivity with SActivity {
-  
+class MainActivity extends StoryActivity {
     override def onCreate(savedInstanceState: Bundle) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.startup_screen)
@@ -29,7 +29,7 @@ class MainActivity extends SherlockFragmentActivity with SActivity {
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
         
         // show the tutorial on first run
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         if (!prefs.getBoolean("pref_tutorialshown", false)) {
         	//startActivityForResult(SIntent[TutorialActivity], 0);
         }
@@ -37,31 +37,28 @@ class MainActivity extends SherlockFragmentActivity with SActivity {
         // map buttons to activities
         List(R.id.recordStory, R.id.explore, R.id.myStories, R.id.myAccount) zip
         List(SIntent[RecordActivity], SIntent[ExploreActivity], SIntent[MyStoriesActivity], SIntent[AccountActivity]) foreach {
-            case (id: Int, int: Intent) => find[HapticButton](id).onClick(
+            case (id: Int, int: Intent) ⇒ find[HapticButton](id).onClick(
       	        startActivityForResult(int, 0)
   	        )
         }
     }
     
     override def onStart() {
-    	super.onStart();
-    	getApplication().asInstanceOf[StoryApplication].sync();
+    	super.onStart()
+    	app.sync()
     }
     
     override def onCreateOptionsMenu(menu: Menu): Boolean = {
-        getSupportMenuInflater().inflate(R.menu.activity_main, menu);
+        getSupportMenuInflater().inflate(R.menu.activity_main, menu)
         true
     }
     
     override def onOptionsItemSelected(item: MenuItem): Boolean = {
-    	super.onOptionsItemSelected(item);
-    	
-        vibrator.vibrate(10);
-        
-        item.getItemId() match {
-          case R.id.Settings => startActivityForResult(SIntent[SettingsActivity], 0);
+        vibrator.vibrate(10)
+        item.getItemId match {
+            case R.id.Settings ⇒ startActivityForResult(SIntent[SettingsActivity], 0)
+            case _ ⇒ super.onOptionsItemSelected(item)
         }
-        
     	true
     }
 }

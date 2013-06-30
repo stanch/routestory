@@ -32,6 +32,9 @@ import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.StoryActivity
 import akka.dataflow._
 import scala.collection.JavaConversions._
+import com.actionbarsherlock.app.SherlockFragmentActivity
+import com.actionbarsherlock.app.SherlockFragmentActivity
+import android.util.Log
 
 class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
     var flashed = false
@@ -53,7 +56,7 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
 		super.onCreate(savedInstanceState)
 		val view = new SFrameLayout {
 		    this += new SFrameLayout {
-		        this += getLayoutInflater().inflate(R.layout.activity_explore, this, false)
+		        this += getLayoutInflater.inflate(R.layout.activity_explore, this, false)
 		    }
 		    this += new SFrameLayout {
 		        mProgress = new ProgressBar(ctx, null, android.R.attr.progressBarStyleLarge)
@@ -73,7 +76,7 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
 	    getSupportActionBar.setDisplayHomeAsUpEnabled(true)
 	}
 	
-	def getLocation: Promise[Option[Location]] = {
+	def getLocation: Future[Option[Location]] = {
 	    val locationPromise = Promise[Option[Location]]()
 	    val locationListener = new LocationListener() {
 	        def onLocationChanged(location: Location) {
@@ -92,7 +95,7 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
 	        Thread.sleep(3000)
 	        locationPromise.trySuccess(None)
 	    }
-    	locationPromise
+    	locationPromise.future
 	}
 	
 	abstract class RichAnimation(view: View) {
@@ -140,8 +143,8 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
             // Latest stuff
             val latest = flow {
                 val query = new ViewQuery().designDocId("_design/Story").viewName("byTimestamp").descending(true).limit(3)
-                val stories = app.getQueryResults[StoryResult](remote = true, query).apply()
-                val authors = app.getObjects[Author](stories.filter(_.authorId!=null).map(_.authorId)).apply()
+                val stories = await(app.getQueryResults[StoryResult](remote = true, query))
+                val authors = await(app.getObjects[Author](stories.filter(_.authorId!=null).map(_.authorId)))
                 stories.filter(_.authorId!=null).foreach(s ⇒ s.author = authors(s.authorId))
                 switchToUiThread()
                 val latestStories = find[LinearLayout](R.id.latestStories)
@@ -153,18 +156,18 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
 
             // Stories nearby
             val nearby = flow {
-                val location = getLocation.future.apply()
-                // Option.flatMap does not seem to work with @cps
+                val location = await(getLocation)
                 val result = location match {
                     case Some(loc) ⇒
                         val bbox = getBbox(loc)
-                        val query = new ViewQuery().designDocId("_design/Story").viewName("geoQuery").queryParam("bbox", bbox).limit(3)
-                        val stories = app.getQueryResults[StoryResult](remote = true, query).apply()
+                        //val query = new ViewQuery().designDocId("_design/Story").viewName("geoQuery").queryParam("bbox", bbox).limit(3)
+                        //val stories = app.getQueryResults[StoryResult](remote = true, query).apply()
+                        val stories = List[StoryResult]()
                         if (stories.isEmpty) {
                             None
                         } else {
                             val story = stories(Random.nextInt(stories.size))
-                            story.author = app.getObject[Author](story.authorId).apply()
+                            story.author = await(app.getObject[Author](story.authorId))
                             Some((bbox, story))
                         }
                     case None ⇒ None
@@ -197,9 +200,9 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
             // Popular tags
             val tags = flow {
                 val query = new ViewQuery().designDocId("_design/Story").viewName("tags").group(true)
-                val tags = app.getPlainQueryResults(remote = true, query).apply()
+                val tags = await(app.getPlainQueryResults(remote = true, query))
                 switchToUiThread()
-                val tagArray = Random.shuffle(tags.getRows.toList) take(10) map (_.getKey)
+                val tagArray = Random.shuffle(tags.getRows.toList).take(10).map(_.getKey)
                 ResultRow.fillTags(find[LinearLayout](R.id.storyPopularTagRows), display.getWidth-20, tagArray.toArray, ExploreActivity.this)
             }
 
@@ -220,7 +223,8 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
             }
 
             // wait till they finish
-            latest(); nearby(); tags()
+            await(Future.sequence(List(latest, nearby, tags)))
+            Log.e("EXPORE", "awaiting all three")
 
             if (!flashed) {
                 switchToUiThread()
@@ -231,13 +235,13 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
                 val first = new FadeIn(head)
                 tail.foldLeft(first) { (fade, view) =>
                     val next = new FadeIn(view)
-                    fade.onFinish(next.run)
+                    fade.onFinish(next.run())
                     next
                 }
                 first.run()
                 flashed = true
             }
-		} onFailureUI { case t =>
+		} onFailureUI { case t ⇒
 		    t.printStackTrace()
 		    mProgress.setVisibility(View.GONE)
 		    mRetry.setVisibility(View.VISIBLE)

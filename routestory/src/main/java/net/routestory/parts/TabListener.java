@@ -26,7 +26,7 @@ public class TabListener<T extends Fragment> implements ActionBar.TabListener {
 	        ft.add(android.R.id.content, mFragment, mTag);
 	    } else if (mFragment != null) {
 	        ft.attach(mFragment);
-	    } else if (preInitializedFragment != null) {
+	    } else {
 	        ft.attach(preInitializedFragment);
 	        mFragment = preInitializedFragment;
 	    }

@@ -30,29 +30,22 @@ object StoryApplication {
 }
 
 class StoryApplication extends Application {
-    var mCBLServer: CBLServer = _
-    var mLocalHttpClient: HttpClient = _
-    var mLocalCouchDbInstance: CouchDbInstance = _
-    var mLocalCouchDbConnector: CouchDbConnector = _
+    var authToken: String = _
+    var authorId: String = _
 
-    var mRemoteAuthToken: String = _
-    var mAuthorId: String = _
-    var mRemoteHttpClient: HttpClient = _
-    var mRemoteCouchDbInstance: CouchDbInstance = _
-    var mRemoteCouchDbConnector: CouchDbConnector = _
+    var cblServer: Option[CBLServer] = None
+    var cblInstance: Option[CouchDbInstance] = None
+
+    var localCouch: Option[CouchDbConnector] = None
+    var remoteCouch: Option[CouchDbConnector] = None
 
     CBLURLStreamHandlerFactory.registerSelfIgnoreError()
 
-    override def onCreate() {
-        //initLocalCouch()
-        //initRemoteCouch()
-    }
-
     private def initLocalCouch() {
         try {
-            val filesDir = getFilesDir.getAbsolutePath
-            mCBLServer = new CBLServer(filesDir)
-            mCBLServer.setDefaultHttpClientFactory(new HttpClientFactory {
+            /* create the server */
+            cblServer = Some(new CBLServer(getFilesDir.getAbsolutePath))
+            cblServer.get.setDefaultHttpClientFactory(new HttpClientFactory {
                 override def getHttpClient: org.apache.http.client.HttpClient = {
                     val httpClient = new DefaultHttpClient
                     val authInterceptor = new HttpRequestInterceptor {
@@ -64,11 +57,13 @@ class StoryApplication extends Application {
                     httpClient
                 }
             })
-            mLocalHttpClient = new CBLiteHttpClient(mCBLServer)
-            mLocalCouchDbInstance = new StdCouchDbInstance(mLocalHttpClient)
-            mLocalCouchDbConnector = mLocalCouchDbInstance.createConnector("story", true)
-            val db = mCBLServer.getDatabaseNamed("story", true)
-            db.getViewNamed("Story/byme").setMapReduceBlocks(new CBLViewMapBlock() {
+            val client = cblServer.map(new CBLiteHttpClient(_))
+            cblInstance = client.map(new StdCouchDbInstance(_))
+            localCouch = cblInstance.map(_.createConnector("story", true))
+
+            /* setup views */
+            val db = cblServer.get.getDatabaseNamed("story", true)
+            db.getViewNamed("Story/byme").setMapReduceBlocks(new CBLViewMapBlock {
                 override def map(document: java.util.Map[String, Object], emitter: CBLViewMapEmitBlock) {
                     if (document.get("type").equals("story") &&
                         (document.get("author")==null || document.get("author").equals(getAuthorId))) {
@@ -76,7 +71,7 @@ class StoryApplication extends Application {
                     }
                 }
             }, null, "1.0")
-            db.getViewNamed("Story/saved").setMapReduceBlocks(new CBLViewMapBlock() {
+            db.getViewNamed("Story/saved").setMapReduceBlocks(new CBLViewMapBlock {
                 override def map(document: java.util.Map[String, Object], emitter: CBLViewMapEmitBlock) {
                     if (document.get("type").equals("story") &&
                         document.get("author")!=null && !document.get("author").equals(getAuthorId)) {
@@ -84,7 +79,7 @@ class StoryApplication extends Application {
                     }
                 }
             }, null, "1.0")
-            db.getViewNamed("Story/withComments").setMapReduceBlocks(new CBLViewMapBlock() {
+            db.getViewNamed("Story/withComments").setMapReduceBlocks(new CBLViewMapBlock {
                 override def map(document: java.util.Map[String, Object], emitter: CBLViewMapEmitBlock) {
                     if (document.get("type").equals("story")) {
                         emitter.emit(ComplexKey.of(document.get("_id"), 0.asInstanceOf[Object]), null)
@@ -100,19 +95,18 @@ class StoryApplication extends Application {
 
     private def initRemoteCouch() {
         future {
-            mRemoteHttpClient = new AndroidHttpClient.Builder().url("http://couch.story.stanch.me:80/").build()
-            mRemoteCouchDbInstance = new StdCouchDbInstance(mRemoteHttpClient)
-            mRemoteCouchDbConnector = mRemoteCouchDbInstance.createConnector("story", false)
+            val client = new AndroidHttpClient.Builder().url("https://bag-routestory-net.herokuapp.com:443/").build()
+            synchronized(remoteCouch = Some(new StdCouchDbInstance(client).createConnector("story", false)))
         }
     }
 
     def setAuthData(s: Array[String]) {
-        mAuthorId = s(0)
-        mRemoteAuthToken = s(1)
+        authorId = s(0)
+        authToken = s(1)
         val prefs = getSharedPreferences("default", MODE_PRIVATE)
         val editor = prefs.edit()
-        editor.putString("remoteAuthToken", mRemoteAuthToken)
-        editor.putString("authorId", mAuthorId)
+        editor.putString("authToken", authToken)
+        editor.putString("authorId", authorId)
         editor.commit()
         sync()
     }
@@ -124,80 +118,77 @@ class StoryApplication extends Application {
     def isSignedIn = getRemoteAuthToken != null
 
     def getRemoteAuthToken = {
-        if (mRemoteAuthToken == null) {
-            mRemoteAuthToken = getSharedPreferences("default", MODE_PRIVATE).getString("remoteAuthToken", null)
+        if (authToken == null) {
+            authToken = getSharedPreferences("default", MODE_PRIVATE).getString("authToken", null)
         }
-        mRemoteAuthToken
-    }
-    def getAuthorId = {
-        if (mAuthorId == null) {
-            mAuthorId = getSharedPreferences("default", MODE_PRIVATE).getString("authorId", null)
-        }
-        mAuthorId
-    }
-    def getAuthor = {
-        if (mAuthorId == null) {
-            mAuthorId = getSharedPreferences("default", MODE_PRIVATE).getString("authorId", null)
-        }
-        mLocalCouchDbConnector.get(classOf[Author], mAuthorId)
+        authToken
     }
 
+    def getAuthorId = {
+        if (authorId == null) {
+            authorId = getSharedPreferences("default", MODE_PRIVATE).getString("authorId", null)
+        }
+        authorId
+    }
+
+    def getAuthor = localCouch.map(_.get(classOf[Author], getAuthorId)).getOrElse(null)
+
     def createStory(story: Story) {
-        mLocalCouchDbConnector.create(story)
+        localCouch.map(_.create(story))
     }
 
     def updateStoryAttachment(attachment_id: String, contentStream: InputStream, contentType: String, id: String, rev: String) = {
-        mCBLServer.getDatabaseNamed("story").updateAttachment(attachment_id, contentStream, contentType, id, rev, new CBLStatus).getRevId
+        cblServer.map(_.getDatabaseNamed("story").updateAttachment(attachment_id, contentStream, contentType, id, rev, new CBLStatus).getRevId).getOrElse(null)
     }
 
     def compactLocal() {
-        mCBLServer.getDatabaseNamed("story").compact()
+        cblServer.map(_.getDatabaseNamed("story").compact())
     }
 
     def deleteStory(story: Story) {
-        mLocalCouchDbConnector.delete(story)
+        localCouch.map(_.delete(story))
     }
 
     def localContains(id: String) = {
-        mLocalCouchDbConnector.contains(id)
+        localCouch.map(_.contains(id)) getOrElse false
     }
 
     def remoteContains(id: String) = {
-        !localContains(id) || mRemoteCouchDbConnector.contains(id)
+        !localContains(id) || remoteCouch.map(_.contains(id)).getOrElse(false)
     }
 
     def localOrRemote[A](local: Boolean, f: CouchDbConnector ⇒ A): Future[A] = {
         if (local) Future.successful(
-            f(mLocalCouchDbConnector)
+            f(localCouch.get)
         ) else future {
-            f(mRemoteCouchDbConnector)
+            f(remoteCouch.get)
         }
     }
 
-    private def couchGet[A <: CouchDbObject](couch: CouchDbConnector, id: String)(implicit tag: ClassTag[A]) = {
-        val obj = couch.get[A](tag.runtimeClass.asInstanceOf[Class[A]], id)
+    private def couchGet[A <: CouchDbObject : ClassTag](couch: CouchDbConnector, id: String) = {
+        val obj = couch.get(implicitly[ClassTag[A]].runtimeClass, id).asInstanceOf[A]
         obj.bind(couch)
         obj
     }
 
-    def getObject[A <: CouchDbObject](id: String)(implicit tag: ClassTag[A]): Future[A] = {
+    def getObject[A <: CouchDbObject : ClassTag](id: String): Future[A] = {
         if (id == null) {
             Future.failed(new Exception)
         } else localOrRemote(localContains(id), couchGet[A](_, id))
     }
 
-    def getObjects[A <: CouchDbObject](ids: List[String])(implicit tag: ClassTag[A]): Future[Map[String, A]] = {
+    def getObjects[A <: CouchDbObject : ClassTag](ids: List[String]): Future[Map[String, A]] = {
         val (local, remote) = ids.filter(_ != null).partition(localContains(_))
-        val localObjects = local.map(id ⇒ (id, couchGet[A](mLocalCouchDbConnector, id))).toMap
+        val localObjects = local.map(id ⇒ (id, couchGet[A](localCouch.get, id))).toMap
         if (remote.isEmpty) Future.successful(
             localObjects
         ) else future {
-            localObjects ++ remote.map(id ⇒ (id, couchGet[A](mRemoteCouchDbConnector, id))).toMap
+            localObjects ++ remote.map(id ⇒ (id, couchGet[A](remoteCouch.get, id))).toMap
         }
     }
 
-    def getQueryResults[A](remote: Boolean, query: ViewQuery)(implicit tag: ClassTag[A]): Future[List[A]] = {
-        localOrRemote(!remote, _.queryView(query, tag.runtimeClass.asInstanceOf[Class[A]]).toList)
+    def getQueryResults[A: ClassTag](remote: Boolean, query: ViewQuery): Future[List[A]] = {
+        localOrRemote(!remote, _.queryView(query, implicitly[ClassTag[A]].runtimeClass).map(_.asInstanceOf[A]).toList)
     }
 
     def getPlainQueryResults(remote: Boolean, query: ViewQuery): Future[ViewResult] = {
@@ -211,26 +202,13 @@ class StoryApplication extends Application {
 	}
 	
 	def sync() {
+        if (localCouch.isEmpty) initLocalCouch()
+        if (remoteCouch.isEmpty) initRemoteCouch()
 		if (false && isSignedIn && isOnline) {
-            val push = new ReplicationCommand.Builder().source("story").target("http://couch.story.stanch.me/story").build()
-            mLocalCouchDbInstance.replicate(push)
-            val pull = new ReplicationCommand.Builder().target("story").source("http://couch.story.stanch.me/story").build()
-            mLocalCouchDbInstance.replicate(pull)
-        }
-	}
-
-	override def onTerminate() {
-		if (mLocalHttpClient != null) {
-            mLocalHttpClient.shutdown()
-            mLocalHttpClient = null
-        }
-        if (mCBLServer != null) {
-            mCBLServer.close()
-            mCBLServer = null
-        }
-        if (mRemoteHttpClient != null) {
-            mRemoteHttpClient.shutdown()
-            mRemoteHttpClient = null
+            val push = new ReplicationCommand.Builder().source("story").target("https://bag-routestory-net.herokuapp.com/story").build()
+            cblInstance.map(_.replicate(push))
+            val pull = new ReplicationCommand.Builder().target("story").source("https://bag-routestory-net.herokuapp.com/story").build()
+            cblInstance.map(_.replicate(pull))
         }
 	}
 }
