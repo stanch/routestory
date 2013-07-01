@@ -35,9 +35,11 @@ import net.routestory.parts.Implicits._
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.google.android.gms.maps.model.CameraPosition
+import scala.concurrent.Future
+import scala.util.Try
 
 class ResultMapFragment extends SherlockFragment with StoryFragment with ViewzResults {
-    lazy val mMap = findFrag[SupportMapFragment]("results_map").getMap()
+    lazy val mMap = findFrag[SupportMapFragment]("results_map").getMap
     var mMarkers = Map[Marker, StoryResult]()
     var mRoutes = List[Polyline]()
 	
@@ -71,16 +73,16 @@ class ResultMapFragment extends SherlockFragment with StoryFragment with ViewzRe
 	        }
 	        this += new SFrameLayout {
 	            val search = SButton(R.string.search_this_area).<<(WRAP_CONTENT, WRAP_CONTENT).marginBottom(20 dip).Gravity(Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL).>>
-	            search.setOnClickListener { v: View =>
-					val r = mMap.getProjection().getVisibleRegion()
-					getActivity().asInstanceOf[SearchResultsActivity].geoQuery("%f,%f,%f,%f".formatLocal(Locale.US, r.nearLeft.latitude, r.nearLeft.longitude, r.farRight.latitude, r.farRight.longitude));
+	            search.setOnClickListener { v: View ⇒
+					val r = mMap.getProjection.getVisibleRegion
+					getActivity.asInstanceOf[SearchResultsActivity].geoQuery("%f,%f,%f,%f".formatLocal(Locale.US, r.nearLeft.latitude, r.nearLeft.longitude, r.farRight.latitude, r.farRight.longitude));
 		        }
 	        }
 	    }
 	    
 		if (findFrag("results_map") == null) {
 			val mapFragment = SupportMapFragment.newInstance()
-			val fragmentTransaction = getChildFragmentManager().beginTransaction()
+			val fragmentTransaction = getChildFragmentManager.beginTransaction()
 	        fragmentTransaction.add(1, mapFragment, "results_map")
 	        fragmentTransaction.commit()
 		}
@@ -89,48 +91,48 @@ class ResultMapFragment extends SherlockFragment with StoryFragment with ViewzRe
 	}
 
     override def onStart() {
-        super.onStart();
-        mMap.setOnMarkerClickListener { marker: Marker =>
+        super.onStart()
+        mMap.setOnMarkerClickListener { marker: Marker ⇒
         	val story = mMarkers(marker)
 			// TODO: wtf? how to measure one?
-			val a = List(getView().getMeasuredWidth(), getView().getMeasuredHeight()).min * 0.8
-			new AlertDialog.Builder(ctx).setView(ResultRow.getView(null, a.toInt, story, getActivity())).create().show()
+			val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8
+			new AlertDialog.Builder(ctx).setView(ResultRow.getView(null, a.toInt, story, getActivity)).create().show()
 			true
         }
     }
 
-	def update() {
-		getActivity.asInstanceOf[HazResults].getResults onSuccessUI { case results =>
-			mRoutes foreach {_.remove()}
-			mMarkers foreach {_._1.remove()}
+	def update(res: Future[List[StoryResult]]) {
+		res.onSuccessUI { case results ⇒
+			mRoutes.foreach(_.remove())
+			mMarkers.foreach(_._1.remove())
 			mRoutes = List()
 			mMarkers = Map()
 			val boundsBuilder = LatLngBounds.builder()
-			for (i <- results.indices) {
+			for (i ← results.indices) {
 				val r = results(i)
 				val routeOptions = new PolylineOptions()
-				r.geometry.coordinates map { l => 
+				r.geometry.coordinates map { l ⇒
 					new LatLng(l(0), l(1))
-				} foreach { p =>
+				} foreach { p ⇒
 					boundsBuilder.include(p)
 					routeOptions.add(p)
 				}
 		        routeOptions.color(Color.parseColor(kellyColors(i % kellyColors.length)))
 		        mRoutes ::= mMap.addPolyline(routeOptions)
-		        val start = r.geometry.coordinates take(1) map { l => new LatLng(l(0), l(1)) } toList (0)
+		        val start = r.geometry.coordinates.take(1).map(l ⇒ new LatLng(l(0), l(1))).toList(0)
 		        mMarkers += (mMap.addMarker(new MarkerOptions()
 		        	.position(start)
 		        	.icon(BitmapDescriptorFactory.fromResource(R.drawable.flag_start))
 		        	.anchor(0.3f, 1)
-		    	) -> r)
+		    	) → r)
 			}
 			val bounds = boundsBuilder.build()
-			try {
+			Try {
 				mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dip))
-			} catch { case _: Throwable =>
-				mMap.setOnCameraChangeListener { p: CameraPosition =>
+			} getOrElse {
+				mMap.setOnCameraChangeListener { p: CameraPosition ⇒
 				    mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dip))
-				    mMap.setOnCameraChangeListener { p: CameraPosition =>; }
+				    mMap.setOnCameraChangeListener { p: CameraPosition ⇒ () }
 		        }
 			}
 		}

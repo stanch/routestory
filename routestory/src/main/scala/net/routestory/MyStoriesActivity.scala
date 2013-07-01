@@ -11,19 +11,17 @@ import com.actionbarsherlock.app.ActionBar
 import com.actionbarsherlock.app.SherlockFragmentActivity
 import com.actionbarsherlock.view.MenuItem
 import net.routestory.parts.StoryActivity
-import net.routestory.explore.HazResults
 import org.scaloid.common._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
 import net.routestory.explore.ResultListFragment
 import akka.dataflow._
+import net.routestory.parts.TabListener2
 
-class MyStoriesActivity extends SherlockFragmentActivity with StoryActivity with HazResults {
+class MyStoriesActivity extends SherlockFragmentActivity with StoryActivity {
 	var activeTab: ResultListFragment = null
-	var stories: Future[List[StoryResult]] = Future.successful(List())
-	
-	override def getResults = stories
+	var stories: Future[List[StoryResult]] = Future.failed(new UninitializedError)
 	
     override def onCreate(savedInstanceState: Bundle) {
         super.onCreate(savedInstanceState)
@@ -36,11 +34,11 @@ class MyStoriesActivity extends SherlockFragmentActivity with StoryActivity with
 	    val sel = if (savedInstanceState!=null) savedInstanceState.getInt("tab") else 0
 	
 	    bar.addTab(
-    		bar.newTab().setText(R.string.title_tab_byme).setTabListener(new TabListener(this, "byme", classOf[ResultListFragment])),
+    		bar.newTab().setText(R.string.title_tab_byme).setTabListener(TabListener2[ResultListFragment](this, "byme")),
     		0, 0==sel
 		)
         bar.addTab(
-    		bar.newTab().setText(R.string.title_tab_saved).setTabListener(new TabListener(this, "saved", classOf[ResultListFragment])),
+    		bar.newTab().setText(R.string.title_tab_saved).setTabListener(TabListener2[ResultListFragment](this, "saved")),
     		1, 1==sel
 		)
     }
@@ -54,12 +52,12 @@ class MyStoriesActivity extends SherlockFragmentActivity with StoryActivity with
         val query = new ViewQuery().designDocId("_design/Story").viewName(activeTab.getTag).descending(true).includeDocs(true)
         flow {
             stories = app.getQueryResults[StoryResult](remote = false, query)
-            val authorIds = stories().map(_.authorId)
-            val authors = app.getObjects[Author](authorIds).apply()
-            stories().filter(_.authorId!=null) foreach { r ⇒
+            val authorIds = await(stories).map(_.authorId)
+            val authors = await(app.getObjects[Author](authorIds))
+            await(stories).filter(_.authorId!=null) foreach { r ⇒
                 r.author = authors(r.authorId)
             }
-            activeTab.update()
+            activeTab.update(stories)
         }
     }
     

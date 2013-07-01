@@ -12,6 +12,7 @@ import com.actionbarsherlock.app.SherlockListFragment
 import android.app.Activity
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class ResultListFragment extends SherlockListFragment with StoryFragment with ViewzResults {
 	lazy val emptyText = ctx.getResources().getString(R.string.empty_search)
@@ -25,9 +26,9 @@ class ResultListFragment extends SherlockListFragment with StoryFragment with Vi
         setEmptyText(emptyText)
     }
     
-    def update() {
-    	getActivity.asInstanceOf[HazResults].getResults onSuccessUI { case results =>
-    		setListAdapter(new ResultListFragment.StoryListAdapter(ctx, results))
+    def update(results: Future[List[StoryResult]]) {
+    	results.onSuccessUI { case res ⇒
+    		setListAdapter(new ResultListFragment.StoryListAdapter(ctx, res))
     	}
     }
 }

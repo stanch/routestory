@@ -8,8 +8,7 @@ import net.routestory.MainActivity
 import net.routestory.R
 import net.routestory.model.Author
 import net.routestory.model.StoryResult
-import net.routestory.parts.GotoDialogFragments
-import net.routestory.parts.TabListener
+import net.routestory.parts.{TabListener2, GotoDialogFragments, TabListener, StoryActivity}
 import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
@@ -24,18 +23,14 @@ import com.actionbarsherlock.view.Menu
 import com.actionbarsherlock.view.MenuItem
 import com.actionbarsherlock.widget.SearchView
 
-import net.routestory.parts.StoryActivity
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import org.scaloid.common._
 import akka.dataflow._
-
-trait HazResults {
-	def getResults: Future[List[StoryResult]]
-}
+import com.actionbarsherlock.app.SherlockFragmentActivity
 
 trait ViewzResults {
-	def update()
+	def update(results: Future[List[StoryResult]])
 }
 
 object SearchResultsActivity {
@@ -52,13 +47,11 @@ object SearchResultsActivity {
     }
 }
 
-class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity with HazResults {
+class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity {
     import SearchResultsActivity._
 
-	var searchResults: Future[List[StoryResult]] = Future.successful(List())
+	var searchResults: Future[List[StoryResult]] = Future.failed(new UninitializedError)
 	var viewers = List[WeakReference[ViewzResults]]()
-	
-	override def getResults = searchResults
 	
 	override def onCreate(savedInstanceState: Bundle) {
 		super.onCreate(savedInstanceState)
@@ -70,11 +63,11 @@ class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity 
 	    
 	    val showMap = getIntent.hasExtra("showmap")
 	    bar.addTab(
-    		bar.newTab().setText(R.string.title_tab_resultslist).setTabListener(new TabListener(this, "list", classOf[ResultListFragment])),
+    		bar.newTab().setText(R.string.title_tab_resultslist).setTabListener(TabListener2[ResultListFragment](this, "list")),
     		0, !showMap
 		)
 	    bar.addTab(
-    		bar.newTab().setText(R.string.title_tab_resultsmap).setTabListener(new TabListener(this, "map", classOf[ResultMapFragment])),
+    		bar.newTab().setText(R.string.title_tab_resultsmap).setTabListener(TabListener2[ResultMapFragment](this, "map")),
     		1, showMap
 		)
 	}
@@ -84,14 +77,14 @@ class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity 
 		if (!GotoDialogFragments.ensureNetwork(this)) {
 			return
 		}
-		
+
 		getIntent match {
             case SearchIntent(query) ⇒
                 bar.setSubtitle(getResources.getString(R.string.search_results_for) + " " + query)
                 textQuery(s"title:($query~) tags:($query~)") // TODO: (a~ b~)
             case TagIntent(tag) ⇒
                 bar.setSubtitle(getResources.getString(R.string.search_results_tag) + " " + tag)
-                textQuery(s"""tags:"$tag"""")
+                textQuery(s"""tags:"$tag" """)
             case BboxIntent(bbox) ⇒
                 bar.setSubtitle(getResources.getString(R.string.search_results_area))
                 geoQuery(bbox)
@@ -102,10 +95,10 @@ class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity 
 	}
 	
 	private def fetchResults(query: ViewQuery): Future[List[StoryResult]] = flow {
-		val results = app.getQueryResults[StoryResult](remote = true, query).apply()
+		val results = await(app.getQueryResults[StoryResult](remote = true, query))
 		val authorIds = results.map(_.authorId)
-		val authors = app.getObjects[Author](authorIds).apply()
-		results.filter(_.authorId!=null) foreach { r =>
+		val authors = await(app.getObjects[Author](authorIds))
+		results.filter(_.authorId!=null) foreach { r ⇒
 			r.author = authors(r.authorId)
 		}
 		results
@@ -114,14 +107,14 @@ class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity 
 	def textQuery(q: String) {
         val query = new ViewQuery().designDocId("_design/Story").viewName("textQuery").queryParam("q", q).queryParam("include_geometry", "true")
 		searchResults = fetchResults(query)
-		viewers.flatMap(_.get).foreach(_.update())
+		viewers.flatMap(_.get).foreach(_.update(searchResults))
 	}
 	
 	def geoQuery(bbox: String) {
 		getSupportActionBar.setSubtitle(getResources.getString(R.string.search_results_area))
         val query = new ViewQuery().designDocId("_design/Story").viewName("geoQuery").queryParam("bbox", bbox)
         searchResults = fetchResults(query)
-		viewers.flatMap(_.get).foreach(_.update())
+		viewers.flatMap(_.get).foreach(_.update(searchResults))
 	}
 	
 	override def onCreateOptionsMenu(menu: Menu): Boolean = {
@@ -131,7 +124,7 @@ class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity 
         val searchView = searchMenuItem.getActionView.asInstanceOf[SearchView]
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName))
         searchView.setIconifiedByDefault(false)
-        searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
+        searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener {
             override def onFocusChange(view: View, queryTextFocused: Boolean) {
                 if(!queryTextFocused) {
                     searchMenuItem.collapseActionView()
@@ -143,22 +136,22 @@ class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity 
 	
 	override def onOptionsItemSelected(item: MenuItem): Boolean = {
 	    item.getItemId match {
-	        case android.R.id.home => {
+	        case android.R.id.home ⇒
 	            val intent = SIntent[MainActivity]
 	            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
 	            startActivity(intent)
 	            true
-	        }
-	        case _ => super.onOptionsItemSelected(item)
+	        case _ ⇒
+                super.onOptionsItemSelected(item)
 	    }
 	}
 	
 	override def onAttachFragment(fragment: Fragment) {
 		try {
-			viewers = new WeakReference[ViewzResults](fragment.asInstanceOf[ViewzResults]) :: viewers
-			fragment.asInstanceOf[ViewzResults].update()
+			viewers ::= new WeakReference[ViewzResults](fragment.asInstanceOf[ViewzResults])
+			fragment.asInstanceOf[ViewzResults].update(searchResults)
 		} catch {
-			case e: Throwable => e.printStackTrace()
+			case e: Throwable ⇒ e.printStackTrace()
 		}
 	}
 }
