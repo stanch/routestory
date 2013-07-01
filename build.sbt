@@ -6,7 +6,7 @@ version := "1.0"
 
 versionCode := 0
 
-scalaVersion := "2.10.1"
+scalaVersion := "2.10.2"
 
 platformName := "android-17"
 
@@ -30,7 +30,7 @@ libraryDependencies ++= Seq(
 	"me.lessis" %% "retry-core" % "0.1.0",
 	apklib("com.actionbarsherlock" % "actionbarsherlock" % "4.3.1") exclude ("com.google.android", "support-v4"),
 	aarlib("com.couchbase.cblite" % "CBLite" % "0.7"),
-	aarlib("com.couchbase.cblite" % "CBLiteEktorp" % "0.7"),
+	aarlib("com.couchbase.cblite" % "CBLiteEktorp" % "0.7.2"),
 	"com.android.support" % "support-v13" % "13.0.0",
 	aarlib("com.google.android.gms" % "play-services" % "3.1.36")
 )

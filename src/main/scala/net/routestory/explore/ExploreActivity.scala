@@ -5,7 +5,6 @@ import org.ektorp.ViewQuery
 import net.routestory.parts.Implicits._
 import android.os.Bundle
 import android.location.LocationListener
-import com.actionbarsherlock.app.SherlockFragmentActivity
 import android.location.Location
 import com.actionbarsherlock.view.MenuItem
 import net.routestory.R
@@ -36,7 +35,7 @@ import com.actionbarsherlock.app.SherlockFragmentActivity
 import com.actionbarsherlock.app.SherlockFragmentActivity
 import android.util.Log
 
-class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
+class ExploreActivity extends StoryActivity {
     var flashed = false
     var mProgress: ProgressBar = null
     var mRetry: TextView = null
@@ -207,9 +206,9 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
             }
 
             // Search field
-            find[TextView](R.id.searchField).setOnEditorActionListener { (v: TextView, actionId: Int, event: KeyEvent) =>
+            find[TextView](R.id.searchField).setOnEditorActionListener { (v: TextView, actionId: Int, event: KeyEvent) ⇒
                 if (
-                    List(EditorInfo.IME_ACTION_SEARCH, EditorInfo.IME_ACTION_DONE).contains(actionId) ||
+                    Set(EditorInfo.IME_ACTION_SEARCH, EditorInfo.IME_ACTION_DONE).contains(actionId) ||
                     event.getAction == KeyEvent.ACTION_DOWN && event.getKeyCode == KeyEvent.KEYCODE_ENTER
                 ) {
                     val intent = SIntent[SearchResultsActivity]
@@ -223,8 +222,7 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
             }
 
             // wait till they finish
-            await(Future.sequence(List(latest, nearby, tags)))
-            Log.e("EXPORE", "awaiting all three")
+            await(latest zip nearby zip tags)
 
             if (!flashed) {
                 switchToUiThread()
@@ -233,7 +231,7 @@ class ExploreActivity extends SherlockFragmentActivity with StoryActivity {
                     find[LinearLayout](id)
                 }
                 val first = new FadeIn(head)
-                tail.foldLeft(first) { (fade, view) =>
+                tail.foldLeft(first) { (fade, view) ⇒
                     val next = new FadeIn(view)
                     fade.onFinish(next.run())
                     next

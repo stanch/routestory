@@ -1,5 +1,6 @@
 package net.routestory
 
+import _root_.android.util.Log
 import android.app.Application
 import android.content.Context
 import android.content.Context._
@@ -24,6 +25,7 @@ import scala.reflect.ClassTag
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
+import org.codehaus.jackson.map.ObjectMapper
 
 object StoryApplication {
     val storyPreviewDuration = 30
@@ -95,7 +97,7 @@ class StoryApplication extends Application {
 
     private def initRemoteCouch() {
         future {
-            val client = new AndroidHttpClient.Builder().url("https://bag-routestory-net.herokuapp.com:443/").build()
+            val client = new AndroidHttpClient.Builder().connectionTimeout(10000).url("https://bag-routestory-net.herokuapp.com:443/").build()
             synchronized(remoteCouch = Some(new StdCouchDbInstance(client).createConnector("story", false)))
         }
     }
@@ -187,8 +189,13 @@ class StoryApplication extends Application {
         }
     }
 
+    lazy val objectMapper = new ObjectMapper()
     def getQueryResults[A: ClassTag](remote: Boolean, query: ViewQuery): Future[List[A]] = {
-        localOrRemote(!remote, _.queryView(query, implicitly[ClassTag[A]].runtimeClass).map(_.asInstanceOf[A]).toList)
+        getPlainQueryResults(remote, query) map { results ⇒
+            results.getRows.toList map { row ⇒
+                objectMapper.readValue(row.getValue, implicitly[ClassTag[A]].runtimeClass).asInstanceOf[A]
+            }
+        }
     }
 
     def getPlainQueryResults(remote: Boolean, query: ViewQuery): Future[ViewResult] = {

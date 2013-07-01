@@ -24,7 +24,6 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
-import net.routestory.parts.StoryFragment
 import net.routestory.parts.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.future
@@ -32,13 +31,23 @@ import org.scaloid.common._
 import org.scaloid.common.SButton
 import android.graphics.Point
 import net.routestory.parts.StoryFragment
+import net.routestory.parts.Implicits._
+import akka.dataflow._
 
 class OverviewFragment extends SherlockFragment with StoryFragment {
     lazy val display = getActivity.getWindowManager.getDefaultDisplay
-    lazy val mMap = findFrag[SupportMapFragment]("overview_map").getMap()
+    lazy val mMap = findFrag[SupportMapFragment]("overview_map").getMap
 	lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
-	lazy val mRouteManager = mStory map { new RouteManager(mMap, _) } map { x ⇒ runOnUiThread{x.init()}; x }
-    lazy val mMarkerManager = mStory map { new MarkerManager(mMap, List(display.getWidth(), display.getHeight()), _) }
+	lazy val mRouteManager = flow {
+        val story = await(mStory)
+        val rm = new RouteManager(mMap, story)
+        runOnUiThread(rm.init())
+        rm
+    }
+    lazy val mMarkerManager = flow {
+        val story = await(mStory)
+        new MarkerManager(mMap, List(display.getWidth(), display.getHeight()), story)
+    }
 	
 	override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
 	    val view = new SFrameLayout {
@@ -59,7 +68,7 @@ class OverviewFragment extends SherlockFragment with StoryFragment {
 	    
 		if (findFrag("overview_map") == null) {
 			val mapFragment = SupportMapFragment.newInstance()
-			val fragmentTransaction = getChildFragmentManager().beginTransaction()
+			val fragmentTransaction = getChildFragmentManager.beginTransaction()
 	        fragmentTransaction.add(1, mapFragment, "overview_map")
 	        fragmentTransaction.commit()
 		}
@@ -72,34 +81,34 @@ class OverviewFragment extends SherlockFragment with StoryFragment {
         
         /* Initialize marker manager */
         //val progress = spinnerDialog("", "Putting everying on the map...")
-        mMarkerManager map { case mm =>
-            while (!mm.isReady) {}
-            mm
-        } onSuccessUI { case mm =>
-            mm.update();
-    		mMap.setOnMarkerClickListener(mm.onMarkerClick _);
-    		//progress.dismiss();
+        flow {
+            val mm = await(mMarkerManager)
+            while(!mm.isReady) {}
+            switchToUiThread()
+            mm.update()
+            mMap.setOnMarkerClickListener(mm.onMarkerClick _)
         }
-        
+
         /* Put start and end markers */
-        mRouteManager onSuccessUI { case rm =>
-	        List(rm.getStart(), rm.getEnd()) zip
-	        List(R.drawable.flag_start, R.drawable.flag_end) map { case (l, d) =>
-	        	mMap.addMarker(new MarkerOptions()
-					.position(l)
-			    	.icon(BitmapDescriptorFactory.fromResource(d))
-			    	.anchor(0.3f, 1)
-				);
-	        }
+        flow {
+            val rm = await(mRouteManager)
+            List(rm.getStart → R.drawable.flag_start, rm.getEnd → R.drawable.flag_end) map { case (l, d) ⇒
+                mMap.addMarker(new MarkerOptions()
+                    .position(l)
+                    .icon(BitmapDescriptorFactory.fromResource(d))
+                    .anchor(0.3f, 1)
+                )
+            }
         }
-        
+
         /* Move map to bounds */
-        mMap.setOnCameraChangeListener { p: CameraPosition =>
-            mMarkerManager zip mRouteManager onSuccessUI { case (mm, rm) =>
-			    mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(rm.getBounds(), 30 dip))
-			    mMap.setOnCameraChangeListener { p: CameraPosition =>
-			    	mm.update();
-			    }
+        mMap.setOnCameraChangeListener { p: CameraPosition ⇒
+            flow {
+                val mm = await(mMarkerManager)
+                val rm = await(mRouteManager)
+                switchToUiThread()
+                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(rm.getBounds, 30 dip))
+                mMap.setOnCameraChangeListener { p: CameraPosition ⇒ mm.update() }
             }
         }
     }

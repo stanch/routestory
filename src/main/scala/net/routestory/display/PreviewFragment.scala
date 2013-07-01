@@ -1,4 +1,4 @@
-package net.routestory.display;
+package net.routestory.display
 
 import java.io.File
 import net.routestory.R
@@ -42,9 +42,10 @@ import scala.concurrent.Future
 import scala.collection.JavaConversions._
 import android.app.ProgressDialog
 import net.routestory.parts.StoryFragment
+import akka.dataflow._
 
 class PreviewFragment extends SherlockFragment with StoryFragment {
-	lazy val mMap = findFrag[SupportMapFragment]("preview_map").getMap()
+	lazy val mMap = findFrag[SupportMapFragment]("preview_map").getMap
 	lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
 	lazy val mRouteManager = mStory map { new RouteManager(mMap, _) } map { x => runOnUiThread{x.init()}; x }
 	lazy val mHandler = new Handler()
@@ -72,7 +73,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
 	    
 		if (findFrag("preview_map") == null) {
 			val mapFragment = SupportMapFragment.newInstance()
-			val fragmentTransaction = getChildFragmentManager().beginTransaction()
+			val fragmentTransaction = getChildFragmentManager.beginTransaction()
 	        fragmentTransaction.add(1, mapFragment, "preview_map")
 	        fragmentTransaction.commit()
 		}
@@ -82,19 +83,51 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
 	
 	override def onFirstStart() {
 	    mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL)
-	    mRouteManager onSuccessUI { case rm =>
-	        mPositionMarker = mMap.addMarker(new MarkerOptions()
-	        	.position(rm.getStart())
-	        	.icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
-	        )
-	    } onFailureUI {
-	        case t => t.printStackTrace()
-	    }
+
+        /* Display the man */
+        flow {
+            val rm = await(mRouteManager)
+            switchToUiThread()
+            mPositionMarker = mMap.addMarker(new MarkerOptions()
+                .position(rm.getStart)
+                .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
+            )
+        }
         
-        val display = getActivity().getWindowManager().getDefaultDisplay()        
+        val display = getActivity.getWindowManager.getDefaultDisplay
 		val maxSize = Math.min(display.getWidth(), display.getHeight())/4
-		
-        mStory onSuccessUI { case story => 
+
+        flow {
+            val story = await(mStory)
+            val progress = new ProgressDialog(ctx) {
+                setMessage("Loading data...")
+                setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
+                setMax( story.photos.length + 1 )
+                show()
+            }
+            val photos = Future.sequence(story.photos.map(i ⇒ flow {
+                Option(await(i.get(maxSize))) foreach { bitmap ⇒
+                    mMap.addMarker(new MarkerOptions()
+                        .position(story.getLocation(i.timestamp))
+                        .icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
+                            bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize),
+                            0.8, false
+                        )))
+                    )
+                }
+                switchToUiThread()
+                progress.incrementProgressBy(1)
+            }))
+            val audio = flow {
+                await(story.audioPreview.get)
+                switchToUiThread()
+                progress.incrementProgressBy(1)
+            }
+            await(photos zip audio)
+            switchToUiThread()
+            progress.dismiss()
+        }
+        /*mStory onSuccessUI { case story =>
             val progress = new ProgressDialog(ctx)
             progress.setMessage("Loading data...")
             progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
@@ -106,7 +139,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
 					mMap.addMarker(new MarkerOptions()
 				    	.position(story.getLocation(i.timestamp))
 				    	.icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
-			    			bitmap, Math.min(Math.max(bitmap.getWidth(), bitmap.getHeight()), maxSize),
+			    			bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize),
 	    					0.8, false
 						)))
 				    )
@@ -122,107 +155,106 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
             Future.sequence(audio +: photos) onSuccessUI { case _ =>
                 progress.dismiss()
             }
-            
-        }
+        }*/
 	}
 
     override def onEveryStart() {
         mRouteManager onSuccessUI { case rm =>
 	        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()
-	    		.target(rm.getStart()).tilt(90).zoom(19)
-	    		.bearing(rm.getStartBearing()).build()
-			));
+	    		.target(rm.getStart).tilt(90).zoom(19)
+	    		.bearing(rm.getStartBearing).build()
+			))
         }
     }
     
     override def onStop() {
-    	super.onStop();
-    	mHandler.removeCallbacksAndMessages(null);
+    	super.onStop()
+        mHandler.removeCallbacksAndMessages(null)
     }
     
     def startPreview(story: Story, rm: RouteManager) {
-    	mPlayButton.setVisibility(View.INVISIBLE);
-	    val start = SystemClock.uptimeMillis();
-    	val ratio = story.duration.toDouble / StoryApplication.storyPreviewDuration / 1000;
-    	val lastLocation = story.locations.last.timestamp / ratio;
-    	
-    	story.notes foreach { note =>
+    	mPlayButton.setVisibility(View.INVISIBLE)
+        val start = SystemClock.uptimeMillis()
+        val ratio = story.duration.toDouble / StoryApplication.storyPreviewDuration / 1000
+        val lastLocation = story.locations.last.timestamp / ratio
+
+        story.notes foreach { note =>
     		mHandler.postAtTime({
     			toast(note.text)
-    		}, start + (note.timestamp/ratio).toInt);
-    	}
+    		}, start + (note.timestamp/ratio).toInt)
+        }
     	
     	story.heartbeat foreach { beat =>
     		mHandler.postAtTime({
-    			vibrator.vibrate(beat.getVibrationPattern(4), -1);
-    		}, start + (beat.timestamp/ratio).toInt);
-    	}
+    			vibrator.vibrate(beat.getVibrationPattern(4), -1)
+            }, start + (beat.timestamp/ratio).toInt)
+        }
     	
     	def move() {
-			val elapsed = SystemClock.uptimeMillis() - start;
-			val now = story.getLocation(elapsed*ratio);
-			
-			val bearing = (List(100, 300, 500) map { t =>
+			val elapsed = SystemClock.uptimeMillis() - start
+            val now = story.getLocation(elapsed*ratio)
+
+            val bearing = (List(100, 300, 500) map { t =>
 			    rm.getBearing(now, story.getLocation((elapsed+t)*ratio))
 			} zip List(0.3f, 0.4f, 0.3f) map { case (b, w) =>
 			    b * w
 			}).sum
 			
-			mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder(mMap.getCameraPosition()).target(now).bearing(bearing).build()));
-			if (elapsed < lastLocation) {
-				mHandler.postDelayed(move, 300);
-			}
+			mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder(mMap.getCameraPosition).target(now).bearing(bearing).build()))
+            if (elapsed < lastLocation) {
+				mHandler.postDelayed(move, 300)
+            }
     	}
-    	mHandler.postDelayed(move, 300);
-    	
-    	def walk() {
-			val elapsed = SystemClock.uptimeMillis() - start;
-			val now = story.getLocation(elapsed*ratio);
-			mPositionMarker.remove();
-			mPositionMarker = mMap.addMarker(new MarkerOptions()
+    	mHandler.postDelayed(move, 300)
+
+        def walk() {
+			val elapsed = SystemClock.uptimeMillis() - start
+            val now = story.getLocation(elapsed*ratio)
+            mPositionMarker.remove()
+            mPositionMarker = mMap.addMarker(new MarkerOptions()
             	.position(now)
             	.icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
-            );
-			if (elapsed < lastLocation) {
-				mHandler.postDelayed(walk, 100);
-			}
+            )
+            if (elapsed < lastLocation) {
+				mHandler.postDelayed(walk, 100)
+            }
     	}
-    	mHandler.postDelayed(walk, 100);
-    	
-    	mHandler.postDelayed({
-			rewind();
-    	}, (StoryApplication.storyPreviewDuration+3)*1000);
-    	
-    	playAudio(story);
+    	mHandler.postDelayed(walk, 100)
+
+        mHandler.postDelayed({
+			rewind()
+        }, (StoryApplication.storyPreviewDuration+3)*1000)
+
+        playAudio(story)
     }
     
     def rewind() {
-    	mPlayButton.setVisibility(View.VISIBLE);
-    	mRouteManager onSuccessUI { case rm =>
+    	mPlayButton.setVisibility(View.VISIBLE)
+        mRouteManager onSuccessUI { case rm =>
 			mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()
-	    		.target(rm.getStart()).tilt(90).zoom(19)
-	    		.bearing(rm.getStartBearing()).build()
-			));
-			mPositionMarker.remove();
-			mPositionMarker = mMap.addMarker(new MarkerOptions()
-		    	.position(rm.getStart())
+	    		.target(rm.getStart).tilt(90).zoom(19)
+	    		.bearing(rm.getStartBearing).build()
+			))
+            mPositionMarker.remove()
+            mPositionMarker = mMap.addMarker(new MarkerOptions()
+		    	.position(rm.getStart)
 		    	.icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
-		    );
-    	}
+		    )
+        }
     }
     
     def playAudio(story: Story) {
-    	mMediaPlayer = new MediaPlayer();
-    	if (story.audioPreview == null) return;
-    	story.audioPreview.get() onSuccessUI { case file =>
-    	    if (file == null) return;
-    	    try {
-				mMediaPlayer.setDataSource(file.getAbsolutePath());
-				mMediaPlayer.prepare();
-	            mMediaPlayer.start();
-			} catch {
-				case e: Throwable => e.printStackTrace();
-			}
+    	mMediaPlayer = new MediaPlayer()
+        if (story.audioPreview == null) return
+        story.audioPreview.get() onSuccessUI { case file =>
+    	    if (file == null) return
+            try {
+				mMediaPlayer.setDataSource(file.getAbsolutePath())
+                mMediaPlayer.prepare()
+                mMediaPlayer.start()
+            } catch {
+				case e: Throwable => e.printStackTrace()
+            }
     	}
     }
 }

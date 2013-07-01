@@ -7,7 +7,7 @@ import com.actionbarsherlock.app.ActionBar.Tab
 import com.actionbarsherlock.app.SherlockFragmentActivity
 import scala.reflect.ClassTag
 
-case class TabListener2[A <: Fragment : ClassTag](activity: SherlockFragmentActivity, tag: String) extends ActionBar.TabListener {
+case class TabListener[A <: Fragment : ClassTag](activity: SherlockFragmentActivity, tag: String) extends ActionBar.TabListener {
     var fragment: Option[Fragment] = None
 
     override def onTabSelected(tab: ActionBar.Tab, ft: FragmentTransaction) {

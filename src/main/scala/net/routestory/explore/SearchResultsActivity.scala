@@ -8,7 +8,7 @@ import net.routestory.MainActivity
 import net.routestory.R
 import net.routestory.model.Author
 import net.routestory.model.StoryResult
-import net.routestory.parts.{TabListener2, GotoDialogFragments, TabListener, StoryActivity}
+import net.routestory.parts.{TabListener, GotoDialogFragments, StoryActivity}
 import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
@@ -18,7 +18,6 @@ import android.view.View
 import android.widget.FrameLayout
 
 import com.actionbarsherlock.app.ActionBar
-import com.actionbarsherlock.app.SherlockFragmentActivity
 import com.actionbarsherlock.view.Menu
 import com.actionbarsherlock.view.MenuItem
 import com.actionbarsherlock.widget.SearchView
@@ -47,7 +46,7 @@ object SearchResultsActivity {
     }
 }
 
-class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity {
+class SearchResultsActivity extends StoryActivity {
     import SearchResultsActivity._
 
 	var searchResults: Future[List[StoryResult]] = Future.failed(new UninitializedError)
@@ -62,14 +61,12 @@ class SearchResultsActivity extends SherlockFragmentActivity with StoryActivity 
 	    bar.setDisplayHomeAsUpEnabled(true)
 	    
 	    val showMap = getIntent.hasExtra("showmap")
-	    bar.addTab(
-    		bar.newTab().setText(R.string.title_tab_resultslist).setTabListener(TabListener2[ResultListFragment](this, "list")),
-    		0, !showMap
-		)
-	    bar.addTab(
-    		bar.newTab().setText(R.string.title_tab_resultsmap).setTabListener(TabListener2[ResultMapFragment](this, "map")),
-    		1, showMap
-		)
+        List(
+            R.string.title_tab_resultslist → TabListener[ResultListFragment](this, "list"),
+            R.string.title_tab_resultsmap → TabListener[ResultMapFragment](this, "map")
+        ).zipWithIndex.foreach { case ((title, tabListener), n) ⇒
+            bar.addTab(bar.newTab().setText(title).setTabListener(tabListener), n, (n==0) ^ showMap)
+        }
 	}
 	
 	override def onStart() {

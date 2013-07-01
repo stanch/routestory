@@ -43,9 +43,9 @@ trait StoryUI {
 	}
 
     import akka.dataflow.DataflowFuture
-    def await[A](f: Future[A]) = f.apply()
+    @inline def await[A](f: Future[A]) = f.apply()
 
-    def switchToUiThread(): Unit @cps[Future[Any]] = shift { f: (Unit ⇒ Future[Any]) ⇒
+    @inline def switchToUiThread(): Unit @cps[Future[Any]] = shift { f: (Unit ⇒ Future[Any]) ⇒
         val uiPromise = Promise[Any]()
         handler.post(new Runnable {
             def run() { uiPromise.completeWith(f()) }

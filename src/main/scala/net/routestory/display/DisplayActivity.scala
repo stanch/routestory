@@ -66,7 +66,7 @@ object DisplayActivity {
     }
 }
 
-class DisplayActivity extends SherlockFragmentActivity with StoryActivity with HazStory {
+class DisplayActivity extends StoryActivity with HazStory {
     import DisplayActivity._
 
     private var id: String = _
@@ -132,11 +132,12 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
             bar.setSubtitle(if (story.author != null) "by " + story.author.name else "by me")
         }
 
-        List(R.string.title_tab_storypreview, R.string.title_tab_storydescription, R.string.title_tab_storyoverview) zip
-            List("preview", "description", "map") zip
-            List(0, 1, 2) zip
-            List(classOf[PreviewFragment], classOf[DescriptionFragment], classOf[OverviewFragment]) foreach { case (((title, tag), n), c) ⇒
-            bar.addTab(bar.newTab().setText(title).setTabListener(new TabListener(DisplayActivity.this, tag, c)), n, n == mStartTab)
+        List(
+            (R.string.title_tab_storypreview, TabListener[PreviewFragment](this, "preview")),
+            (R.string.title_tab_storydescription, TabListener[DescriptionFragment](this, "description")),
+            (R.string.title_tab_storyoverview, TabListener[OverviewFragment](this, "map"))
+        ).zipWithIndex.foreach { case ((title, tabListener), n) ⇒
+            bar.addTab(bar.newTab().setText(title).setTabListener(tabListener), n, n == mStartTab)
         }
     }
 

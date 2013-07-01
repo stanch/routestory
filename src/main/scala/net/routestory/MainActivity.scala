@@ -8,7 +8,7 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GooglePlayServicesUtil
 import android.content.Intent
 import android.os.Bundle
-import net.routestory.explore.ExploreActivity
+import net.routestory.explore.{MyStoriesActivity, ExploreActivity}
 import net.routestory.parts.HapticButton
 import net.routestory.recording.RecordActivity
 import android.preference.PreferenceManager
@@ -37,7 +37,7 @@ class MainActivity extends StoryActivity {
         // map buttons to activities
         List(R.id.recordStory, R.id.explore, R.id.myStories, R.id.myAccount) zip
         List(SIntent[RecordActivity], SIntent[ExploreActivity], SIntent[MyStoriesActivity], SIntent[AccountActivity]) foreach {
-            case (id: Int, int: Intent) ⇒ find[HapticButton](id).onClick(
+            case (id, int) ⇒ find[HapticButton](id).onClick(
       	        startActivityForResult(int, 0)
   	        )
         }
