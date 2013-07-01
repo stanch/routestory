@@ -5,6 +5,7 @@ import java.nio.charset.Charset
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.future
+import scala.concurrent.duration._
 
 import org.scaloid.common._
 
@@ -37,7 +38,8 @@ import net.routestory.model._
 import net.routestory.parts._
 import scala.concurrent._
 import akka.dataflow._
-import java.lang.String
+import retry.Defaults.timer
+import retry.Backoff
 
 trait HazStory {
     def getStory: Future[Story]
@@ -70,8 +72,8 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
     private var id: String = _
 
     private lazy val mStory = flow {
-        val story = app.getObject[Story](id).apply()
-        val author = app.getObject[Author](story.authorId).apply()
+        val story = await(app.getObject[Story](id))
+        val author = await(app.getObject[Author](story.authorId))
         story.author = author
         story
     }
@@ -81,7 +83,7 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
 
     override def getStory = mStory
 
-    lazy val mNfcAdapter: NfcAdapter = NfcAdapter.getDefaultAdapter(getApplicationContext)
+    lazy val mNfcAdapter: Option[NfcAdapter] = Option(NfcAdapter.getDefaultAdapter(getApplicationContext))
 
     override def onCreate(savedInstanceState: Bundle) {
         super.onCreate(savedInstanceState)
@@ -113,16 +115,12 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
             finish()
         }
 
-        future {
-            for (i ← 1 to 4) {
-                if (app.remoteContains(id)) {
-                    mShareable = true
-                    runOnUiThread {
-                        supportInvalidateOptionsMenu()
-                    }
-                }
-                Thread.sleep(5000)
-            }
+        implicit val success = new retry.Success[Boolean](x ⇒ x)
+        Backoff(max = 4, delay = 5 seconds)(() ⇒ future {
+            app.remoteContains(id)
+        }) onSuccessUI { case _ ⇒
+            mShareable = true
+            supportInvalidateOptionsMenu()
         }
 
         bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
@@ -144,7 +142,7 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
 
     override def onCreateOptionsMenu(menu: Menu): Boolean = {
         getSupportMenuInflater.inflate(R.menu.activity_display, menu)
-        if (mNfcAdapter == null) {
+        if (mNfcAdapter.isEmpty) {
             menu.findItem(R.id.storeNfc).setEnabled(false)
         }
         if (!getApplication.asInstanceOf[StoryApplication].localContains(id)) {
@@ -156,7 +154,7 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
 
     override def onPrepareOptionsMenu(menu: Menu): Boolean = {
         menu.findItem(R.id.shareStory).setEnabled(mShareable)
-        menu.findItem(R.id.storeNfc).setEnabled(mNfcAdapter != null && mShareable)
+        menu.findItem(R.id.storeNfc).setEnabled(mNfcAdapter.isDefined && mShareable)
         true
     }
 
@@ -167,7 +165,7 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
                 val intent = PendingIntent.getActivity(this, 0, new Intent(this, classOf[DisplayActivity]).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0)
                 val filter = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED)
                 val techs = Array(Array(classOf[NdefFormatable].getName, classOf[Ndef].getName))
-                mNfcAdapter.enableForegroundDispatch(this, intent, Array(filter), techs)
+                mNfcAdapter.foreach(_.enableForegroundDispatch(this, intent, Array(filter), techs))
                 toast("Waiting for the tag...") // TODO: strings.xml
                 true
                 //			} case R.id.followStory => {
@@ -191,7 +189,7 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
                 new AlertDialog.Builder(this) {
                     setMessage(R.string.message_deletestory)
                     setPositiveButton(R.string.button_yes, { (dialog: DialogInterface, which: Int) ⇒
-                        mStory onSuccessUI { case story =>
+                        mStory onSuccessUI { case story ⇒
                             app.deleteStory(story)
                             app.sync()
                             finish()
@@ -237,16 +235,13 @@ class DisplayActivity extends SherlockFragmentActivity with StoryActivity with H
             ndef.writeNdefMessage(msg)
             ndef.close()
         } catch {
-            case e: FormatException => e.printStackTrace()
-            case e: IOException => e.printStackTrace()
+            case e @ (_: FormatException | _: IOException) ⇒ e.printStackTrace()
         }
         toast("Done!") // TODO: strings.xml
     }
 
     override def onPause() {
         super.onPause()
-        if (mNfcAdapter != null) {
-            mNfcAdapter.disableForegroundDispatch(this)
-        }
+        mNfcAdapter.foreach(_.disableForegroundDispatch(this))
     }
 }
