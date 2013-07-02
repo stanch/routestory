@@ -64,9 +64,9 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
 	            mImageView = new ImageView(ctx)
 	        }
 	        this += new SFrameLayout {
-	            mPlayButton = SButton(R.string.play).<<(WRAP_CONTENT, WRAP_CONTENT).marginBottom(20 dip).Gravity(Gravity.CENTER|Gravity.CENTER_HORIZONTAL).>>
-	            mPlayButton.setOnClickListener { v: View =>
-	                mStory zip mRouteManager onSuccessUI { case (x, y) => startPreview(x, y) }
+	            mPlayButton = SButton(R.string.play).<<(WRAP_CONTENT, WRAP_CONTENT).marginBottom(20 dip).Gravity(Gravity.CENTER).>>
+	            mPlayButton.setOnClickListener { v: View ⇒
+	                mStory zip mRouteManager onSuccessUI { case (x, y) ⇒ startPreview(x, y) }
 		        }
 	        }
 	    }
@@ -99,6 +99,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
 
         flow {
             val story = await(mStory)
+            switchToUiThread()
             val progress = new ProgressDialog(ctx) {
                 setMessage("Loading data...")
                 setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
@@ -106,7 +107,9 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
                 show()
             }
             val photos = Future.sequence(story.photos.map(i ⇒ flow {
-                Option(await(i.get(maxSize))) foreach { bitmap ⇒
+                val pic = await(i.get(maxSize))
+                switchToUiThread()
+                Option(pic) foreach { bitmap ⇒
                     mMap.addMarker(new MarkerOptions()
                         .position(story.getLocation(i.timestamp))
                         .icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
@@ -115,7 +118,6 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
                         )))
                     )
                 }
-                switchToUiThread()
                 progress.incrementProgressBy(1)
             }))
             val audio = flow {
