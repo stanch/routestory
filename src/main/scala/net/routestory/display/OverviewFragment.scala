@@ -33,6 +33,7 @@ import android.graphics.Point
 import net.routestory.parts.StoryFragment
 import net.routestory.parts.Implicits._
 import akka.dataflow._
+import scala.concurrent.Future
 
 class OverviewFragment extends SherlockFragment with StoryFragment {
     lazy val display = getActivity.getWindowManager.getDefaultDisplay
@@ -78,12 +79,23 @@ class OverviewFragment extends SherlockFragment with StoryFragment {
 
     override def onFirstStart() {
         mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID)
-        
+
         /* Initialize marker manager */
-        //val progress = spinnerDialog("", "Putting everying on the map...")
         flow {
             val mm = await(mMarkerManager)
-            while(!mm.isReady) {}
+            switchToUiThread()
+            val progress = new ProgressDialog(ctx) {
+                setMessage("Loading data...")
+                setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
+                setMax(mm.loadingItems.length)
+                show()
+            }
+            mm.loadingItems.foreach(_.onSuccessUI { case _ ⇒
+                progress.incrementProgressBy(1)
+            })
+            Future.sequence(mm.loadingItems).onSuccessUI { case _ ⇒
+                progress.dismiss()
+            }
             switchToUiThread()
             mm.update()
             mMap.setOnMarkerClickListener(mm.onMarkerClick _)

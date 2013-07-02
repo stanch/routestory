@@ -38,6 +38,7 @@ import org.scaloid.common._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Success
 import android.util.Log
+import scala.concurrent.Future
 
 class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(implicit ctx: Context) extends StoryUI {
 	var hide_overlays = false
@@ -49,13 +50,15 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 		var doi: Float = 0
 		
 		// add to list of markers to visualize
-		def addToList(list: List[MarkerItem]): List[MarkerItem] = {
+		def addToMarkerList(list: List[MarkerItem]): List[MarkerItem] = {
             //this :: list
             if (googleMap.getProjection.getVisibleRegion.latLngBounds.contains(coords)) this :: list else list
 		}
+
+        // add to list of things taking time to load
+        def addToLoadingList(list: List[Future[Unit]]): List[Future[Unit]] = list
 		
 		// override these
-		def isReady = true
 		def getIcon(scale: Boolean): Bitmap
 		def onClick() {}
 	}
@@ -64,11 +67,13 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 	class ImageMarkerItem(data: Story.ImageData) extends MarkerItem(data.timestamp) {
 		private val icon = cacher2Future(data.get(maxIconSize))
 
-		override def addToList(list: List[MarkerItem]): List[MarkerItem] = {
-		    if (icon.value.get.isSuccess) super.addToList(list) else list
+		override def addToMarkerList(list: List[MarkerItem]): List[MarkerItem] = {
+		    if (icon.value.get.isSuccess) super.addToMarkerList(list) else list
 		}
-	    
-	    override def isReady = icon.isCompleted
+
+        override def addToLoadingList(list: List[Future[Unit]]): List[Future[Unit]] = {
+            icon.map(_ ⇒ ()) :: list
+        }
 				
 		override def getIcon(scale: Boolean): Bitmap = if (!scale) {
 		    icon.value.get.get
@@ -205,12 +210,14 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 			MagicGrid.createSquarishGrid(bitmaps, maxIconSize)
 	    }
 	    lazy val iconSize = Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize)
-		
-		override def isReady = children.forall(_.isReady)
-		
-		override def addToList(list: List[MarkerItem]): List[MarkerItem] = {
-			if (!seemsToFit) super.addToList(list) else children.foldLeft(list)((l, c) ⇒ c.addToList(l))
+
+		override def addToMarkerList(list: List[MarkerItem]): List[MarkerItem] = {
+			if (!seemsToFit) super.addToMarkerList(list) else children.foldLeft(list)((l, c) ⇒ c.addToMarkerList(l))
 		}
+
+        override def addToLoadingList(list: List[Future[Unit]]): List[Future[Unit]] = {
+            children.foldLeft(list)((l, c) ⇒ c.addToLoadingList(l))
+        }
 		
 		private var wasExpanded = false 
 		private def seemsToFit = {
@@ -283,7 +290,8 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 	    }
 	}
 	
-	def isReady = rootMarkerItem.map(_.isReady).getOrElse(true)
+	lazy val loadingItems = rootMarkerItem.map(_.addToLoadingList(List())) getOrElse List[Future[Unit]]()
+    private lazy val readyFuture = Future.sequence(loadingItems)
 	
 	// naïve agglomerative clustering with an heuristic to group markers that are close in time
 	private def clusterRounds(_markerItems: Vector[MarkerItem], _clusterRadius: Double): MarkerItem = {
@@ -361,14 +369,14 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 	}
 	
 	def update() {
-		if (!rootMarkerItem.map(_.isReady).getOrElse(false)) return
+		if (!readyFuture.isCompleted) return
 		if (hide_overlays) {
 			remove()
 			return
 		}
 
 		// produce a list of markers to show
-		val markerItems = rootMarkerItem.get.addToList(List())
+		val markerItems = rootMarkerItem.get.addToMarkerList(List())
 		
 		// calculate degrees if interest
 		doiEvaluate(markerItems)
