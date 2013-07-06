@@ -65,6 +65,9 @@ class ExploreActivity extends StoryActivity {
 		        this += mProgress
 		        mRetry = new Button(ctx) {
                     setVisibility(View.GONE)
+                    setLayoutParams(new LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER
+                    ))
                     setOnClickListener { v: View ⇒
                         mRetry.setVisibility(View.GONE)
                         mProgress.setVisibility(View.VISIBLE)
@@ -199,8 +202,8 @@ class ExploreActivity extends StoryActivity {
 
             if (!flashed) {
                 flashed = true
-                def fadeIn(view: View) = new AlphaAnimation(0, 1).duration(300).runOn(view)
-                def fadeOut(view: View) = new AlphaAnimation(1, 0).duration(300).runOn(view, hideOnFinish = true)
+                def fadeIn(view: View) = new AlphaAnimation(0, 1).duration(400).runOn(view)
+                def fadeOut(view: View) = new AlphaAnimation(1, 0).duration(400).runOn(view, hideOnFinish = true)
                 flow {
                     await(fadeOut(mProgress))
                     List(
