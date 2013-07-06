@@ -32,4 +32,17 @@ object Implicits {
 	implicit def func2OnCancelListener(f: DialogInterface => Any) = new DialogInterface.OnCancelListener() {
 		def onCancel(d: DialogInterface) = f(d)
 	}
+
+    import scala.collection.IterableLike
+    import scala.util.continuations._
+
+    // see http://stackoverflow.com/questions/8934226/continuations-and-for-comprehensions-whats-the-incompatibility
+    implicit def cpsIterable[A, Repr](xs: IterableLike[A, Repr]) = new {
+        def cps[B] = new {
+            def foreach(f: A ⇒ Any @cpsParam[B, B]): Unit @cpsParam[B, B] = {
+                val it = xs.iterator
+                while(it.hasNext) f(it.next())
+            }
+        }
+    }
 }

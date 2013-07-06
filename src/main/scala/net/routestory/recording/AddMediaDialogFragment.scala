@@ -155,15 +155,13 @@ class VoiceDialogFragment extends DialogFragment {
 }
 
 class MeasurePulseDialogFragment extends DialogFragment {
-	implicit lazy val ctx = getActivity()
+	implicit lazy val ctx = getActivity
 	var taps = List[Long]()
-	def beats = {
-		if (taps.length < 5) 0 else {
-			val interval = (taps zip (taps.drop(1)) map { case (a, b) => a-b } sum).toInt / 5
-			60000 / interval
-		}
-	}
-	
+	def beats = if (taps.length < 5) 0 else {
+        val interval = taps.sliding(2).map{ case List(a, b) ⇒ a - b }.sum.toInt / 5
+        60000 / interval
+    }
+
 	override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
 		val activity = getActivity().asInstanceOf[RecordActivity]
 		

@@ -9,22 +9,18 @@ import android.location.Location
 import com.actionbarsherlock.view.MenuItem
 import net.routestory.R
 import android.content.Intent
-import android.view.View
+import android.view.{ViewGroup, View, KeyEvent, Gravity}
 import android.app.SearchManager
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget._
 import net.routestory.model._
 import android.location.LocationManager
 import scala.util.Random
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.view.animation.Animation
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation.AnimationListener
-import android.view.Gravity
-import android.widget.ProgressBar
 import java.util.Locale
 import net.routestory.MainActivity
 import net.routestory.parts.GotoDialogFragments
@@ -34,6 +30,9 @@ import scala.collection.JavaConversions._
 import com.actionbarsherlock.app.SherlockFragmentActivity
 import com.actionbarsherlock.app.SherlockFragmentActivity
 import android.util.Log
+import scala.Some
+import android.widget.FrameLayout.LayoutParams
+import net.routestory.parts.Animation._
 
 class ExploreActivity extends StoryActivity {
     var flashed = false
@@ -53,22 +52,26 @@ class ExploreActivity extends StoryActivity {
 	
 	override def onCreate(savedInstanceState: Bundle) {
 		super.onCreate(savedInstanceState)
-		val view = new SFrameLayout {
-		    this += new SFrameLayout {
+		val view = new FrameLayout(ctx) {
+		    this += new FrameLayout(ctx) {
 		        this += getLayoutInflater.inflate(R.layout.activity_explore, this, false)
 		    }
-		    this += new SFrameLayout {
-		        mProgress = new ProgressBar(ctx, null, android.R.attr.progressBarStyleLarge)
-		        mProgress.Gravity(Gravity.CENTER)
+		    this += new FrameLayout(ctx) {
+		        mProgress = new ProgressBar(ctx, null, android.R.attr.progressBarStyleLarge) {
+                    setLayoutParams(new LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER
+                    ))
+                }
 		        this += mProgress
-		        mRetry = SButton("Retry").<<(WRAP_CONTENT, WRAP_CONTENT).>>
-		        mRetry.Gravity(Gravity.CENTER)
-		        mRetry.setVisibility(View.GONE)
-		        mRetry onClick {
-		            mRetry.setVisibility(View.GONE)
-		            mProgress.setVisibility(View.VISIBLE)
-		            start()
-		        }
+		        mRetry = new Button(ctx) {
+                    setVisibility(View.GONE)
+                    setOnClickListener { v: View ⇒
+                        mRetry.setVisibility(View.GONE)
+                        mProgress.setVisibility(View.VISIBLE)
+                        start()
+                    }
+                }
+                this += mRetry
 		    }
 		}
 		setContentView(view)
@@ -95,36 +98,6 @@ class ExploreActivity extends StoryActivity {
 	        locationPromise.trySuccess(None)
 	    }
     	locationPromise.future
-	}
-	
-	abstract class RichAnimation(view: View) {
-	    def getAnim: Animation
-	    
-	    def onFinish(f: => Any): RichAnimation = {
-	        getAnim.setAnimationListener(new AnimationListener() {
-	            override def onAnimationStart(a: Animation) {}
-	            override def onAnimationRepeat(a: Animation) {}
-	            override def onAnimationEnd(a: Animation) = f
-	        })
-	        this
-	    }
-	    
-	    def run() {
-		    view.setVisibility(View.VISIBLE)
-		    view.startAnimation(getAnim)
-		}
-	}
-	
-	class FadeIn(view: View) extends RichAnimation(view) {
-	    val fade = new AlphaAnimation(0, 1)
-	    fade.setDuration(400)
-	    override def getAnim = fade
-	}
-	
-	class FadeOut(view: View) extends RichAnimation(view) {
-	    val fade = new AlphaAnimation(1, 0)
-	    fade.setDuration(400)
-	    override def getAnim = fade
 	}
 	
 	override def onStart() {
@@ -225,19 +198,18 @@ class ExploreActivity extends StoryActivity {
             await(latest zip nearby zip tags)
 
             if (!flashed) {
-                switchToUiThread()
-                new FadeOut(mProgress).onFinish{ mProgress.setVisibility(View.GONE) }.run()
-                val head::tail = List(R.id.latestStoriesSection, R.id.nearbyStoriesSection, R.id.tagsSection, R.id.searchSection) map { id =>
-                    find[LinearLayout](id)
-                }
-                val first = new FadeIn(head)
-                tail.foldLeft(first) { (fade, view) ⇒
-                    val next = new FadeIn(view)
-                    fade.onFinish(next.run())
-                    next
-                }
-                first.run()
                 flashed = true
+                def fadeIn(view: View) = new AlphaAnimation(0, 1).duration(300).runOn(view)
+                def fadeOut(view: View) = new AlphaAnimation(1, 0).duration(300).runOn(view, hideOnFinish = true)
+                flow {
+                    await(fadeOut(mProgress))
+                    List(
+                        R.id.latestStoriesSection, R.id.nearbyStoriesSection,
+                        R.id.tagsSection, R.id.searchSection
+                    ).cps[Future[Any]] foreach { id ⇒
+                        await(fadeIn(find[LinearLayout](id)))
+                    }
+                }
             }
 		} onFailureUI { case t ⇒
 		    t.printStackTrace()

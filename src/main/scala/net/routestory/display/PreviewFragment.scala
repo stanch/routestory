@@ -1,38 +1,26 @@
 package net.routestory.display
 
-import java.io.File
 import net.routestory.R
 import net.routestory.StoryApplication
 import net.routestory.model.Story
 import net.routestory.parts.BitmapUtils
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Point
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.SystemClock
-import android.os.Vibrator
-import android.support.v4.app.FragmentTransaction
-import android.view.Display
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
-import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.Toast
 import com.actionbarsherlock.app.SherlockFragment
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import org.scaloid.common._
@@ -43,31 +31,46 @@ import scala.collection.JavaConversions._
 import android.app.ProgressDialog
 import net.routestory.parts.StoryFragment
 import akka.dataflow._
+import android.widget.FrameLayout.LayoutParams
+import scala.collection.mutable
+import android.view.animation.AlphaAnimation
+import net.routestory.parts.Animation._
 
 class PreviewFragment extends SherlockFragment with StoryFragment {
 	lazy val mMap = findFrag[SupportMapFragment]("preview_map").getMap
 	lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
-	lazy val mRouteManager = mStory map { new RouteManager(mMap, _) } map { x => runOnUiThread{x.init()}; x }
-	lazy val mHandler = new Handler()
+	lazy val mRouteManager = flow {
+        val story = await(mStory)
+        switchToUiThread()
+        new RouteManager(mMap, story).init()
+    }
+	lazy val mHandler = new Handler
 	
-	var mPlayButton: Button = null
-	var mImageView: ImageView = null
-	var mMediaPlayer: MediaPlayer = null
-	var mPositionMarker: Marker = null
+	var mPlayButton: Button = _
+	var mImageView: ImageView = _
+	var mMediaPlayer: MediaPlayer = _
+	var mPositionMarker: Marker = _
 
 	override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-	    val view = new SFrameLayout {
-	        this += new SFrameLayout {
-	            this += new SFrameLayout().id(1)
+	    val view = new FrameLayout(ctx) {
+	        this += new FrameLayout(ctx) {
+	            this += new FrameLayout(ctx) { setId(1) }
 	        }
-	        this += new SFrameLayout {
+	        this += new FrameLayout(ctx) {
 	            mImageView = new ImageView(ctx)
+                this += mImageView
 	        }
-	        this += new SFrameLayout {
-	            mPlayButton = SButton(R.string.play).<<(WRAP_CONTENT, WRAP_CONTENT).marginBottom(20 dip).Gravity(Gravity.CENTER).>>
-	            mPlayButton.setOnClickListener { v: View ⇒
-	                mStory zip mRouteManager onSuccessUI { case (x, y) ⇒ startPreview(x, y) }
-		        }
+	        this += new FrameLayout(ctx) {
+	            mPlayButton = new Button(ctx) {
+                    setText(R.string.play)
+                    setLayoutParams(new LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER
+                    ))
+                    setOnClickListener { v: View ⇒
+                        mStory zip mRouteManager onSuccessUI { case (x, y) ⇒ startPreview(x, y) }
+                    }
+                }
+	            this += mPlayButton
 	        }
 	    }
 	    
@@ -99,6 +102,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
 
         flow {
             val story = await(mStory)
+
             switchToUiThread()
             val progress = new ProgressDialog(ctx) {
                 setMessage("Loading data...")
@@ -106,6 +110,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
                 setMax( story.photos.length + 1 )
                 show()
             }
+
             val photos = Future.sequence(story.photos.map(i ⇒ flow {
                 val pic = await(i.get(maxSize))
                 switchToUiThread()
@@ -120,44 +125,15 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
                 }
                 progress.incrementProgressBy(1)
             }))
-            val audio = flow {
-                await(story.audioPreview.get)
-                switchToUiThread()
+
+            val audio = story.audioPreview.get onSuccessUI { case _ ⇒
                 progress.incrementProgressBy(1)
             }
+
             await(photos zip audio)
             switchToUiThread()
             progress.dismiss()
         }
-        /*mStory onSuccessUI { case story =>
-            val progress = new ProgressDialog(ctx)
-            progress.setMessage("Loading data...")
-            progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
-            progress.setMax( story.photos.length + 1 )
-            progress.show()
-            
-            val photos = story.photos map { i =>
-	            i.get(maxSize) onSuccessUI { case bitmap if bitmap != null =>
-					mMap.addMarker(new MarkerOptions()
-				    	.position(story.getLocation(i.timestamp))
-				    	.icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
-			    			bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize),
-	    					0.8, false
-						)))
-				    )
-	            } onSuccessUI { case _ =>
-	                progress.incrementProgressBy(1)
-	            }
-            }
-            
-            val audio = story.audioPreview.get() onSuccessUI { case _ =>
-            	progress.incrementProgressBy(1)
-            }
-            
-            Future.sequence(audio +: photos) onSuccessUI { case _ =>
-                progress.dismiss()
-            }
-        }*/
 	}
 
     override def onEveryStart() {
@@ -180,18 +156,35 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
         val ratio = story.duration.toDouble / StoryApplication.storyPreviewDuration / 1000
         val lastLocation = story.locations.last.timestamp / ratio
 
-        story.notes foreach { note =>
+        story.notes foreach { note ⇒
     		mHandler.postAtTime({
     			toast(note.text)
     		}, start + (note.timestamp/ratio).toInt)
         }
     	
-    	story.heartbeat foreach { beat =>
+    	story.heartbeat foreach { beat ⇒
     		mHandler.postAtTime({
     			vibrator.vibrate(beat.getVibrationPattern(4), -1)
             }, start + (beat.timestamp/ratio).toInt)
         }
-    	
+
+        def fadeIn(view: View) = new AlphaAnimation(0, 1).duration(300).runOn(view)
+        def fadeOut(view: View) = new AlphaAnimation(1, 0).duration(300).runOn(view, hideOnFinish = true)
+        val spans = story.photos.map(_.timestamp/ratio).sorted.sliding(2).map{ case mutable.Buffer(a, b) ⇒ (b - a).toInt }.toList ::: List(1000)
+        (story.photos zip spans) foreach { case (photo, span) ⇒
+            if (span > 600) {
+                mHandler.postAtTime({
+                    photo.get(400) foreach { bitmap ⇒
+                        runOnUiThread(mImageView.setImageBitmap(bitmap))
+                        fadeIn(mImageView)
+                        mHandler.postDelayed({
+                            fadeOut(mImageView)
+                        }, List(span - 600, 1500).min)
+                    }
+                }, start + (photo.timestamp/ratio).toInt)
+            }
+        }
+
     	def move() {
 			val elapsed = SystemClock.uptimeMillis() - start
             val now = story.getLocation(elapsed*ratio)
