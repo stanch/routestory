@@ -15,15 +15,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ResultListFragment extends SherlockListFragment with StoryFragment with ViewzResults {
-	lazy val emptyText = ctx.getResources().getString(R.string.empty_search)
+	lazy val defaultEmptyText = ctx.getResources.getString(R.string.empty_search)
+    var emptyText: Option[String] = None
 	
 	override def onCreate(savedInstanceState: Bundle) {
         super.onCreate(savedInstanceState)
     }
+
+    def tweakEmptyText(text: String) {
+        emptyText = Some(text)
+    }
 	
 	override def onStart() {
 		super.onStart()
-        setEmptyText(emptyText)
+        setEmptyText(emptyText.getOrElse(defaultEmptyText))
     }
     
     def update(results: Future[List[StoryResult]]) {

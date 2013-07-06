@@ -57,12 +57,11 @@ class MyStoriesActivity extends StoryActivity {
     
     override def onAttachFragment(fragment: Fragment) {
     	activeTab = fragment.asInstanceOf[ResultListFragment]
-        // TODO: fixme
-//		if (fragment.getTag().equals("byme")) {
-//			activeTab.reallySetEmptyText(getResources().getString(R.string.empty_mystories));
-//		} else {
-//			activeTab.reallySetEmptyText(getResources().getString(R.string.empty_savedstories));
-//		}
+		if (fragment.getTag.equals("byme")) {
+			activeTab.tweakEmptyText(getResources.getString(R.string.empty_mystories))
+		} else {
+			activeTab.tweakEmptyText(getResources.getString(R.string.empty_savedstories))
+		}
 		showStories()
 	}
     
