@@ -37,8 +37,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import com.google.android.gms.maps.model.CameraPosition
 import scala.concurrent.Future
 import scala.util.Try
+import rx._
 
-class ResultMapFragment extends SherlockFragment with StoryFragment with ViewzResults {
+class ResultMapFragment extends SherlockFragment with StoryFragment {
     lazy val mMap = findFrag[SupportMapFragment]("results_map").getMap
     var mMarkers = Map[Marker, StoryResult]()
     var mRoutes = List[Polyline]()
@@ -98,6 +99,10 @@ class ResultMapFragment extends SherlockFragment with StoryFragment with ViewzRe
 			val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8
 			new AlertDialog.Builder(ctx).setView(ResultRow.getView(null, a.toInt, story, getActivity)).create().show()
 			true
+        }
+        val stories = getActivity.asInstanceOf[HazStories].getStories
+        Obs(stories) {
+            update(stories())
         }
     }
 

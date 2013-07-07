@@ -26,10 +26,16 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import org.scaloid.common._
 import akka.dataflow._
-import com.actionbarsherlock.app.SherlockFragmentActivity
+import rx._
+import android.util.Log
+import scala.util.Try
 
-trait ViewzResults {
-	def update(results: Future[List[StoryResult]])
+trait HazStories {
+	def getStories: Var[Future[List[StoryResult]]]
+    def next() {}
+    def prev() {}
+    def hasNext: Boolean = false
+    def hasPrev: Boolean = false
 }
 
 object SearchResultsActivity {
@@ -46,11 +52,43 @@ object SearchResultsActivity {
     }
 }
 
-class SearchResultsActivity extends StoryActivity {
+class SearchResultsActivity extends StoryActivity with HazStories {
     import SearchResultsActivity._
 
-	var searchResults: Future[List[StoryResult]] = Future.failed(new UninitializedError)
-	var viewers = List[WeakReference[ViewzResults]]()
+    // TODO: see if this can be made easier...
+
+    // a function, producing equal queries
+    // we use a factory here, so that we can choose
+    // to add queryParams("bookmark", ...) or not
+    // if we used a mutable object instead, the old queryParam would remain
+    // and we would not be able to get back to the first page by setting bookmark=None
+    type QueryFactory = () ⇒ ViewQuery
+    val queryFactory: Var[Option[QueryFactory]] = Var(None)
+
+    // this is failed at the beginning, so that observers don’t update (they update onSuccess)
+	val searchResults: Var[Future[List[StoryResult]]] = Var(Future.failed(new UninitializedError))
+
+    // a stack of page bookmarks
+    var totalStories = 0
+    val storiesByPage = 2
+    var bookmarks: List[String] = List()
+
+    // when a factory is switched, clear bookmarks and show the first page
+    Obs(queryFactory) {
+        bookmarks = List()
+        next()
+    }
+
+	def getStories = searchResults
+    def next() = queryFactory() foreach { q ⇒
+        searchResults() = fetchResults(q, bookmarks.headOption)
+    }
+    def prev() = queryFactory() foreach { q ⇒
+        bookmarks = Try(bookmarks.tail.tail).getOrElse(List()) // remove bookmarks to next and current pages
+        searchResults() = fetchResults(q, bookmarks.headOption)
+    }
+    def hasNext = storiesByPage * bookmarks.length < totalStories
+    def hasPrev = bookmarks.length > 1
 	
 	override def onCreate(savedInstanceState: Bundle) {
 		super.onCreate(savedInstanceState)
@@ -76,12 +114,12 @@ class SearchResultsActivity extends StoryActivity {
 		}
 
 		getIntent match {
-            case SearchIntent(query) ⇒
-                bar.setSubtitle(getResources.getString(R.string.search_results_for) + " " + query)
-                textQuery(s"title:($query~) tags:($query~)") // TODO: (a~ b~)
-            case TagIntent(tag) ⇒
-                bar.setSubtitle(getResources.getString(R.string.search_results_tag) + " " + tag)
-                textQuery(s"""tags:"$tag" """)
+            case SearchIntent(q) ⇒
+                bar.setSubtitle(getResources.getString(R.string.search_results_for) + " " + q)
+                textQuery(s"title:($q~) tags:($q~)") // TODO: (a~ b~)
+            case TagIntent(t) ⇒
+                bar.setSubtitle(getResources.getString(R.string.search_results_tag) + " " + t)
+                textQuery(s"""tags:"$t" """)
             case BboxIntent(bbox) ⇒
                 bar.setSubtitle(getResources.getString(R.string.search_results_area))
                 geoQuery(bbox)
@@ -91,8 +129,10 @@ class SearchResultsActivity extends StoryActivity {
         }
 	}
 	
-	private def fetchResults(query: ViewQuery): Future[List[StoryResult]] = flow {
-		val results = await(app.getQueryResults[StoryResult](remote = true, query))
+	private def fetchResults(queryFactory: QueryFactory, bookmark: Option[String]) = flow {
+		val (results, total, mark) = await(app.getQueryResults[StoryResult](remote = true, queryFactory(), bookmark))
+        bookmarks ::= mark
+        totalStories = total
 		val authorIds = results.map(_.authorId)
 		val authors = await(app.getObjects[Author](authorIds))
 		results.filter(_.authorId!=null) foreach { r ⇒
@@ -102,16 +142,18 @@ class SearchResultsActivity extends StoryActivity {
 	}
 	
 	def textQuery(q: String) {
-        val query = new ViewQuery().designDocId("_design/Story").viewName("textQuery").queryParam("q", q).queryParam("include_geometry", "true")
-		searchResults = fetchResults(query)
-		viewers.flatMap(_.get).foreach(_.update(searchResults))
+        queryFactory() = Some(() ⇒
+            new ViewQuery().designDocId("_design/Story").viewName("textQuery")
+                .queryParam("q", q).limit(2).queryParam("include_geometry", "true")
+        )
 	}
 	
 	def geoQuery(bbox: String) {
-		getSupportActionBar.setSubtitle(getResources.getString(R.string.search_results_area))
-        val query = new ViewQuery().designDocId("_design/Story").viewName("geoQuery").queryParam("bbox", bbox)
-        searchResults = fetchResults(query)
-		viewers.flatMap(_.get).foreach(_.update(searchResults))
+		bar.setSubtitle(getResources.getString(R.string.search_results_area))
+        queryFactory() = Some(() ⇒
+            new ViewQuery().designDocId("_design/Story").viewName("geoQuery")
+                .queryParam("bbox", bbox)
+        )
 	}
 	
 	override def onCreateOptionsMenu(menu: Menu): Boolean = {
@@ -141,14 +183,5 @@ class SearchResultsActivity extends StoryActivity {
 	        case _ ⇒
                 super.onOptionsItemSelected(item)
 	    }
-	}
-	
-	override def onAttachFragment(fragment: Fragment) {
-		try {
-			viewers ::= new WeakReference[ViewzResults](fragment.asInstanceOf[ViewzResults])
-			fragment.asInstanceOf[ViewzResults].update(searchResults)
-		} catch {
-			case e: Throwable ⇒ e.printStackTrace()
-		}
 	}
 }

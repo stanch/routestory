@@ -65,6 +65,7 @@ class ExploreActivity extends StoryActivity {
 		        this += mProgress
 		        mRetry = new Button(ctx) {
                     setVisibility(View.GONE)
+                    setText("Retry") // TODO: strings.xml
                     setLayoutParams(new LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER
                     ))
@@ -118,7 +119,7 @@ class ExploreActivity extends StoryActivity {
             // Latest stuff
             val latest = flow {
                 val query = new ViewQuery().designDocId("_design/Story").viewName("byTimestamp").descending(true).limit(3)
-                val stories = await(app.getQueryResults[StoryResult](remote = true, query))
+                val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = true, query, None))
                 val authors = await(app.getObjects[Author](stories.filter(_.authorId!=null).map(_.authorId)))
                 stories.filter(_.authorId!=null).foreach(s ⇒ s.author = authors(s.authorId))
                 switchToUiThread()

@@ -16,9 +16,13 @@ import net.routestory.parts.TabListener
 import net.routestory.{MainActivity, R}
 import com.actionbarsherlock.view.MenuItem
 import com.actionbarsherlock.app.ActionBar
+import rx._
 
-class MyStoriesActivity extends StoryActivity {
+class MyStoriesActivity extends StoryActivity with HazStories {
 	var activeTab: ResultListFragment = null
+    val myStories: Var[Future[List[StoryResult]]] = Var(Future.failed(new UninitializedError))
+
+    def getStories = myStories
 
     override def onCreate(savedInstanceState: Bundle) {
         super.onCreate(savedInstanceState)
@@ -44,15 +48,15 @@ class MyStoriesActivity extends StoryActivity {
     
     def showStories() {
         val query = new ViewQuery().designDocId("_design/Story").viewName(activeTab.getTag).descending(true).includeDocs(true)
-        flow {
-            val stories = app.getQueryResults[StoryResult](remote = false, query)
-            val authorIds = await(stories).map(_.authorId)
+        myStories.update(flow {
+            val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = false, query, None))
+            val authorIds = stories.map(_.authorId)
             val authors = await(app.getObjects[Author](authorIds))
-            await(stories).filter(_.authorId!=null) foreach { r ⇒
+            stories.filter(_.authorId!=null) foreach { r ⇒
                 r.author = authors(r.authorId)
             }
-            activeTab.update(stories)
-        }
+            stories
+        })
     }
     
     override def onAttachFragment(fragment: Fragment) {

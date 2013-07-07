@@ -4,23 +4,25 @@ import net.routestory.R
 import net.routestory.model.StoryResult
 import android.content.Context
 import android.os.Bundle
-import android.view.View
-import android.view.ViewGroup
-import android.widget.ArrayAdapter
+import android.view.{Gravity, LayoutInflater, View, ViewGroup}
+import android.widget._
 import net.routestory.parts.StoryFragment
 import com.actionbarsherlock.app.SherlockListFragment
 import android.app.Activity
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import rx._
+import org.scaloid.common._
+import scala.Some
 
-class ResultListFragment extends SherlockListFragment with StoryFragment with ViewzResults {
+class ResultListFragment extends SherlockListFragment with StoryFragment {
+    lazy val storyteller = getActivity.asInstanceOf[HazStories]
 	lazy val defaultEmptyText = ctx.getResources.getString(R.string.empty_search)
     var emptyText: Option[String] = None
-	
-	override def onCreate(savedInstanceState: Bundle) {
-        super.onCreate(savedInstanceState)
-    }
+
+    var next: Button = _
+    var prev: Button = _
 
     def tweakEmptyText(text: String) {
         emptyText = Some(text)
@@ -28,12 +30,34 @@ class ResultListFragment extends SherlockListFragment with StoryFragment with Vi
 	
 	override def onStart() {
 		super.onStart()
+        findView[ListView](android.R.id.list).addFooterView(new LinearLayout(ctx) {
+            setOrientation(LinearLayout.HORIZONTAL)
+            setGravity(Gravity.CENTER_HORIZONTAL)
+            prev = new Button(ctx) {
+                setText("Prev")
+                setOnClickListener(storyteller.prev())
+            }
+            this += prev
+            next = new Button(ctx) {
+                setText("Next")
+                setOnClickListener(storyteller.next())
+            }
+            this += next
+        })
         setEmptyText(emptyText.getOrElse(defaultEmptyText))
+        val stories = storyteller.getStories
+        Obs(stories) {
+            update(stories())
+        }
     }
-    
+
     def update(results: Future[List[StoryResult]]) {
-    	results.onSuccessUI { case res ⇒
+        runOnUiThread(setListShown(false))
+        results.onSuccessUI { case res ⇒
     		setListAdapter(new ResultListFragment.StoryListAdapter(ctx, res))
+            prev.setEnabled(storyteller.hasPrev)
+            next.setEnabled(storyteller.hasNext)
+            setListShown(true)
     	}
     }
 }

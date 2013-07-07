@@ -190,11 +190,12 @@ class StoryApplication extends Application {
     }
 
     lazy val objectMapper = new ObjectMapper()
-    def getQueryResults[A: ClassTag](remote: Boolean, query: ViewQuery): Future[List[A]] = {
+    def getQueryResults[A: ClassTag](remote: Boolean, query: ViewQuery, bookmark: Option[String]): Future[(List[A], Int, String)] = {
+        bookmark.foreach(query.queryParam("bookmark", _))
         getPlainQueryResults(remote, query) map { results ⇒
-            results.getRows.toList map { row ⇒
+            (results.getRows.toList map { row ⇒
                 objectMapper.readValue(row.getValue, implicitly[ClassTag[A]].runtimeClass).asInstanceOf[A]
-            }
+            }, results.getTotalRows, results.getUpdateSeqAsString)
         }
     }
 
