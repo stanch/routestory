@@ -80,15 +80,15 @@ class SearchResultsActivity extends StoryActivity with HazStories {
     }
 
 	def getStories = searchResults
-    def next() = queryFactory() foreach { q ⇒
+    override def next() = queryFactory() foreach { q ⇒
         searchResults() = fetchResults(q, bookmarks.headOption)
     }
-    def prev() = queryFactory() foreach { q ⇒
+    override def prev() = queryFactory() foreach { q ⇒
         bookmarks = Try(bookmarks.tail.tail).getOrElse(List()) // remove bookmarks to next and current pages
         searchResults() = fetchResults(q, bookmarks.headOption)
     }
-    def hasNext = storiesByPage * bookmarks.length < totalStories
-    def hasPrev = bookmarks.length > 1
+    override def hasNext = storiesByPage * bookmarks.length < totalStories
+    override def hasPrev = bookmarks.length > 1
 	
 	override def onCreate(savedInstanceState: Bundle) {
 		super.onCreate(savedInstanceState)

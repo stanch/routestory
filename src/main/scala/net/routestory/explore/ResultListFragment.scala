@@ -18,7 +18,12 @@ import scala.Some
 
 class ResultListFragment extends SherlockListFragment with StoryFragment {
     lazy val storyteller = getActivity.asInstanceOf[HazStories]
-	lazy val defaultEmptyText = ctx.getResources.getString(R.string.empty_search)
+    lazy val stories = storyteller.getStories
+    lazy val observe = Obs(stories) {
+        update(stories())
+    }
+
+	lazy val defaultEmptyText = getResources.getString(R.string.empty_search)
     var emptyText: Option[String] = None
 
     var next: Button = _
@@ -27,9 +32,8 @@ class ResultListFragment extends SherlockListFragment with StoryFragment {
     def tweakEmptyText(text: String) {
         emptyText = Some(text)
     }
-	
-	override def onStart() {
-		super.onStart()
+
+    override def onFirstStart() {
         findView[ListView](android.R.id.list).addFooterView(new LinearLayout(ctx) {
             setOrientation(LinearLayout.HORIZONTAL)
             setGravity(Gravity.CENTER_HORIZONTAL)
@@ -45,10 +49,15 @@ class ResultListFragment extends SherlockListFragment with StoryFragment {
             this += next
         })
         setEmptyText(emptyText.getOrElse(defaultEmptyText))
-        val stories = storyteller.getStories
-        Obs(stories) {
-            update(stories())
-        }
+    }
+
+    override def onEveryStart() {
+        observe.active = true
+    }
+
+    override def onDestroyView() {
+        super.onDestroyView()
+        observe.active = false
     }
 
     def update(results: Future[List[StoryResult]]) {
