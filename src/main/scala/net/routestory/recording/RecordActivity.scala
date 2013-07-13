@@ -10,12 +10,7 @@ import scala.concurrent.future
 
 import org.scaloid.common._
 
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import com.actionbarsherlock.view.Menu
-import com.actionbarsherlock.view.MenuItem
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.{MapFragment, CameraUpdateFactory, GoogleMap}
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.Marker
@@ -31,10 +26,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.view.Gravity
-import android.view.KeyEvent
-import android.view.View
-import android.view.ViewGroup
+import android.view._
 import android.widget.FrameLayout
 import net.routestory.R
 import net.routestory.display.DisplayActivity
@@ -51,14 +43,14 @@ object RecordActivity {
 	val REQUEST_CODE_TITLE_AND_TAG = 1
 }
 
-class RecordActivity extends SherlockFragmentActivity with StoryActivity {
+class RecordActivity extends StoryActivity {
 	lazy val mStory = new Story()
 	var mMedia = Map[String,(String, String)]()
 	
 	var mProgressDialog: ProgressDialog = null
 	var mLocationListener: LocationListener = null 
 	
-	lazy val mMap = findFrag("recording_map").asInstanceOf[SupportMapFragment].getMap
+	lazy val mMap = findFrag("recording_map").asInstanceOf[MapFragment].getMap
 	lazy val mRouteManager = new RouteManager(mMap, mStory)
 	
 	var mManMarker: Marker = null
@@ -85,15 +77,15 @@ class RecordActivity extends SherlockFragmentActivity with StoryActivity {
 	            	p.setMargins(0, 0, 0, 20)
             		setLayoutParams(p)
             		setOnClickListener { v: View =>
-	            		new AddMediaDialogFragment().show(getSupportFragmentManager, "add_media")
+	            		new AddMediaDialogFragment().show(getFragmentManager, "add_media")
 	            	}
 	            }
 	        }
 	    }
 	    
 		if (findFrag("recording_map") == null) {
-			val mapFragment = SupportMapFragment.newInstance()
-			val fragmentTransaction = getSupportFragmentManager.beginTransaction()
+			val mapFragment = MapFragment.newInstance()
+			val fragmentTransaction = getFragmentManager.beginTransaction()
 	        fragmentTransaction.add(1, mapFragment, "recording_map")
 	        fragmentTransaction.commit()
 		}
@@ -155,7 +147,7 @@ class RecordActivity extends SherlockFragmentActivity with StoryActivity {
 	    		mToggleAudio = !mToggleAudio
 	    		if (mToggleAudio) unpauseAudio()
 	    		else pauseAudio()
-	    		supportInvalidateOptionsMenu()
+	    		invalidateOptionsMenu()
 	    		true
 	    	}
         	case _ => false
@@ -192,7 +184,7 @@ class RecordActivity extends SherlockFragmentActivity with StoryActivity {
     }
 
     override def onCreateOptionsMenu(menu: Menu): Boolean = {
-        getSupportMenuInflater.inflate(R.menu.activity_record, menu)
+        getMenuInflater.inflate(R.menu.activity_record, menu)
         true
     }
     
@@ -216,7 +208,7 @@ class RecordActivity extends SherlockFragmentActivity with StoryActivity {
 						mStory.start()
 						trackAudio()
 						mRouteManager.init()
-						supportInvalidateOptionsMenu()
+						invalidateOptionsMenu()
 						mMap.addMarker(new MarkerOptions()
 							.position(pt)
 							.icon(BitmapDescriptorFactory.fromResource(R.drawable.flag_start))
@@ -326,7 +318,7 @@ class RecordActivity extends SherlockFragmentActivity with StoryActivity {
     		val bitmap = BitmapUtils.createScaledTransparentBitmap(downsized, 100, 0.8, false)
     		downsized.recycle()
     		bitmap
-    	} onSuccessUI { case bitmap =>
+    	} onSuccessUi { case bitmap =>
     		mMap.addMarker(new MarkerOptions()
     			.icon(BitmapDescriptorFactory.fromBitmap(bitmap))
 				.position(mStory.getLocation(System.currentTimeMillis()/1000L))
@@ -360,7 +352,7 @@ class RecordActivity extends SherlockFragmentActivity with StoryActivity {
 		    		mAudioTrackerThread.join()
 		    		addAudio()
 		    		createStory()
-		    	} onSuccessUI { case _ =>
+		    	} onSuccessUi { case _ =>
 		    		mProgressDialog.dismiss()
 		    		app.sync()
 		    		finish()

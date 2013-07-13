@@ -6,7 +6,6 @@ import android.app.AlertDialog
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
-import android.support.v4.app.FragmentTransaction
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,12 +13,8 @@ import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
-import com.actionbarsherlock.app.SherlockFragment
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps._
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener
-import com.google.android.gms.maps.GoogleMapOptions
-import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -39,8 +34,8 @@ import scala.concurrent.Future
 import scala.util.Try
 import rx._
 
-class ResultMapFragment extends SherlockFragment with StoryFragment {
-    lazy val mMap = findFrag[SupportMapFragment]("results_map").getMap
+class ResultMapFragment extends StoryFragment {
+    lazy val mMap = findFrag[MapFragment]("results_map").getMap
     var mMarkers = Map[Marker, StoryResult]()
     var mRoutes = List[Polyline]()
 	
@@ -82,7 +77,7 @@ class ResultMapFragment extends SherlockFragment with StoryFragment {
 	    }
 	    
 		if (findFrag("results_map") == null) {
-			val mapFragment = SupportMapFragment.newInstance()
+			val mapFragment = MapFragment.newInstance()
 			val fragmentTransaction = getChildFragmentManager.beginTransaction()
 	        fragmentTransaction.add(1, mapFragment, "results_map")
 	        fragmentTransaction.commit()
@@ -107,7 +102,7 @@ class ResultMapFragment extends SherlockFragment with StoryFragment {
     }
 
 	def update(res: Future[List[StoryResult]]) {
-		res.onSuccessUI { case results ⇒
+		res.onSuccessUi { case results ⇒
 			mRoutes.foreach(_.remove())
 			mMarkers.foreach(_._1.remove())
 			mRoutes = List()

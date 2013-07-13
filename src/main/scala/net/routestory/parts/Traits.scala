@@ -3,42 +3,35 @@ package net.routestory.parts
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import org.scaloid.common._
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import android.support.v4.app.Fragment
+import android.app.Fragment
 import android.view.View
 import net.routestory.StoryApplication
 import android.content.Context
 import scala.util.continuations._
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import com.actionbarsherlock.app.SherlockFragmentActivity
+import scala.util.Try
+import android.app.Activity
 
 trait StoryUI {
-	implicit class RichFuture[A](val value: Future[A]) {
-	    def onSuccessUI(f: PartialFunction[A, Any])(implicit c: ExecutionContext): Future[A] = {
-	        value onSuccess { case v =>
-	            runOnUiThread {
-	                f.lift(v)
-	            }
+    @inline def runOnUiThread[A](f: ⇒ A): Future[A] = {
+        val uiPromise = Promise[A]()
+        handler.post(new Runnable {
+            def run() { uiPromise.complete(Try(f)) }
+        })
+        uiPromise.future
+    }
+
+    implicit class RichFuture[A](val value: Future[A]) {
+	    def onSuccessUi(f: PartialFunction[A, Any])(implicit c: ExecutionContext): Future[A] = {
+	        value onSuccess { case v ⇒
+	            runOnUiThread(f.lift(v))
 	        }
 	        value
 	    }
-	    def onFailureUI(f: PartialFunction[Throwable, Any])(implicit c: ExecutionContext): Future[A] = {
-	        value onFailure { case v =>
-	            runOnUiThread {
-	                f.lift(v)
-	            }
+	    def onFailureUi(f: PartialFunction[Throwable, Any])(implicit c: ExecutionContext): Future[A] = {
+	        value onFailure { case v ⇒
+	            runOnUiThread(f.lift(v))
 	        }
 	        value
-	    }
-	    def mapUI(f: A => Any)(implicit c: ExecutionContext): Future[Unit] = {
-	        value map { v =>
-	            runOnUiThread {
-	                f(v)
-	            }
-	        }
 	    }
 	}
 
@@ -46,11 +39,7 @@ trait StoryUI {
     @inline def await[A](f: Future[A]) = f.apply()
 
     @inline def switchToUiThread(): Unit @cps[Future[Any]] = shift { f: (Unit ⇒ Future[Any]) ⇒
-        val uiPromise = Promise[Any]()
-        handler.post(new Runnable {
-            def run() { uiPromise.completeWith(f()) }
-        })
-        uiPromise.future
+        runOnUiThread(f())
     }
 
     implicit def cacher2Future[A](c: Cacher[A])(implicit ctx: Context): Future[A] = {
@@ -64,12 +53,12 @@ trait StoryUI {
     implicit def cacher2RichFuture[A](c: Cacher[A])(implicit ctx: Context): RichFuture[A] = cacher2Future(c)
 }
 
-trait StoryActivity extends SherlockFragmentActivity with StoryUI with SActivity {
+trait StoryActivity extends Activity with StoryUI with SActivity {
     lazy val app = getApplication.asInstanceOf[StoryApplication]
-    lazy val bar = getSupportActionBar
+    lazy val bar = getActionBar
     
     def findView[A <: View](id: Int) = findViewById(id).asInstanceOf[A]
-    def findFrag[A <: Fragment](tag: String) = getSupportFragmentManager.findFragmentByTag(tag).asInstanceOf[A]
+    def findFrag[A <: Fragment](tag: String) = getFragmentManager.findFragmentByTag(tag).asInstanceOf[A]
     
     var everStarted = false    
     def onFirstStart() {}
@@ -90,8 +79,8 @@ trait StoryFragment extends Fragment with StoryUI {
     
     def findView[A <: View](id: Int) = getView.findViewById(id).asInstanceOf[A]
     def findFrag[A <: Fragment](tag: String) = getChildFragmentManager.findFragmentByTag(tag).asInstanceOf[A]
-    
-    var everStarted = false    
+
+    var everStarted = false
     def onFirstStart() {}
     def onEveryStart() {}
     override def onStart() {

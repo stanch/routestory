@@ -5,7 +5,6 @@ import net.routestory.model.Story
 import android.app.ProgressDialog
 import android.os.AsyncTask
 import android.os.Bundle
-import android.support.v4.app.FragmentTransaction
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,12 +13,11 @@ import android.view.ViewGroup
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.Button
 import android.widget.FrameLayout
-import com.actionbarsherlock.app.SherlockFragment
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.GoogleMap.OnCameraChangeListener
 import com.google.android.gms.maps.GoogleMapOptions
-import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.MapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLngBounds
@@ -35,9 +33,9 @@ import net.routestory.parts.Implicits._
 import akka.dataflow._
 import scala.concurrent.Future
 
-class OverviewFragment extends SherlockFragment with StoryFragment {
+class OverviewFragment extends StoryFragment {
     lazy val display = getActivity.getWindowManager.getDefaultDisplay
-    lazy val mMap = findFrag[SupportMapFragment]("overview_map").getMap
+    lazy val mMap = findFrag[MapFragment]("overview_map").getMap
 	lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
 	lazy val mRouteManager = flow {
         val story = await(mStory)
@@ -58,7 +56,7 @@ class OverviewFragment extends SherlockFragment with StoryFragment {
 	        this += new SFrameLayout {
 	            val toggleOverlays = SButton(R.string.hide_overlays).<<(WRAP_CONTENT, WRAP_CONTENT).marginBottom(20 dip).Gravity(Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL).>>
 	            toggleOverlays.setOnClickListener { v: View =>
-					mMarkerManager onSuccessUI { case mm =>
+					mMarkerManager onSuccessUi { case mm =>
 					    mm.hide_overlays = !mm.hide_overlays
 					    toggleOverlays.setText(if (mm.hide_overlays) R.string.show_overlays else R.string.hide_overlays)
 					    mm.update()
@@ -68,7 +66,7 @@ class OverviewFragment extends SherlockFragment with StoryFragment {
 	    }
 	    
 		if (findFrag("overview_map") == null) {
-			val mapFragment = SupportMapFragment.newInstance()
+			val mapFragment = MapFragment.newInstance()
 			val fragmentTransaction = getChildFragmentManager.beginTransaction()
 	        fragmentTransaction.add(1, mapFragment, "overview_map")
 	        fragmentTransaction.commit()
@@ -90,10 +88,10 @@ class OverviewFragment extends SherlockFragment with StoryFragment {
                 setMax(mm.loadingItems.length)
                 show()
             }
-            mm.loadingItems.foreach(_.onSuccessUI { case _ ⇒
+            mm.loadingItems.foreach(_.onSuccessUi { case _ ⇒
                 progress.incrementProgressBy(1)
             })
-            Future.sequence(mm.loadingItems).onSuccessUI { case _ ⇒
+            Future.sequence(mm.loadingItems).onSuccessUi { case _ ⇒
                 progress.dismiss()
             }
             switchToUiThread()

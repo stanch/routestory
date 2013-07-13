@@ -1,7 +1,6 @@
-package net.routestory.recording;
+package net.routestory.recording
 
 import org.scaloid.common._
-import com.actionbarsherlock.app.SherlockFragmentActivity
 import android.content.Intent
 import android.os.Bundle
 import android.preference.PreferenceManager
@@ -13,8 +12,7 @@ import net.routestory.R
 import net.routestory.parts.StoryActivity
 import android.view.View
 
-
-class DescriptionActivity extends SherlockFragmentActivity with StoryActivity {
+class DescriptionActivity extends StoryActivity {
 	override def onCreate(savedInstanceState: Bundle) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_description)
@@ -24,10 +22,10 @@ class DescriptionActivity extends SherlockFragmentActivity with StoryActivity {
         
         findView[Button](R.id.button1) setOnClickListener { v: View =>
         	val data = new Intent("result") {
-        		putExtra("title", findView[EditText](R.id.editText1).getText().toString())
-        		putExtra("description", findView[EditText](R.id.editText2).getText().toString())
-        		putExtra("tags", findView[EditText](R.id.editText3).getText().toString())
-        		putExtra("private", findView[CheckBox](R.id.checkBox1).isChecked())
+        		putExtra("title", findView[EditText](R.id.editText1).getText.toString)
+        		putExtra("description", findView[EditText](R.id.editText2).getText.toString)
+        		putExtra("tags", findView[EditText](R.id.editText3).getText.toString)
+        		putExtra("private", findView[CheckBox](R.id.checkBox1).isChecked)
         	}
 			setResult(0, data)
 			finish()

@@ -3,7 +3,7 @@
     <color name="aquadark">#358482</color>
     <color name="orange">#fa673d</color>
 
-    <style name="AppTheme" parent="@style/Theme.story">
+    <style name="AppTheme" parent="@style/Theme.Story">
     	<item name="android:windowBackground">@drawable/startup_screen_gradient</item>
     </style>
     

@@ -1,18 +1,15 @@
 package net.routestory
 
 import org.scaloid.common._
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import com.actionbarsherlock.view.Menu
-import com.actionbarsherlock.view.MenuItem
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GooglePlayServicesUtil
-import android.content.Intent
 import android.os.Bundle
 import net.routestory.explore.{MyStoriesActivity, ExploreActivity}
 import net.routestory.parts.HapticButton
 import net.routestory.recording.RecordActivity
 import android.preference.PreferenceManager
 import net.routestory.parts.StoryActivity
+import android.view.{Menu, MenuItem}
 
 class MainActivity extends StoryActivity {
     override def onCreate(savedInstanceState: Bundle) {
@@ -49,7 +46,7 @@ class MainActivity extends StoryActivity {
     }
     
     override def onCreateOptionsMenu(menu: Menu): Boolean = {
-        getSupportMenuInflater().inflate(R.menu.activity_main, menu)
+        getMenuInflater.inflate(R.menu.activity_main, menu)
         true
     }
     

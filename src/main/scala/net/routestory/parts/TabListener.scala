@@ -1,17 +1,13 @@
 package net.routestory.parts
 
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentTransaction
-import com.actionbarsherlock.app.ActionBar
-import com.actionbarsherlock.app.ActionBar.Tab
-import com.actionbarsherlock.app.SherlockFragmentActivity
 import scala.reflect.ClassTag
+import android.app.{FragmentTransaction, Fragment, ActionBar, Activity}
 
-case class TabListener[A <: Fragment : ClassTag](activity: SherlockFragmentActivity, tag: String) extends ActionBar.TabListener {
+case class TabListener[A <: Fragment : ClassTag](activity: Activity, tag: String) extends ActionBar.TabListener {
     var fragment: Option[Fragment] = None
 
     override def onTabSelected(tab: ActionBar.Tab, ft: FragmentTransaction) {
-        val preInitializedFragment = Option(activity.getSupportFragmentManager.findFragmentByTag(tag).asInstanceOf[Fragment])
+        val preInitializedFragment = Option(activity.getFragmentManager.findFragmentByTag(tag))
         (fragment, preInitializedFragment) match {
             case (None, None) ⇒
                 fragment = Some(Fragment.instantiate(activity, implicitly[ClassTag[A]].runtimeClass.getName))

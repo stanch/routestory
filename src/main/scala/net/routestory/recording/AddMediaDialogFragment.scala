@@ -1,6 +1,6 @@
 package net.routestory.recording
 
-import android.support.v4.app.DialogFragment
+import android.app.DialogFragment
 import android.widget.EditText
 import android.os.Bundle
 import android.media.MediaRecorder
@@ -28,19 +28,19 @@ import android.net.Uri
 
 
 class AddMediaDialogFragment extends DialogFragment {
-	lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity().getExternalCacheDir()).getAbsolutePath()
+	lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
 	
 	override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-		val activity = getActivity().asInstanceOf[RecordActivity]
+		val activity = getActivity.asInstanceOf[RecordActivity]
 		
-		val view = activity.getLayoutInflater().inflate(R.layout.dialog_add_media, null)
+		val view = activity.getLayoutInflater.inflate(R.layout.dialog_add_media, null)
 		List(R.id.addTextNote, R.id.addVoiceNote, R.id.addHeartbeat) zip
 		List(classOf[NoteDialogFragment], classOf[VoiceDialogFragment], classOf[MeasurePulseDialogFragment]) zip
 		List("note_dialog", "voice_dialog", "pulse_dialog") map { case ((id, cls), tag) =>
 			view.findViewById(id).asInstanceOf[HapticImageButton].setOnClickListener { v: View =>
 				activity.pauseAudio()
 				dismiss()
-				cls.newInstance().show(activity.getSupportFragmentManager(), tag)
+				cls.newInstance().show(activity.getFragmentManager, tag)
 			}
 		}
 		
@@ -58,7 +58,7 @@ class AddMediaDialogFragment extends DialogFragment {
 		super.onActivityResult(requestCode, resultCode, data)
 		if (requestCode == RecordActivity.REQUEST_CODE_TAKE_PICTURE) {
 			dismiss()
-			val activity = getActivity().asInstanceOf[RecordActivity]
+			val activity = getActivity.asInstanceOf[RecordActivity]
 			if (resultCode != Activity.RESULT_OK) {
 	    		activity.unpauseAudio()
 	    	} else {
@@ -71,8 +71,8 @@ class AddMediaDialogFragment extends DialogFragment {
 
 class NoteDialogFragment extends AddMediaDialogFragment {
 	override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-		val activity = getActivity().asInstanceOf[RecordActivity]
-		
+		val activity = getActivity.asInstanceOf[RecordActivity]
+
 		val input = new EditText(activity) {
 			setHint(R.string.message_typenotehere)
 			setMinLines(5)
@@ -82,7 +82,7 @@ class NoteDialogFragment extends AddMediaDialogFragment {
 		new AlertDialog.Builder(activity) {
 			setView(input)
 			setPositiveButton(R.string.button_save, { (d: DialogInterface, w: Int) =>
-				val note = input.getText().toString()
+				val note = input.getText.toString
 				if (note.length() > 0) {
 					activity.addNote(note)
 				}
@@ -98,7 +98,7 @@ class VoiceDialogFragment extends DialogFragment {
 	var mMediaRecorder: MediaRecorder = null
 	var mRecording = false
 	var mStartStop: Button = null
-	lazy val mOutputPath = File.createTempFile("voice", ".mp4", getActivity().getExternalCacheDir()).getAbsolutePath()
+	lazy val mOutputPath = File.createTempFile("voice", ".mp4", getActivity.getExternalCacheDir).getAbsolutePath
 	
 	def start() {
 		mMediaRecorder = new MediaRecorder() {
@@ -113,7 +113,7 @@ class VoiceDialogFragment extends DialogFragment {
 	        mRecording = true
 	        mStartStop.setText("Stop recording")
         } catch {
-        	case e: Throwable => e.printStackTrace()
+        	case e: Throwable ⇒ e.printStackTrace()
 		}
 	}
 	
@@ -122,11 +122,11 @@ class VoiceDialogFragment extends DialogFragment {
         mMediaRecorder.release()
         mMediaRecorder = null
         mRecording = false
-        mStartStop.setText("Click if you want to try again");
+        mStartStop.setText("Click if you want to try again")
 	}
 	
 	override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-		val activity = getActivity().asInstanceOf[RecordActivity]
+		val activity = getActivity.asInstanceOf[RecordActivity]
 		
 		mStartStop = new Button(activity) {
 			setText("Start recording")
@@ -163,7 +163,7 @@ class MeasurePulseDialogFragment extends DialogFragment {
     }
 
 	override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-		val activity = getActivity().asInstanceOf[RecordActivity]
+		val activity = getActivity.asInstanceOf[RecordActivity]
 		
 		val layout = new LinearLayout(ctx) {
 			//val lp = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)

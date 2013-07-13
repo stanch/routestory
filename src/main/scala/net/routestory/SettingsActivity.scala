@@ -1,14 +1,11 @@
-package net.routestory;
+package net.routestory
 
-import android.app.Activity
 import android.os.Bundle
-import org.scaloid.common._
-import android.widget.CheckBox
-import com.actionbarsherlock.app.SherlockPreferenceActivity
+import android.preference.PreferenceActivity
 
-class SettingsActivity extends SherlockPreferenceActivity with SActivity {
+class SettingsActivity extends PreferenceActivity {
 	override def onCreate(savedInstanceState: Bundle) {
-		super.onCreate(savedInstanceState);
-		addPreferencesFromResource(R.xml.preferences);
+		super.onCreate(savedInstanceState)
+		addPreferencesFromResource(R.xml.preferences)
 	}
 }

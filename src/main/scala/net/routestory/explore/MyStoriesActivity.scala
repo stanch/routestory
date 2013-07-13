@@ -4,7 +4,7 @@ import org.ektorp.ViewQuery
 import net.routestory.model._
 import android.content.Intent
 import android.os.Bundle
-import android.support.v4.app.Fragment
+import android.app.Fragment
 import android.widget.FrameLayout
 import net.routestory.parts.StoryActivity
 import org.scaloid.common._
@@ -14,9 +14,9 @@ import scala.collection.JavaConversions._
 import akka.dataflow._
 import net.routestory.parts.TabListener
 import net.routestory.{MainActivity, R}
-import com.actionbarsherlock.view.MenuItem
-import com.actionbarsherlock.app.ActionBar
 import rx._
+import android.view.MenuItem
+import android.app.ActionBar
 
 class MyStoriesActivity extends StoryActivity with HazStories {
 	var activeTab: ResultListFragment = null

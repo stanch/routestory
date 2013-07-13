@@ -15,10 +15,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
-import com.actionbarsherlock.app.SherlockFragment
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.{MapFragment, CameraUpdateFactory, GoogleMap}
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.Marker
@@ -36,8 +33,8 @@ import scala.collection.mutable
 import android.view.animation.AlphaAnimation
 import net.routestory.parts.Animation._
 
-class PreviewFragment extends SherlockFragment with StoryFragment {
-	lazy val mMap = findFrag[SupportMapFragment]("preview_map").getMap
+class PreviewFragment extends StoryFragment {
+	lazy val mMap = findFrag[MapFragment]("preview_map").getMap
 	lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
 	lazy val mRouteManager = flow {
         val story = await(mStory)
@@ -67,7 +64,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
                         ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER
                     ))
                     setOnClickListener { v: View ⇒
-                        mStory zip mRouteManager onSuccessUI { case (x, y) ⇒ startPreview(x, y) }
+                        mStory zip mRouteManager onSuccessUi { case (x, y) ⇒ startPreview(x, y) }
                     }
                 }
 	            this += mPlayButton
@@ -75,7 +72,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
 	    }
 	    
 		if (findFrag("preview_map") == null) {
-			val mapFragment = SupportMapFragment.newInstance()
+			val mapFragment = MapFragment.newInstance()
 			val fragmentTransaction = getChildFragmentManager.beginTransaction()
 	        fragmentTransaction.add(1, mapFragment, "preview_map")
 	        fragmentTransaction.commit()
@@ -126,7 +123,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
                 progress.incrementProgressBy(1)
             }))
 
-            val audio = story.audioPreview.get onSuccessUI { case _ ⇒
+            val audio = story.audioPreview.get onSuccessUi { case _ ⇒
                 progress.incrementProgressBy(1)
             }
 
@@ -137,7 +134,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
 	}
 
     override def onEveryStart() {
-        mRouteManager onSuccessUI { case rm =>
+        mRouteManager onSuccessUi { case rm =>
 	        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()
 	    		.target(rm.getStart).tilt(90).zoom(19)
 	    		.bearing(rm.getStartBearing).build()
@@ -225,7 +222,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
     
     def rewind() {
     	mPlayButton.setVisibility(View.VISIBLE)
-        mRouteManager onSuccessUI { case rm =>
+        mRouteManager onSuccessUi { case rm =>
 			mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()
 	    		.target(rm.getStart).tilt(90).zoom(19)
 	    		.bearing(rm.getStartBearing).build()
@@ -241,7 +238,7 @@ class PreviewFragment extends SherlockFragment with StoryFragment {
     def playAudio(story: Story) {
     	mMediaPlayer = new MediaPlayer()
         if (story.audioPreview == null) return
-        story.audioPreview.get() onSuccessUI { case file =>
+        story.audioPreview.get() onSuccessUi { case file =>
     	    if (file == null) return
             try {
 				mMediaPlayer.setDataSource(file.getAbsolutePath())

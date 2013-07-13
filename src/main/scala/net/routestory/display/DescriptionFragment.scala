@@ -1,6 +1,4 @@
-package net.routestory.display;
-
-import com.actionbarsherlock.app.SherlockFragment
+package net.routestory.display
 
 import net.routestory.R
 import android.graphics.Point
@@ -22,7 +20,7 @@ import scala.util.{Success,Failure}
 import net.routestory.parts.StoryFragment
 import net.routestory.parts.Implicits._
 
-class DescriptionFragment extends SherlockFragment with StoryFragment {
+class DescriptionFragment extends StoryFragment {
     lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
     
     override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
@@ -41,9 +39,9 @@ class DescriptionFragment extends SherlockFragment with StoryFragment {
     override def onStart() {
         super.onStart()
         
-    	mStory onSuccessUI { case story =>
+    	mStory onSuccessUi { case story =>
 	    	// get screen width
-			val display = getActivity().getWindowManager().getDefaultDisplay()
+			val display = getActivity.getWindowManager.getDefaultDisplay
 			val width = display.getWidth()
 			
 			if (story.author != null) {
@@ -51,7 +49,7 @@ class DescriptionFragment extends SherlockFragment with StoryFragment {
 			    avatar.setScaleType(ImageView.ScaleType.FIT_START)
 				avatar.setAdjustViewBounds(true)
 			    findView[TextView](R.id.authorName).setText(story.author.name)
-			    story.author.getPicture() onSuccessUI { case picture => 
+			    story.author.getPicture onSuccessUi { case picture =>
 			        setAvatar(avatar, picture)
 			    }
 			} else {
@@ -65,7 +63,7 @@ class DescriptionFragment extends SherlockFragment with StoryFragment {
 			}
 			
 			if (story.tags != null && story.tags.length > 0) {
-				ResultRow.fillTags(findView[LinearLayout](R.id.storyTagRows), width-20, story.tags, getActivity())
+				ResultRow.fillTags(findView[LinearLayout](R.id.storyTagRows), width-20, story.tags, getActivity)
 			} else {
 			    findView[View](R.id.storyTagsHeader).setVisibility(View.GONE)
 			    findView[View](R.id.storyTags).setVisibility(View.GONE)

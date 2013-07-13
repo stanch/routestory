@@ -9,13 +9,7 @@ import scala.concurrent.duration._
 
 import org.scaloid.common._
 
-import com.actionbarsherlock.app.ActionBar
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import com.actionbarsherlock.view.Menu
-import com.actionbarsherlock.view.MenuItem
-
-import android.app.AlertDialog
-import android.app.PendingIntent
+import android.app.{ActionBar, AlertDialog, PendingIntent}
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
@@ -28,7 +22,7 @@ import android.nfc.Tag
 import android.nfc.tech.Ndef
 import android.nfc.tech.NdefFormatable
 import android.os.Bundle
-import android.view.Window
+import android.view.{Menu, MenuItem, Window}
 import android.widget.FrameLayout
 import android.widget.Toast
 import net.routestory.MainActivity
@@ -87,7 +81,7 @@ class DisplayActivity extends StoryActivity with HazStory {
 
     override def onCreate(savedInstanceState: Bundle) {
         super.onCreate(savedInstanceState)
-        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS.asInstanceOf[Long])
+        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS)
         setContentView(new FrameLayout(this))
 
         if (savedInstanceState != null && savedInstanceState.containsKey("tab")) {
@@ -108,9 +102,9 @@ class DisplayActivity extends StoryActivity with HazStory {
 
         setProgressBarIndeterminateVisibility(true)
 
-        mStory onSuccessUI { case _ =>
+        mStory onSuccessUi { case _ =>
             setProgressBarIndeterminateVisibility(false)
-        } onFailureUI { case _ =>
+        } onFailureUi { case _ =>
             toast("Failed to load the story")
             finish()
         }
@@ -118,16 +112,16 @@ class DisplayActivity extends StoryActivity with HazStory {
         implicit val success = new retry.Success[Boolean](x ⇒ x)
         Backoff(max = 4, delay = 5 seconds)(() ⇒ future {
             app.remoteContains(id)
-        }) onSuccessUI { case _ ⇒
+        }) onSuccessUi { case _ ⇒
             mShareable = true
-            supportInvalidateOptionsMenu()
+            invalidateOptionsMenu()
         }
 
         bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
         bar.setDisplayShowHomeEnabled(true)
         bar.setDisplayHomeAsUpEnabled(true)
 
-        mStory onSuccessUI { case story ⇒
+        mStory onSuccessUi { case story ⇒
             bar.setTitle(if (story.title != null && story.title.length() > 0) story.title else getResources.getString(R.string.untitled))
             bar.setSubtitle(if (story.author != null) "by " + story.author.name else "by me")
         }
@@ -142,7 +136,7 @@ class DisplayActivity extends StoryActivity with HazStory {
     }
 
     override def onCreateOptionsMenu(menu: Menu): Boolean = {
-        getSupportMenuInflater.inflate(R.menu.activity_display, menu)
+        getMenuInflater.inflate(R.menu.activity_display, menu)
         if (mNfcAdapter.isEmpty) {
             menu.findItem(R.id.storeNfc).setEnabled(false)
         }
@@ -190,7 +184,7 @@ class DisplayActivity extends StoryActivity with HazStory {
                 new AlertDialog.Builder(this) {
                     setMessage(R.string.message_deletestory)
                     setPositiveButton(R.string.button_yes, { (dialog: DialogInterface, which: Int) ⇒
-                        mStory onSuccessUI { case story ⇒
+                        mStory onSuccessUi { case story ⇒
                             app.deleteStory(story)
                             app.sync()
                             finish()
@@ -217,7 +211,7 @@ class DisplayActivity extends StoryActivity with HazStory {
 
     override def onSaveInstanceState(savedInstanceState: Bundle) {
         super.onSaveInstanceState(savedInstanceState)
-        savedInstanceState.putInt("tab", getSupportActionBar.getSelectedTab.getPosition)
+        savedInstanceState.putInt("tab", bar.getSelectedTab.getPosition)
     }
 
     override def onNewIntent(intent: Intent) {

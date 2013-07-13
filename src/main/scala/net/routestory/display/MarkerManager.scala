@@ -86,7 +86,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 			val bld = new AlertDialog.Builder(ctx)
 			val imageView = new ImageView(ctx)
 			val progress = spinnerDialog("", "Loading image...") // TODO: strings.xml
-			data.get(displaySize.max) onSuccessUI {
+			data.get(displaySize.max) onSuccessUi {
                 case bitmap if bitmap != null ⇒
                     progress.dismiss()
                     bld.setView(imageView).setOnDismissListener({ dialog: DialogInterface ⇒
@@ -124,7 +124,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 
 		override def onClick() {
 			mediaPlayer = new MediaPlayer();
-			data.get() onSuccessUI { case file if file != null =>
+			data.get() onSuccessUi { case file if file != null =>
 				try {
 					mediaPlayer.setDataSource(file.getAbsolutePath())
 					mediaPlayer.prepare()

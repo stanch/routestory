@@ -10,9 +10,6 @@ import scala.concurrent.future
 import org.apache.commons.io.IOUtils
 import org.scaloid.common._
 
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import com.actionbarsherlock.view.MenuItem
-
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.accounts.AccountManagerCallback
@@ -22,8 +19,7 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
-import android.view.View
-import android.view.ViewGroup
+import android.view.{MenuItem, View, ViewGroup}
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -33,7 +29,7 @@ import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.HapticButton
 import net.routestory.parts.StoryActivity
 
-class AccountActivity extends SherlockFragmentActivity with StoryActivity {
+class AccountActivity extends StoryActivity {
 	override def onCreate(savedInstanceState: Bundle) {
 		super.onCreate(savedInstanceState)
 		bar.setDisplayHomeAsUpEnabled(true)
@@ -103,10 +99,10 @@ class AccountActivity extends SherlockFragmentActivity with StoryActivity {
 	
 	def showSignedIn() {
 		// here we use a Handler to wait until the account data is fetched from remote CouchDB
-	    val progress = spinnerDialog("", ctx.getResources().getString(R.string.message_preparingaccount))
+	    val progress = spinnerDialog("", ctx.getResources.getString(R.string.message_preparingaccount))
 	    future {
 	        while(!app.localContains(app.getAuthorId)) {}
-	    } onSuccessUI { case _ =>
+	    } onSuccessUi { case _ =>
 	        progress.dismiss()
 	        val author = app.getAuthor
 	        val view = new ScrollView(ctx) {
@@ -115,7 +111,7 @@ class AccountActivity extends SherlockFragmentActivity with StoryActivity {
 	        	    this += new ImageView(ctx) {
 	        	        setScaleType(ImageView.ScaleType.FIT_START)
 	        	        setAdjustViewBounds(true)
-	        	        author.getPicture() onSuccessUI {
+	        	        author.getPicture onSuccessUi {
 	        	            case bitmap if bitmap != null => setImageBitmap(bitmap)
 	        	            case _ => setImageResource(R.drawable.ic_launcher)
 	        	        }
@@ -145,7 +141,7 @@ class AccountActivity extends SherlockFragmentActivity with StoryActivity {
 			new Bundle(), AccountActivity.this,
 			new AccountManagerCallback[Bundle]() {
 				override def run(result: AccountManagerFuture[Bundle]) {
-					val bundle = result.getResult()
+					val bundle = result.getResult
 					val launch = bundle.get(AccountManager.KEY_INTENT).asInstanceOf[Intent]
 			        if (launch != null) {
 			            startActivityForResult(launch, 0) // TODO: should be handled, see how-to oAuth2 on Android
@@ -160,7 +156,7 @@ class AccountActivity extends SherlockFragmentActivity with StoryActivity {
 					    // the response is: author_id;hashed_authentication_token
 					    app.setAuthData(response.split(";"))
 					    app.isSignedIn
-					} onSuccessUI {
+					} onSuccessUi {
 					    case s if s => {
 					    	progress.dismiss()
 					    	showSignedIn()
@@ -170,7 +166,7 @@ class AccountActivity extends SherlockFragmentActivity with StoryActivity {
 					        accountManager.invalidateAuthToken("com.google", token)
 					        signIn(account)
 					    }
-					} onFailureUI { case t => ;
+					} onFailureUi { case t => ;
 					    // TODO: report connection failure
 					}
 			    }

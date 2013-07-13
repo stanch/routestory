@@ -29,7 +29,6 @@ libraryDependencies ++= Seq(
 	"com.typesafe.akka" %% "akka-dataflow" % "2.2.0-RC1",
 	"com.scalarx" %% "scalarx" % "0.1",
 	"me.lessis" %% "retry-core" % "0.1.0",
-	apklib("com.actionbarsherlock" % "actionbarsherlock" % "4.3.1") exclude ("com.google.android", "support-v4"),
 	aarlib("com.couchbase.cblite" % "CBLite" % "0.7"),
 	aarlib("com.couchbase.cblite" % "CBLiteEktorp" % "0.7.2"),
 	"com.android.support" % "support-v13" % "13.0.0",

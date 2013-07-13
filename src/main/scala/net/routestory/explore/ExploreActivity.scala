@@ -6,10 +6,9 @@ import net.routestory.parts.Implicits._
 import android.os.Bundle
 import android.location.LocationListener
 import android.location.Location
-import com.actionbarsherlock.view.MenuItem
 import net.routestory.R
 import android.content.Intent
-import android.view.{ViewGroup, View, KeyEvent, Gravity}
+import android.view._
 import android.app.SearchManager
 import android.widget._
 import net.routestory.model._
@@ -18,19 +17,13 @@ import scala.util.Random
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import android.view.inputmethod.EditorInfo
-import android.view.animation.Animation
 import android.view.animation.AlphaAnimation
-import android.view.animation.Animation.AnimationListener
 import java.util.Locale
 import net.routestory.MainActivity
 import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.StoryActivity
 import akka.dataflow._
 import scala.collection.JavaConversions._
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import com.actionbarsherlock.app.SherlockFragmentActivity
-import android.util.Log
-import scala.Some
 import android.widget.FrameLayout.LayoutParams
 import net.routestory.parts.Animation._
 
@@ -79,7 +72,7 @@ class ExploreActivity extends StoryActivity {
 		    }
 		}
 		setContentView(view)
-	    getSupportActionBar.setDisplayHomeAsUpEnabled(true)
+	    bar.setDisplayHomeAsUpEnabled(true)
 	}
 	
 	def getLocation: Future[Option[Location]] = {
@@ -215,7 +208,7 @@ class ExploreActivity extends StoryActivity {
                     }
                 }
             }
-		} onFailureUI { case t ⇒
+		} onFailureUi { case t ⇒
 		    t.printStackTrace()
 		    mProgress.setVisibility(View.GONE)
 		    mRetry.setVisibility(View.VISIBLE)

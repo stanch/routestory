@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- File created by the Android Action Bar Style Generator
 
+     Copyright (C) 2011 The Android Open Source Project
      Copyright (C) 2012 readyState Software Ltd
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
      You may obtain a copy of the License at
-  
+
           http://www.apache.org/licenses/LICENSE-2.0
-  
+
      Unless required by applicable law or agreed to in writing, software
      distributed under the License is distributed on an "AS IS" BASIS,
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,71 +17,62 @@
      limitations under the License.
 -->
 
-<resources>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <style name="Theme.story" parent="@style/Theme.Sherlock">
-        <item name="actionBarItemBackground">@drawable/selectable_background_story</item>
-        <item name="popupMenuStyle">@style/story_PopupMenu</item>
-        <item name="dropDownListViewStyle">@style/story_DropDownListView</item>
-        <item name="actionBarTabStyle">@style/story_ActionBarTabStyle</item>
-        <item name="actionDropDownStyle">@style/story_DropDownNav</item>
-        <item name="actionBarStyle">@style/story_solid_ActionBar</item>
-
+    <style name="Theme.Story" parent="@android:style/Theme.Holo">
         <item name="android:actionBarItemBackground">@drawable/selectable_background_story</item>
-        <item name="android:popupMenuStyle">@style/story_PopupMenu</item>
-        <item name="android:dropDownListViewStyle">@style/story_DropDownListView</item>
-        <item name="android:actionBarTabStyle">@style/story_ActionBarTabStyle</item>
-        <item name="android:actionDropDownStyle">@style/story_DropDownNav</item>
-        <item name="android:actionBarStyle">@style/story_solid_ActionBar</item>
-        <item name="android:panelBackground">@drawable/menu_hardkey_panel_story</item>
-        
-        
+        <item name="android:popupMenuStyle">@style/PopupMenu.Story</item>
+        <item name="android:dropDownListViewStyle">@style/DropDownListView.Story</item>
+        <item name="android:actionBarTabStyle">@style/ActionBarTabStyle.Story</item>
+        <item name="android:actionDropDownStyle">@style/DropDownNav.Story</item>
+        <item name="android:actionBarStyle">@style/ActionBar.Transparent.Story</item>
+        <!--<item name="android:actionModeBackground">@drawable/cab_background_top_story</item>-->
+        <!--<item name="android:actionModeSplitBackground">@drawable/cab_background_bottom_story</item>-->
+        <item name="android:actionModeCloseButtonStyle">@style/ActionButton.CloseMode.Story</item>
     </style>
 
-    <style name="story_solid_ActionBar" parent="@style/Widget.Sherlock.ActionBar.Solid">
-        <item name="background">@drawable/ab_solid_story</item>
-        <item name="backgroundStacked">@drawable/ab_stacked_solid_story</item>
-        <item name="backgroundSplit">@drawable/ab_bottom_solid_story</item>
-        <item name="progressBarStyle">@style/story_ProgressBar</item>
-
+    <style name="ActionBar.Solid.Story" parent="@android:style/Widget.Holo.ActionBar.Solid">
         <item name="android:background">@drawable/ab_solid_story</item>
         <item name="android:backgroundStacked">@drawable/ab_stacked_solid_story</item>
         <item name="android:backgroundSplit">@drawable/ab_bottom_solid_story</item>
-        <item name="android:progressBarStyle">@style/story_ProgressBar</item>
+        <item name="android:progressBarStyle">@style/ProgressBar.Story</item>
     </style>
 
-    <style name="story_transparent_ActionBar" parent="@style/Widget.Sherlock.ActionBar">
-        <item name="background">@drawable/ab_transparent_story</item>
-        <item name="progressBarStyle">@style/story_ProgressBar</item>
-        
+    <style name="ActionBar.Transparent.Story" parent="@android:style/Widget.Holo.ActionBar">
         <item name="android:background">@drawable/ab_transparent_story</item>
-        <item name="android:progressBarStyle">@style/story_ProgressBar</item>
+        <item name="android:progressBarStyle">@style/ProgressBar.Story</item>
     </style>
-	
-    <style name="story_PopupMenu" parent="@style/Widget.Sherlock.ListPopupWindow">	
-        <item name="android:popupBackground">@drawable/menu_dropdown_panel_story</item>	
+
+    <style name="PopupMenu.Story" parent="@android:style/Widget.Holo.ListPopupWindow">
+        <item name="android:popupBackground">@drawable/menu_dropdown_panel_story</item>
     </style>
-	
-    <style name="story_DropDownListView" parent="@style/Widget.Sherlock.ListView.DropDown">
+
+    <style name="DropDownListView.Story" parent="@android:style/Widget.Holo.ListView.DropDown">
         <item name="android:listSelector">@drawable/selectable_background_story</item>
     </style>
 
-    <style name="story_ActionBarTabStyle" parent="@style/Widget.Sherlock.ActionBar.TabView">
-        <item name="background">@drawable/tab_indicator_ab_story</item>
-
+    <style name="ActionBarTabStyle.Story" parent="@android:style/Widget.Holo.ActionBar.TabView">
         <item name="android:background">@drawable/tab_indicator_ab_story</item>
     </style>
-	
-    <style name="story_DropDownNav" parent="@style/Widget.Sherlock.Spinner.DropDown.ActionBar">
-        <item name="background">@drawable/spinner_background_ab_story</item>
 
+    <style name="DropDownNav.Story" parent="@android:style/Widget.Holo.Spinner">
         <item name="android:background">@drawable/spinner_background_ab_story</item>
         <item name="android:popupBackground">@drawable/menu_dropdown_panel_story</item>
         <item name="android:dropDownSelector">@drawable/selectable_background_story</item>
     </style>
-    
-    <style name="story_ProgressBar" parent="@style/Widget.Sherlock.ProgressBar.Horizontal">
+
+    <style name="ProgressBar.Story" parent="@android:style/Widget.Holo.ProgressBar.Horizontal">
         <item name="android:progressDrawable">@drawable/progress_horizontal_story</item>
+    </style>
+
+    <style name="ActionButton.CloseMode.Story" parent="@android:style/Widget.Holo.ActionButton.CloseMode">
+        <!--<item name="android:background">@drawable/btn_cab_done_story</item>-->
+    </style>
+
+    <!-- this style is only referenced in a Light.DarkActionBar based theme -->
+    <style name="Theme.Story.Widget" parent="@android:style/Theme.Holo">
+        <item name="android:popupMenuStyle">@style/PopupMenu.Story</item>
+        <item name="android:dropDownListViewStyle">@style/DropDownListView.Story</item>
     </style>
 
 </resources>

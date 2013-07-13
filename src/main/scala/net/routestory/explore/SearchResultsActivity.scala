@@ -1,7 +1,5 @@
 package net.routestory.explore
 
-import scala.ref.WeakReference
-
 import org.ektorp.ViewQuery
 
 import net.routestory.MainActivity
@@ -9,25 +7,18 @@ import net.routestory.R
 import net.routestory.model.Author
 import net.routestory.model.StoryResult
 import net.routestory.parts.{TabListener, GotoDialogFragments, StoryActivity}
-import android.app.SearchManager
+import android.app.{ActionBar, SearchManager}
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.support.v4.app.Fragment
-import android.view.View
-import android.widget.FrameLayout
-
-import com.actionbarsherlock.app.ActionBar
-import com.actionbarsherlock.view.Menu
-import com.actionbarsherlock.view.MenuItem
-import com.actionbarsherlock.widget.SearchView
+import android.view.{Menu, MenuItem, View}
+import android.widget.{FrameLayout, SearchView}
 
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import org.scaloid.common._
 import akka.dataflow._
 import rx._
-import android.util.Log
 import scala.util.Try
 
 trait HazStories {
@@ -157,7 +148,7 @@ class SearchResultsActivity extends StoryActivity with HazStories {
 	}
 	
 	override def onCreateOptionsMenu(menu: Menu): Boolean = {
-        getSupportMenuInflater.inflate(R.menu.activity_search_results, menu)
+        getMenuInflater.inflate(R.menu.activity_search_results, menu)
         val searchManager = getSystemService(Context.SEARCH_SERVICE).asInstanceOf[SearchManager]
         val searchMenuItem = menu.findItem(R.id.search)
         val searchView = searchMenuItem.getActionView.asInstanceOf[SearchView]

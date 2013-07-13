@@ -1,7 +1,9 @@
 package net.routestory.parts;
 
 import net.routestory.R;
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DialogFragment;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -10,16 +12,13 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.support.v4.app.DialogFragment;
-
-import com.actionbarsherlock.app.SherlockFragmentActivity;
 
 public class GotoDialogFragments {
-	public static boolean ensureNetwork(SherlockFragmentActivity activity) {
+	public static boolean ensureNetwork(Activity activity) {
 	    ConnectivityManager manager = (ConnectivityManager)activity.getSystemService(Context.CONNECTIVITY_SERVICE);
 	    NetworkInfo info = manager.getActiveNetworkInfo();
 	    if (info == null) {
-	    	new NetworkSettings().show(activity.getSupportFragmentManager(), "net_dialog");
+	    	new NetworkSettings().show(activity.getFragmentManager(), "net_dialog");
 	    	return false;
 	    }
 	    return true;
@@ -45,10 +44,10 @@ public class GotoDialogFragments {
 	    }
 	}
 	
-	public static boolean ensureGPS(SherlockFragmentActivity activity) {
+	public static boolean ensureGPS(Activity activity) {
     	String provider = Settings.Secure.getString(activity.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
    		if (!provider.contains("gps")) {
-   			new GpsSettings().show(activity.getSupportFragmentManager(), "gps_dialog");
+   			new GpsSettings().show(activity.getFragmentManager(), "gps_dialog");
    			return false;
    		}
    		return true;

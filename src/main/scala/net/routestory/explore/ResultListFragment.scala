@@ -7,8 +7,7 @@ import android.os.Bundle
 import android.view.{Gravity, LayoutInflater, View, ViewGroup}
 import android.widget._
 import net.routestory.parts.StoryFragment
-import com.actionbarsherlock.app.SherlockListFragment
-import android.app.Activity
+import android.app.{ListFragment, Activity}
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -16,7 +15,7 @@ import rx._
 import org.scaloid.common._
 import scala.Some
 
-class ResultListFragment extends SherlockListFragment with StoryFragment {
+class ResultListFragment extends ListFragment with StoryFragment {
     lazy val storyteller = getActivity.asInstanceOf[HazStories]
     lazy val stories = storyteller.getStories
     lazy val observe = Obs(stories) {
@@ -62,7 +61,7 @@ class ResultListFragment extends SherlockListFragment with StoryFragment {
 
     def update(results: Future[List[StoryResult]]) {
         runOnUiThread(setListShown(false))
-        results.onSuccessUI { case res ⇒
+        results.onSuccessUi { case res ⇒
     		setListAdapter(new ResultListFragment.StoryListAdapter(ctx, res))
             prev.setEnabled(storyteller.hasPrev)
             next.setEnabled(storyteller.hasNext)
