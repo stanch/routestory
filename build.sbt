@@ -40,8 +40,6 @@ proguardOptions ++= Seq(
 	"-keep public enum * { public static **[] values(); public static ** valueOf(java.lang.String); }",
 	"-keepnames class com.codehaus.jackson.** { *; }",
 	"-keep class org.ektorp.Attachment { *; }",
-	"-keep class com.actionbarsherlock.** { *; }",
-	"-keep interface com.actionbarsherlock.** { *; }",
 	"-keep class com.couchbase.cblite.router.CBLRouter { *; }",
 	"-keep class com.couchbase.touchdb.TDCollateJSON { *; }",
 	"-keepclasseswithmembers class * { native <methods>; }"
