@@ -21,19 +21,21 @@ trait StoryUI {
     }
 
     implicit class RichFuture[A](val value: Future[A]) {
-	    def onSuccessUi(f: PartialFunction[A, Any])(implicit c: ExecutionContext): Future[A] = {
-	        value onSuccess { case v ⇒
-	            runOnUiThread(f.lift(v))
-	        }
-	        value
-	    }
-	    def onFailureUi(f: PartialFunction[Throwable, Any])(implicit c: ExecutionContext): Future[A] = {
-	        value onFailure { case v ⇒
-	            runOnUiThread(f.lift(v))
-	        }
-	        value
-	    }
-	}
+        def onSuccessUi(f: PartialFunction[A, Any])(implicit c: ExecutionContext): Future[A] = {
+            value onSuccess {
+                case v ⇒
+                    runOnUiThread(f.lift(v))
+            }
+            value
+        }
+        def onFailureUi(f: PartialFunction[Throwable, Any])(implicit c: ExecutionContext): Future[A] = {
+            value onFailure {
+                case v ⇒
+                    runOnUiThread(f.lift(v))
+            }
+            value
+        }
+    }
 
     import akka.dataflow.DataflowFuture
     @inline def await[A](f: Future[A]) = f.apply()
@@ -47,7 +49,7 @@ trait StoryUI {
             Future.successful(c.get(ctx))
         } else future {
             c.cache(ctx)
-        	c.get(ctx)
+            c.get(ctx)
         }
     }
     implicit def cacher2RichFuture[A](c: Cacher[A])(implicit ctx: Context): RichFuture[A] = cacher2Future(c)
@@ -56,11 +58,11 @@ trait StoryUI {
 trait StoryActivity extends Activity with StoryUI with SActivity {
     lazy val app = getApplication.asInstanceOf[StoryApplication]
     lazy val bar = getActionBar
-    
+
     def findView[A <: View](id: Int) = findViewById(id).asInstanceOf[A]
     def findFrag[A <: Fragment](tag: String) = getFragmentManager.findFragmentByTag(tag).asInstanceOf[A]
-    
-    var everStarted = false    
+
+    var everStarted = false
     def onFirstStart() {}
     def onEveryStart() {}
     override def onStart() {
@@ -76,7 +78,7 @@ trait StoryActivity extends Activity with StoryUI with SActivity {
 trait StoryFragment extends Fragment with StoryUI {
     lazy val app = getActivity.getApplication.asInstanceOf[StoryApplication]
     implicit lazy val ctx = getActivity
-    
+
     def findView[A <: View](id: Int) = getView.findViewById(id).asInstanceOf[A]
     def findFrag[A <: Fragment](tag: String) = getChildFragmentManager.findFragmentByTag(tag).asInstanceOf[A]
 

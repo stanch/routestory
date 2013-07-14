@@ -1,9 +1,9 @@
 package net.routestory.parts
 
 import scala.reflect.ClassTag
-import android.app.{FragmentTransaction, Fragment, ActionBar, Activity}
+import android.app.{ FragmentTransaction, Fragment, ActionBar, Activity }
 
-case class TabListener[A <: Fragment : ClassTag](activity: Activity, tag: String) extends ActionBar.TabListener {
+case class TabListener[A <: Fragment: ClassTag](activity: Activity, tag: String) extends ActionBar.TabListener {
     var fragment: Option[Fragment] = None
 
     override def onTabSelected(tab: ActionBar.Tab, ft: FragmentTransaction) {

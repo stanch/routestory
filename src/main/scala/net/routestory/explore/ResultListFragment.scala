@@ -4,10 +4,10 @@ import net.routestory.R
 import net.routestory.model.StoryResult
 import android.content.Context
 import android.os.Bundle
-import android.view.{Gravity, LayoutInflater, View, ViewGroup}
+import android.view.{ Gravity, LayoutInflater, View, ViewGroup }
 import android.widget._
 import net.routestory.parts.StoryFragment
-import android.app.{ListFragment, Activity}
+import android.app.{ ListFragment, Activity }
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,7 +22,7 @@ class ResultListFragment extends ListFragment with StoryFragment {
         update(stories())
     }
 
-	lazy val defaultEmptyText = getResources.getString(R.string.empty_search)
+    lazy val defaultEmptyText = getResources.getString(R.string.empty_search)
     var emptyText: Option[String] = None
 
     var next: Button = _
@@ -61,20 +61,21 @@ class ResultListFragment extends ListFragment with StoryFragment {
 
     def update(results: Future[List[StoryResult]]) {
         runOnUiThread(setListShown(false))
-        results.onSuccessUi { case res ⇒
-    		setListAdapter(new ResultListFragment.StoryListAdapter(ctx, res))
-            prev.setEnabled(storyteller.hasPrev)
-            next.setEnabled(storyteller.hasNext)
-            setListShown(true)
-    	}
+        results.onSuccessUi {
+            case res ⇒
+                setListAdapter(new ResultListFragment.StoryListAdapter(ctx, res))
+                prev.setEnabled(storyteller.hasPrev)
+                next.setEnabled(storyteller.hasNext)
+                setListShown(true)
+        }
     }
 }
 
 object ResultListFragment {
-	class StoryListAdapter(ctx: Activity, results: List[StoryResult]) extends ArrayAdapter(ctx, R.layout.storylist_row, results) {
+    class StoryListAdapter(ctx: Activity, results: List[StoryResult]) extends ArrayAdapter(ctx, R.layout.storylist_row, results) {
         override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
             ResultRow.getView(itemView, parent.getMeasuredWidth, getItem(position), ctx)
-		}
+        }
         override def isEnabled(position: Int): Boolean = false
     }
 }

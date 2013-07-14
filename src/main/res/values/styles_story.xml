@@ -27,7 +27,7 @@
         <item name="android:actionDropDownStyle">@style/DropDownNav.Story</item>
         <item name="android:actionBarStyle">@style/ActionBar.Solid.Story</item>
         <!--<item name="android:actionModeBackground">@drawable/cab_background_top_story</item>-->
-        <item name="android:actionModeSplitBackground">@drawable/ab_bottom_solid_story</item>
+        <!--<item name="android:actionModeSplitBackground">@drawable/ab_bottom_solid_story</item>-->
         <item name="android:actionModeCloseButtonStyle">@style/ActionButton.CloseMode.Story</item>
     </style>
 

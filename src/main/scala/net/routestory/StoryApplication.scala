@@ -68,7 +68,7 @@ class StoryApplication extends Application {
             db.getViewNamed("Story/byme").setMapReduceBlocks(new CBLViewMapBlock {
                 override def map(document: java.util.Map[String, Object], emitter: CBLViewMapEmitBlock) {
                     if (document.get("type").equals("story") &&
-                        (document.get("author")==null || document.get("author").equals(getAuthorId))) {
+                        (document.get("author") == null || document.get("author").equals(getAuthorId))) {
                         emitter.emit(document.get("starttime"), document.get("_id"))
                     }
                 }
@@ -76,7 +76,7 @@ class StoryApplication extends Application {
             db.getViewNamed("Story/saved").setMapReduceBlocks(new CBLViewMapBlock {
                 override def map(document: java.util.Map[String, Object], emitter: CBLViewMapEmitBlock) {
                     if (document.get("type").equals("story") &&
-                        document.get("author")!=null && !document.get("author").equals(getAuthorId)) {
+                        document.get("author") != null && !document.get("author").equals(getAuthorId)) {
                         emitter.emit(document.get("starttime"), document.get("_id"))
                     }
                 }
@@ -86,7 +86,7 @@ class StoryApplication extends Application {
                     if (document.get("type").equals("story")) {
                         emitter.emit(ComplexKey.of(document.get("_id"), 0.asInstanceOf[Object]), null)
                     } else if (document.get("type").equals("comment")) {
-                        emitter.emit(ComplexKey.of(document.get("story"), 1.asInstanceOf[Object], document.get("timestamp")),  null)
+                        emitter.emit(ComplexKey.of(document.get("story"), 1.asInstanceOf[Object], document.get("timestamp")), null)
                     }
                 }
             }, null, "1.0")
@@ -161,30 +161,30 @@ class StoryApplication extends Application {
 
     def localOrRemote[A](local: Boolean, f: CouchDbConnector ⇒ A): Future[A] = {
         if (local) Future.successful(
-            f(localCouch.get)
-        ) else future {
+            f(localCouch.get))
+        else future {
             f(remoteCouch.get)
         }
     }
 
-    private def couchGet[A <: CouchDbObject : ClassTag](couch: CouchDbConnector, id: String) = {
+    private def couchGet[A <: CouchDbObject: ClassTag](couch: CouchDbConnector, id: String) = {
         val obj = couch.get(implicitly[ClassTag[A]].runtimeClass, id).asInstanceOf[A]
         obj.bind(couch)
         obj
     }
 
-    def getObject[A <: CouchDbObject : ClassTag](id: String): Future[A] = {
+    def getObject[A <: CouchDbObject: ClassTag](id: String): Future[A] = {
         if (id == null) {
             Future.failed(new Exception)
         } else localOrRemote(localContains(id), couchGet[A](_, id))
     }
 
-    def getObjects[A <: CouchDbObject : ClassTag](ids: List[String]): Future[Map[String, A]] = {
+    def getObjects[A <: CouchDbObject: ClassTag](ids: List[String]): Future[Map[String, A]] = {
         val (local, remote) = ids.filter(_ != null).partition(localContains(_))
         val localObjects = local.map(id ⇒ (id, couchGet[A](localCouch.get, id))).toMap
         if (remote.isEmpty) Future.successful(
-            localObjects
-        ) else future {
+            localObjects)
+        else future {
             localObjects ++ remote.map(id ⇒ (id, couchGet[A](remoteCouch.get, id))).toMap
         }
     }
@@ -203,20 +203,20 @@ class StoryApplication extends Application {
         localOrRemote(!remote, _.queryView(query))
     }
 
-	def isOnline = {
-	    val cm = getSystemService(Context.CONNECTIVITY_SERVICE).asInstanceOf[ConnectivityManager]
+    def isOnline = {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE).asInstanceOf[ConnectivityManager]
         val netInfo = cm.getActiveNetworkInfo
         (netInfo != null && netInfo.isConnected)
-	}
-	
-	def sync() {
+    }
+
+    def sync() {
         if (localCouch.isEmpty) initLocalCouch()
         if (remoteCouch.isEmpty) initRemoteCouch()
-		if (false && isSignedIn && isOnline) {
+        if (false && isSignedIn && isOnline) {
             val push = new ReplicationCommand.Builder().source("story").target("https://bag-routestory-net.herokuapp.com/story").build()
             cblInstance.map(_.replicate(push))
             val pull = new ReplicationCommand.Builder().target("story").source("https://bag-routestory-net.herokuapp.com/story").build()
             cblInstance.map(_.replicate(pull))
         }
-	}
+    }
 }

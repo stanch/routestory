@@ -1,9 +1,9 @@
 package net.routestory.parts
 
 import android.view.View
-import android.view.animation.{Animation ⇒ Anim}
+import android.view.animation.{ Animation ⇒ Anim }
 import android.view.animation.Animation.AnimationListener
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.{ Promise, Future }
 import scala.util.Success
 import org.scaloid.common._
 

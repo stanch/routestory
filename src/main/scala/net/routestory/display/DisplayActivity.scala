@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 
 import org.scaloid.common._
 
-import android.app.{ActionBar, AlertDialog, PendingIntent}
+import android.app.{ ActionBar, AlertDialog, PendingIntent }
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
@@ -22,7 +22,7 @@ import android.nfc.Tag
 import android.nfc.tech.Ndef
 import android.nfc.tech.NdefFormatable
 import android.os.Bundle
-import android.view.{Menu, MenuItem, Window}
+import android.view.{ Menu, MenuItem, Window }
 import android.widget.FrameLayout
 import android.widget.Toast
 import net.routestory.MainActivity
@@ -102,30 +102,35 @@ class DisplayActivity extends StoryActivity with HazStory {
 
         setProgressBarIndeterminateVisibility(true)
 
-        mStory onSuccessUi { case _ =>
-            setProgressBarIndeterminateVisibility(false)
-        } onFailureUi { case _ =>
-            toast("Failed to load the story")
-            finish()
+        mStory onSuccessUi {
+            case _ ⇒
+                setProgressBarIndeterminateVisibility(false)
+        } onFailureUi {
+            case _ ⇒
+                toast("Failed to load the story")
+                finish()
         }
 
         implicit val success = new retry.Success[Boolean](x ⇒ x)
         Backoff(max = 4, delay = 5 seconds)(() ⇒ future {
             app.remoteContains(id)
-        }) onSuccessUi { case _ ⇒
-            mShareable = true
-            invalidateOptionsMenu()
+        }) onSuccessUi {
+            case _ ⇒
+                mShareable = true
+                invalidateOptionsMenu()
         }
 
         bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
         bar.setDisplayShowHomeEnabled(true)
         bar.setDisplayHomeAsUpEnabled(true)
 
-        mStory onSuccessUi { case story ⇒
-            bar.setTitle(if (story.title != null && story.title.length() > 0) story.title else getResources.getString(R.string.untitled))
-            bar.setSubtitle(if (story.author != null) "by " + story.author.name else "by me")
+        mStory onSuccessUi {
+            case story ⇒
+                bar.setTitle(if (story.title != null && story.title.length() > 0) story.title else getResources.getString(R.string.untitled))
+                bar.setSubtitle(if (story.author != null) "by " + story.author.name else "by me")
         }
 
+        // format: OFF
         List(
             (R.string.title_tab_storypreview, TabListener[PreviewFragment](this, "preview")),
             (R.string.title_tab_storydescription, TabListener[DescriptionFragment](this, "description")),
@@ -133,6 +138,7 @@ class DisplayActivity extends StoryActivity with HazStory {
         ).zipWithIndex.foreach { case ((title, tabListener), n) ⇒
             bar.addTab(bar.newTab().setText(title).setTabListener(tabListener), n, n == mStartTab)
         }
+        // format: ON
     }
 
     override def onCreateOptionsMenu(menu: Menu): Boolean = {
@@ -175,22 +181,22 @@ class DisplayActivity extends StoryActivity with HazStory {
                 intent.putExtra(Intent.EXTRA_SUBJECT, getResources.getString(R.string.share_subject))
                 intent.putExtra(
                     Intent.EXTRA_TEXT,
-                    getResources.getString(R.string.share_body) + " http://www.routestory.net/" + id.replace("-", "/")
-                )
+                    getResources.getString(R.string.share_body) + " http://www.routestory.net/" + id.replace("-", "/"))
                 startActivity(Intent.createChooser(intent, getResources.getString(R.string.share_chooser)))
                 true
             }
-            case R.id.deleteStory => {
+            case R.id.deleteStory ⇒ {
                 new AlertDialog.Builder(this) {
                     setMessage(R.string.message_deletestory)
                     setPositiveButton(R.string.button_yes, { (dialog: DialogInterface, which: Int) ⇒
-                        mStory onSuccessUi { case story ⇒
-                            app.deleteStory(story)
-                            app.sync()
-                            finish()
-                            val intent = SIntent[MainActivity]
-                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                            startActivity(intent)
+                        mStory onSuccessUi {
+                            case story ⇒
+                                app.deleteStory(story)
+                                app.sync()
+                                finish()
+                                val intent = SIntent[MainActivity]
+                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                startActivity(intent)
                         }
                     })
                     setNegativeButton(R.string.button_no, { (dialog: DialogInterface, which: Int) ⇒

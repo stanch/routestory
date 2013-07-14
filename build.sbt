@@ -1,4 +1,11 @@
+import scalariform.formatter.preferences._
+
 androidDefaults
+
+ScalariformKeys.preferences := FormattingPreferences()
+.setPreference(IndentSpaces, 4)
+.setPreference(RewriteArrowSymbols, true)
+.setPreference(PreserveDanglingCloseParenthesis, true)
 
 name := "RouteStory"
 
