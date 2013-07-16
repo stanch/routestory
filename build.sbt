@@ -2,6 +2,8 @@ import scalariform.formatter.preferences._
 
 androidDefaults
 
+scalariformSettings
+
 ScalariformKeys.preferences := FormattingPreferences()
 .setPreference(IndentSpaces, 4)
 .setPreference(RewriteArrowSymbols, true)
@@ -46,7 +48,7 @@ proguardOptions ++= Seq(
 	"-keepattributes *Annotation*,EnclosingMethod",
 	"-keep public enum * { public static **[] values(); public static ** valueOf(java.lang.String); }",
 	"-keepnames class com.codehaus.jackson.** { *; }",
-	"-keep class org.ektorp.Attachment { *; }",
+	"-keep class org.ektorp.** { *; }",
 	"-keep class com.couchbase.cblite.router.CBLRouter { *; }",
 	"-keep class com.couchbase.touchdb.TDCollateJSON { *; }",
 	"-keepclasseswithmembers class * { native <methods>; }"

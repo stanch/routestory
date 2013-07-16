@@ -17,6 +17,7 @@ import net.routestory.{ MainActivity, R }
 import rx._
 import android.view.MenuItem
 import android.app.ActionBar
+import android.util.Log
 
 class MyStoriesActivity extends StoryActivity with HazStories {
     var activeTab: ResultListFragment = null
@@ -48,7 +49,7 @@ class MyStoriesActivity extends StoryActivity with HazStories {
 
     def showStories() {
         val query = new ViewQuery().designDocId("_design/Story").viewName(activeTab.getTag).descending(true).includeDocs(true)
-        myStories.update(flow {
+        val stories = flow {
             val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = false, query, None))
             val authorIds = stories.map(_.authorId)
             val authors = await(app.getObjects[Author](authorIds))
@@ -56,7 +57,10 @@ class MyStoriesActivity extends StoryActivity with HazStories {
                 r.author = authors(r.authorId)
             }
             stories
-        })
+        } onFailureUi {
+            case e ⇒ e.printStackTrace()
+        }
+        myStories.update(stories)
     }
 
     override def onAttachFragment(fragment: Fragment) {

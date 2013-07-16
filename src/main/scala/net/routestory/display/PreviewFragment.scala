@@ -102,7 +102,7 @@ class PreviewFragment extends StoryFragment {
             val progress = new ProgressDialog(ctx) {
                 setMessage("Loading data...")
                 setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
-                setMax(story.photos.length + 1)
+                setMax(story.photos.length + Option(story.audioPreview).map(x ⇒ 1).getOrElse(0))
                 show()
             }
 
@@ -119,10 +119,10 @@ class PreviewFragment extends StoryFragment {
                 progress.incrementProgressBy(1)
             }))
 
-            val audio = story.audioPreview.get onSuccessUi {
+            val audio = Option(story.audioPreview).map(_.get.onSuccessUi {
                 case _ ⇒
                     progress.incrementProgressBy(1)
-            }
+            }).getOrElse(Future.successful(()))
 
             await(photos zip audio)
             switchToUiThread()

@@ -29,6 +29,7 @@ import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.HapticButton
 import net.routestory.parts.StoryActivity
 import akka.dataflow._
+import android.util.Log
 
 class AccountActivity extends StoryActivity {
     override def onCreate(savedInstanceState: Bundle) {
@@ -78,16 +79,16 @@ class AccountActivity extends StoryActivity {
         val accountManager = AccountManager.get(ctx)
         val accounts = accountManager.getAccountsByType("com.google")
         // ask which one to use
-        new AlertDialog.Builder(ctx).setTitle(R.string.title_dialog_selectaccount)
-            .setAdapter(new ArrayAdapter[Account](ctx, 0, R.id.textView1, accounts) {
+        new AlertDialog.Builder(ctx) {
+            setTitle(R.string.title_dialog_selectaccount)
+            setAdapter(new ArrayAdapter[Account](ctx, 0, R.id.textView1, accounts) {
                 override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-                    val view = if (itemView == null) new LinearLayout(ctx) {
+                    val view = Option(itemView).getOrElse(new LinearLayout(ctx) {
                         this += new TextView(ctx) {
                             setTextAppearance(ctx, android.R.style.TextAppearance_Large)
                             setId(1)
                         }
-                    }
-                    else itemView
+                    })
                     view.findViewById(1).asInstanceOf[TextView].setText(accounts(position).name)
                     view
                 }
@@ -95,44 +96,45 @@ class AccountActivity extends StoryActivity {
                 // proceed to signing in
                 signIn(accounts(which))
             })
-            .create()
-            .show()
+            create()
+            show()
+        }
     }
 
     def showSignedIn() {
-        // here we use a Handler to wait until the account data is fetched from remote CouchDB
         val progress = spinnerDialog("", ctx.getResources.getString(R.string.message_preparingaccount))
-        future {
-            while (!app.localContains(app.getAuthorId)) {}
-        } onSuccessUi {
-            case _ ⇒
-                progress.dismiss()
-                val author = app.getAuthor
-                val view = new ScrollView(ctx) {
-                    this += new LinearLayout(ctx) {
-                        setOrientation(LinearLayout.VERTICAL)
-                        this += new ImageView(ctx) {
-                            setScaleType(ImageView.ScaleType.FIT_START)
-                            setAdjustViewBounds(true)
-                            author.getPicture onSuccessUi {
-                                case bitmap if bitmap != null ⇒ setImageBitmap(bitmap)
-                                case _ ⇒ setImageResource(R.drawable.ic_launcher)
-                            }
+        flow {
+            await(future { while (!app.localContains(app.getAuthorId)) {} })
+            switchToUiThread()
+            progress.dismiss()
+            val author = app.getAuthor
+            val view = new ScrollView(ctx) {
+                this += new LinearLayout(ctx) {
+                    setOrientation(LinearLayout.VERTICAL)
+                    this += new ImageView(ctx) {
+                        setScaleType(ImageView.ScaleType.FIT_START)
+                        setAdjustViewBounds(true)
+                        author.getPicture onSuccessUi {
+                            case bitmap if bitmap != null ⇒ setImageBitmap(bitmap)
+                            case _ ⇒ setImageResource(R.drawable.ic_launcher)
                         }
-                        this += new TextView(ctx) {
-                            setText(author.name)
-                            setTextAppearance(AccountActivity.this, android.R.style.TextAppearance_Large)
-                        }
-                        this += new HapticButton(ctx) {
-                            setText(R.string.signout)
-                            setOnClickListener { v: View ⇒
-                                app.signOut()
-                                showSignedOut()
-                            }
+                    }
+                    this += new TextView(ctx) {
+                        setText(author.name)
+                        setTextAppearance(AccountActivity.this, android.R.style.TextAppearance_Large)
+                    }
+                    this += new HapticButton(ctx) {
+                        setText(R.string.signout)
+                        setOnClickListener { v: View ⇒
+                            app.signOut()
+                            showSignedOut()
                         }
                     }
                 }
-                setContentView(view)
+            }
+            setContentView(view)
+        } onFailureUi {
+            case e ⇒ e.printStackTrace()
         }
     }
 
@@ -161,16 +163,12 @@ class AccountActivity extends StoryActivity {
                         switchToUiThread()
                         // the response is: author_id;hashed_authentication_token
                         app.setAuthData(response.split(";"))
-                        if (app.isSignedIn) {
-                            progress.dismiss()
-                            showSignedIn()
-                        } else {
+                        progress.dismiss()
+                        showSignedIn()
+                    } onFailureUi {
+                        case t ⇒
                             accountManager.invalidateAuthToken("com.google", token)
                             signIn(account)
-                        }
-                    } onFailureUi {
-                        case t ⇒ ;
-                        // TODO: report connection failure
                     }
                 }
             },

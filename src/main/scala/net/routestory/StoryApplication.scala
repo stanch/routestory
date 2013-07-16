@@ -194,7 +194,7 @@ class StoryApplication extends Application {
         bookmark.foreach(query.queryParam("bookmark", _))
         getPlainQueryResults(remote, query) map { results ⇒
             (results.getRows.toList map { row ⇒
-                objectMapper.readValue(row.getValue, implicitly[ClassTag[A]].runtimeClass).asInstanceOf[A]
+                objectMapper.readValue(if (remote) row.getValue else row.getDoc, implicitly[ClassTag[A]].runtimeClass).asInstanceOf[A]
             }, results.getTotalRows, results.getUpdateSeqAsString)
         }
     }
@@ -212,7 +212,7 @@ class StoryApplication extends Application {
     def sync() {
         if (localCouch.isEmpty) initLocalCouch()
         if (remoteCouch.isEmpty) initRemoteCouch()
-        if (false && isSignedIn && isOnline) {
+        if (isSignedIn && isOnline) {
             val push = new ReplicationCommand.Builder().source("story").target("https://bag-routestory-net.herokuapp.com/story").build()
             cblInstance.map(_.replicate(push))
             val pull = new ReplicationCommand.Builder().target("story").source("https://bag-routestory-net.herokuapp.com/story").build()
