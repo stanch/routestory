@@ -27,7 +27,7 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view._
-import android.widget.FrameLayout
+import android.widget.{ LinearLayout, FrameLayout }
 import net.routestory.R
 import net.routestory.display.DisplayActivity
 import net.routestory.display.RouteManager
@@ -62,22 +62,19 @@ class RecordActivity extends StoryActivity {
     override def onCreate(savedInstanceState: Bundle) {
         super.onCreate(savedInstanceState)
 
-        val view = new FrameLayout(ctx) {
+        val view = new LinearLayout(ctx) {
+            setOrientation(LinearLayout.VERTICAL)
             this += new FrameLayout(ctx) {
                 this += new FrameLayout(ctx).id(1)
             }
-            this += new FrameLayout(ctx) {
-                this += new HapticButton(ctx) {
-                    setBackgroundResource(R.drawable.add_media)
-                    val p = new FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM)
-                    p.setMargins(0, 0, 0, 20)
-                    setLayoutParams(p)
-                    setOnClickListener { v: View ⇒
-                        new AddMediaDialogFragment().show(getFragmentManager, "add_media")
-                    }
+            this += new HapticButton(ctx) {
+                setText("Add media")
+                setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ))
+                setOnClickListener { v: View ⇒
+                    new AddMediaDialogFragment().show(getFragmentManager, "add_media")
                 }
             }
         }
@@ -228,7 +225,7 @@ class RecordActivity extends StoryActivity {
                 override def onProviderDisabled(provider: String) {}
             }
         }
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0, mLocationListener)
+        //locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0, mLocationListener)
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, mLocationListener)
     }
     def untrackLocation() {

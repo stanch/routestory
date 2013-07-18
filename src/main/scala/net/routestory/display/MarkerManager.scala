@@ -1,9 +1,9 @@
-package net.routestory.display;
+package net.routestory.display
 
 import java.io.File
 import net.routestory.R
 import net.routestory.model.Story
-import net.routestory.parts.BitmapUtils
+import net.routestory.parts.{ CacherSupport, BitmapUtils }
 import net.routestory.parts.BitmapUtils.MagicGrid
 import android.app.AlertDialog
 import android.content.Context
@@ -31,16 +31,14 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import net.routestory.parts.Implicits._
-import net.routestory.parts.StoryUI
 import scala.collection.JavaConversions._
 import scala.collection.SeqExtractors
 import org.scaloid.common._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Success
-import android.util.Log
 import scala.concurrent.Future
+import org.macroid.Concurrency
 
-class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(implicit ctx: Context) extends StoryUI {
+class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(implicit ctx: Context) extends Concurrency with CacherSupport {
     var hide_overlays = false
 
     val maxIconSize = ((800 dip) :: displaySize).min / 4
