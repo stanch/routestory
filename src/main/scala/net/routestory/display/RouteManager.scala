@@ -24,7 +24,7 @@ class RouteManager(map: GoogleMap, story: Story) {
         if (story.locations.size() == 0) return this
         val routeOptions = new PolylineOptions()
         story.locations foreach { l ⇒
-            routeOptions.add(l.asLatLng())
+            routeOptions.add(l.asLatLng)
         }
         routeOptions.width(13)
         routeOptions.color(Color.WHITE)
@@ -73,7 +73,7 @@ class RouteManager(map: GoogleMap, story: Story) {
             init()
             return
         }
-        val points = story.locations map { _.asLatLng() }
+        val points = story.locations.map(_.asLatLng)
         route.setPoints(points)
         route2.setPoints(points)
     }

@@ -106,7 +106,8 @@ class DisplayActivity extends StoryActivity with HazStory {
             case _ ⇒
                 setProgressBarIndeterminateVisibility(false)
         } onFailureUi {
-            case _ ⇒
+            case e ⇒
+                e.printStackTrace()
                 toast("Failed to load the story")
                 finish()
         }

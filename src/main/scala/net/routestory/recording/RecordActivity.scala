@@ -196,7 +196,7 @@ class RecordActivity extends StoryActivity {
         if (mLocationListener == null) {
             mLocationListener = new LocationListener() {
                 override def onLocationChanged(location: Location) {
-                    val pt = mStory.addLocation(System.currentTimeMillis() / 1000L, location).asLatLng()
+                    val pt = mStory.addLocation(System.currentTimeMillis() / 1000L, location).asLatLng
                     if (mRouteManager.isEmpty) {
                         // now that we know where we are, start recording!
                         mProgressDialog.dismiss()

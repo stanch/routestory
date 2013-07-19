@@ -18,6 +18,7 @@ import android.location.Location
 import android.util.Log
 import scala.ref.WeakReference
 import com.google.android.gms.maps.model.LatLng
+import scala.collection.JavaConversions._
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 object Story {
@@ -36,7 +37,7 @@ object Story {
 
     class LocationData {
         @JsonIgnore
-        def asLatLng(): LatLng = new LatLng(coordinates(0), coordinates(1))
+        def asLatLng: LatLng = new LatLng(coordinates(0), coordinates(1))
 
         @JsonProperty("type") protected val `type` = "Point"
         @JsonProperty("timestamp") var timestamp: Int = _
@@ -164,9 +165,8 @@ class Story extends CouchDbDocument with CouchDbObject {
 
     @JsonIgnore
     def bind(couch: CouchDbConnector) {
-        import scala.collection.JavaConversions._
         couchRef = new WeakReference[CouchDbConnector](couch)
-        List(locations, audio, photos, notes, voice, heartbeat).foreach(_.foreach(_.asInstanceOf[TimedData].bind(this)))
+        List(audio, photos, notes, voice, heartbeat).foreach(_.foreach(_.bind(this)))
         if (audioPreview != null) {
             audioPreview.bind(this)
         }
@@ -183,6 +183,7 @@ class Story extends CouchDbDocument with CouchDbObject {
     def end() {
         duration = (System.currentTimeMillis / 1000L - starttime).toInt
     }
+
     @JsonIgnore
     def addLocation(time: Long, l: Location): Story.LocationData = {
         val f = LocationData((time - starttime).toInt, l.getLatitude, l.getLongitude)
@@ -201,6 +202,7 @@ class Story extends CouchDbDocument with CouchDbObject {
         audio.add(getMedia(time, id, contentType, AudioData.apply))
         id
     }
+
     @JsonIgnore def addAudioPreview(contentType: String, ext: String): String = {
         val id = "audio/preview." + ext
         audioPreview = getMedia(0, id, contentType, AudioData.apply)
@@ -213,27 +215,21 @@ class Story extends CouchDbDocument with CouchDbObject {
         id
     }
 
-    @JsonIgnore
-    def addPhoto(time: Long, contentType: String, ext: String): String = {
+    @JsonIgnore def addPhoto(time: Long, contentType: String, ext: String): String = {
         val id = s"images/${photos.size + 1}.$ext"
         photos.add(getMedia(time, id, contentType, ImageData.apply))
         id
     }
 
-    @JsonIgnore
-    def addNote(time: Long, note: String) {
+    @JsonIgnore def addNote(time: Long, note: String) {
         notes.add(TextData((time - starttime).toInt, note))
     }
 
-    @JsonIgnore
-    def addHeartbeat(time: Long, bpm: Int) {
+    @JsonIgnore def addHeartbeat(time: Long, bpm: Int) {
         heartbeat.add(HeartbeatData((time - starttime).toInt, bpm))
     }
 
-    @JsonIgnore
-    def setTags(tags: String) {
-        import scala.collection.JavaConversions._
-
+    @JsonIgnore def setTags(tags: String) {
         if (tags.trim.length > 0) {
             this.tags = tags.split(",").map(_.trim)
         }
@@ -241,12 +237,10 @@ class Story extends CouchDbDocument with CouchDbObject {
 
     @JsonIgnore
     def getLocation(time: Double): LatLng = {
-        import scala.collection.JavaConversions._
-
         locations.toList.span(_.timestamp < time) match {
             case (Nil, Nil) ⇒ null
-            case (Nil, l2 :: after) if l2.timestamp == time ⇒ l2.asLatLng()
-            case (before, Nil) ⇒ before.last.asLatLng()
+            case (Nil, l2 :: after) ⇒ l2.asLatLng
+            case (before, Nil) ⇒ before.last.asLatLng
             case (before, l2 :: after) ⇒
                 val l1 = before.last
                 val t = (time - l1.timestamp) / (l2.timestamp - l1.timestamp)
