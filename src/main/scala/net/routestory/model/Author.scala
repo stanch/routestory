@@ -4,7 +4,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.net.URL
-import net.routestory.parts.Cacher
 import org.apache.commons.io.IOUtils
 import org.codehaus.jackson.annotate.JsonIgnore
 import org.codehaus.jackson.annotate.JsonIgnoreProperties
@@ -19,12 +18,12 @@ import org.ektorp.support.CouchDbDocument
 @JsonIgnoreProperties(ignoreUnknown = true)
 class Author extends CouchDbDocument with CouchDbObject {
     @JsonIgnore def bind(couch: CouchDbConnector) {}
-    @JsonIgnore def getPicture: Cacher[Bitmap] = new Cacher[Bitmap] {
+    @JsonIgnore val pictureCache: Cache[Bitmap] = new Cache[Bitmap] {
         def getCacheFile(context: Context): File = {
             new File(s"${context.getExternalCacheDir.getAbsolutePath}/$getId-picture.bin")
         }
         def isCached(context: Context): Boolean = getCacheFile(context).exists
-        def get(context: Context): Bitmap = BitmapFactory.decodeFile(getCacheFile(context).getAbsolutePath)
+        def retrieve(context: Context): Bitmap = BitmapFactory.decodeFile(getCacheFile(context).getAbsolutePath)
         def cache(context: Context): Boolean = {
             if (picture == null) {
                 false
@@ -47,4 +46,3 @@ class Author extends CouchDbDocument with CouchDbObject {
     @JsonProperty("link") var link: String = _
     @JsonProperty("picture") var picture: String = _
 }
-

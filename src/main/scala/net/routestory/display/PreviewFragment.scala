@@ -235,11 +235,11 @@ class PreviewFragment extends StoryFragment {
     def playAudio(story: Story) {
         mMediaPlayer = new MediaPlayer()
         if (story.audioPreview == null) return
-        story.audioPreview.get() onSuccessUi {
+        story.audioPreview.get onSuccessUi {
             case file ⇒
                 if (file == null) return
                 try {
-                    mMediaPlayer.setDataSource(file.getAbsolutePath())
+                    mMediaPlayer.setDataSource(file.getAbsolutePath)
                     mMediaPlayer.prepare()
                     mMediaPlayer.start()
                 } catch {

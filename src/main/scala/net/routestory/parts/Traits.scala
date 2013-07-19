@@ -15,19 +15,7 @@ trait FirstEveryStart {
     def onEveryStart() {}
 }
 
-trait CacherSupport extends Concurrency {
-    implicit def cacher2Future[A](c: Cacher[A])(implicit ctx: Context, ec: ExecutionContext): Future[A] = {
-        if (c.isCached(ctx)) {
-            Future.successful(c.get(ctx))
-        } else future {
-            c.cache(ctx)
-            c.get(ctx)
-        }
-    }
-    implicit def cacher2RichFuture[A](c: Cacher[A])(implicit ctx: Context, ec: ExecutionContext): RichFuture[A] = cacher2Future(c)
-}
-
-trait StoryActivity extends Activity with Concurrency with CacherSupport with FirstEveryStart with SActivity {
+trait StoryActivity extends Activity with Concurrency with FirstEveryStart with SActivity {
     lazy val app = getApplication.asInstanceOf[StoryApplication]
     lazy val bar = getActionBar
 
@@ -44,7 +32,7 @@ trait StoryActivity extends Activity with Concurrency with CacherSupport with Fi
     }
 }
 
-trait StoryFragment extends Fragment with FirstEveryStart with Concurrency with CacherSupport {
+trait StoryFragment extends Fragment with FirstEveryStart with Concurrency {
     lazy val app = getActivity.getApplication.asInstanceOf[StoryApplication]
     implicit lazy val ctx = getActivity
 

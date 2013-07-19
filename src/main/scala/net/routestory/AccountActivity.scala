@@ -114,7 +114,7 @@ class AccountActivity extends StoryActivity {
                     this += new ImageView(ctx) {
                         setScaleType(ImageView.ScaleType.FIT_START)
                         setAdjustViewBounds(true)
-                        author.getPicture onSuccessUi {
+                        author.pictureCache.get onSuccessUi {
                             case bitmap if bitmap != null ⇒ setImageBitmap(bitmap)
                             case _ ⇒ setImageResource(R.drawable.ic_launcher)
                         }

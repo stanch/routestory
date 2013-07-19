@@ -49,7 +49,7 @@ class DescriptionFragment extends StoryFragment {
                     avatar.setScaleType(ImageView.ScaleType.FIT_START)
                     avatar.setAdjustViewBounds(true)
                     findView[TextView](R.id.authorName).setText(story.author.name)
-                    story.author.getPicture onSuccessUi {
+                    story.author.pictureCache.get onSuccessUi {
                         case picture ⇒
                             setAvatar(avatar, picture)
                     }

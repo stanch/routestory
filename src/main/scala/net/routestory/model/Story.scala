@@ -3,7 +3,6 @@ package net.routestory.model
 import java.io.File
 import java.io.FileOutputStream
 import net.routestory.parts.BitmapUtils
-import net.routestory.parts.Cacher
 import org.apache.commons.io.IOUtils
 import org.codehaus.jackson.annotate.JsonIgnore
 import org.codehaus.jackson.annotate.JsonIgnoreProperties
@@ -19,6 +18,7 @@ import android.util.Log
 import scala.ref.WeakReference
 import com.google.android.gms.maps.model.LatLng
 import scala.collection.JavaConversions._
+import scala.concurrent.{ ExecutionContext, Future }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 object Story {
@@ -51,18 +51,18 @@ object Story {
         }
     }
 
-    class MediaData extends TimedData {
+    class MediaData extends TimedData with Cache[File] {
         @JsonIgnore
-        protected def getCacheFile(context: Context): File = {
+        protected def retrieve(context: Context): File = {
             new File(String.format("%s/%s-%s.bin", context.getExternalCacheDir.getAbsolutePath, storyRef.get.get.getId, attachment_id.replace("/", "_")))
         }
 
         @JsonIgnore
-        protected def isCached(context: Context): Boolean = getCacheFile(context).exists
+        def isCached(context: Context): Boolean = retrieve(context).exists
 
         @JsonIgnore
-        protected def doCache(context: Context): Boolean = {
-            val cache: File = getCacheFile(context)
+        def cache(context: Context): Boolean = {
+            val cache: File = retrieve(context)
             try {
                 val input = storyRef.get.get.couchRef.get.get.getAttachment(storyRef.get.get.getId, attachment_id)
                 cache.setReadable(true, false)
@@ -79,20 +79,7 @@ object Story {
         @JsonProperty("attachment_id") var attachment_id: String = _
     }
 
-    class AudioData extends MediaData {
-        @JsonIgnore
-        def get(): Cacher[File] = new Cacher[File] {
-            def isCached(context: Context): Boolean = {
-                AudioData.this.isCached(context)
-            }
-            def cache(context: Context): Boolean = {
-                AudioData.this.doCache(context)
-            }
-            def get(context: Context): File = {
-                AudioData.this.getCacheFile(context)
-            }
-        }
-    }
+    class AudioData extends MediaData
 
     object AudioData {
         def apply(time: Int, aid: String) = new AudioData {
@@ -103,18 +90,13 @@ object Story {
 
     class ImageData extends MediaData {
         @JsonIgnore
-        def get(maxSize: Int): Cacher[Bitmap] = new Cacher[Bitmap] {
-            def isCached(context: Context): Boolean = {
-                ImageData.this.isCached(context)
-            }
-            def cache(context: Context): Boolean = {
-                ImageData.this.doCache(context)
-            }
-            def get(context: Context): Bitmap = if (maxSize > 0) {
-                BitmapUtils.decodeFile(ImageData.this.getCacheFile(context), maxSize)
-            } else {
-                BitmapFactory.decodeFile(ImageData.this.getCacheFile(context).getAbsolutePath)
-            }
+        def get(maxSize: Int)(implicit ctx: Context, ec: ExecutionContext): Future[Bitmap] = get(ctx, ec) map {
+            file ⇒
+                if (maxSize > 0) {
+                    BitmapUtils.decodeFile(file, maxSize)
+                } else {
+                    BitmapFactory.decodeFile(file.getAbsolutePath)
+                }
         }
     }
 
@@ -137,7 +119,7 @@ object Story {
     }
 
     class HeartbeatData extends TimedData {
-        @JsonIgnore // TODO: ugh
+        @JsonIgnore
         def getVibrationPattern(times: Int): Array[Long] = {
             val p_wave = 80L
             val t_wave = 100L
@@ -197,39 +179,46 @@ class Story extends CouchDbDocument with CouchDbObject {
         init((time - starttime).toInt, id)
     }
 
-    @JsonIgnore def addAudio(time: Long, contentType: String, ext: String): String = {
+    @JsonIgnore
+    def addAudio(time: Long, contentType: String, ext: String): String = {
         val id = s"audio/${audio.size + 1}.$ext"
         audio.add(getMedia(time, id, contentType, AudioData.apply))
         id
     }
 
-    @JsonIgnore def addAudioPreview(contentType: String, ext: String): String = {
+    @JsonIgnore
+    def addAudioPreview(contentType: String, ext: String): String = {
         val id = "audio/preview." + ext
         audioPreview = getMedia(0, id, contentType, AudioData.apply)
         id
     }
 
-    @JsonIgnore def addVoice(time: Long, contentType: String, ext: String): String = {
+    @JsonIgnore
+    def addVoice(time: Long, contentType: String, ext: String): String = {
         val id = s"voice/${voice.size + 1}.$ext"
         voice.add(getMedia(time, id, contentType, AudioData.apply))
         id
     }
 
-    @JsonIgnore def addPhoto(time: Long, contentType: String, ext: String): String = {
+    @JsonIgnore
+    def addPhoto(time: Long, contentType: String, ext: String): String = {
         val id = s"images/${photos.size + 1}.$ext"
         photos.add(getMedia(time, id, contentType, ImageData.apply))
         id
     }
 
-    @JsonIgnore def addNote(time: Long, note: String) {
+    @JsonIgnore
+    def addNote(time: Long, note: String) {
         notes.add(TextData((time - starttime).toInt, note))
     }
 
-    @JsonIgnore def addHeartbeat(time: Long, bpm: Int) {
+    @JsonIgnore
+    def addHeartbeat(time: Long, bpm: Int) {
         heartbeat.add(HeartbeatData((time - starttime).toInt, bpm))
     }
 
-    @JsonIgnore def setTags(tags: String) {
+    @JsonIgnore
+    def setTags(tags: String) {
         if (tags.trim.length > 0) {
             this.tags = tags.split(",").map(_.trim)
         }
