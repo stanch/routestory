@@ -61,7 +61,7 @@ class SearchResultsActivity extends StoryActivity with HazStories {
 
     // a stack of page bookmarks
     var totalStories = 0
-    val storiesByPage = 2
+    val storiesByPage = 5
     var bookmarks: List[String] = List()
 
     // when a factory is switched, clear bookmarks and show the first page
@@ -135,7 +135,7 @@ class SearchResultsActivity extends StoryActivity with HazStories {
     def textQuery(q: String) {
         queryFactory() = Some(() ⇒
             new ViewQuery().designDocId("_design/Story").viewName("textQuery")
-                .queryParam("q", q).limit(2).queryParam("include_geometry", "true"))
+                .queryParam("q", q).limit(storiesByPage).queryParam("include_geometry", "true"))
     }
 
     def geoQuery(bbox: String) {

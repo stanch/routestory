@@ -7,6 +7,7 @@ import scala.concurrent.{ Promise, Future }
 import scala.util.Success
 import org.scaloid.common._
 
+/** Fluent interface for `Animation`s */
 object Animation {
     implicit class RichAnimation(anim: Anim) {
         def runOn(view: View, hideOnFinish: Boolean = false): Future[Unit] = {

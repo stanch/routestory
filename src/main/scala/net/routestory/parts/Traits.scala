@@ -6,13 +6,18 @@ import android.view.View
 import net.routestory.StoryApplication
 import android.app.Activity
 import org.macroid.Concurrency
-import android.content.Context
-import scala.concurrent.{ Future, future, ExecutionContext }
 
 trait FirstEveryStart {
     var everStarted = false
     def onFirstStart() {}
     def onEveryStart() {}
+    def firstOrEvery() {
+        if (!everStarted) {
+            onFirstStart()
+            everStarted = true
+        }
+        onEveryStart()
+    }
 }
 
 trait StoryActivity extends Activity with Concurrency with FirstEveryStart with SActivity {
@@ -24,11 +29,7 @@ trait StoryActivity extends Activity with Concurrency with FirstEveryStart with 
 
     override def onStart() {
         super.onStart()
-        if (!everStarted) {
-            onFirstStart()
-            everStarted = true
-        }
-        onEveryStart()
+        firstOrEvery()
     }
 }
 
@@ -41,10 +42,6 @@ trait StoryFragment extends Fragment with FirstEveryStart with Concurrency {
 
     override def onStart() {
         super.onStart()
-        if (!everStarted) {
-            onFirstStart()
-            everStarted = true
-        }
-        onEveryStart()
+        firstOrEvery()
     }
 }

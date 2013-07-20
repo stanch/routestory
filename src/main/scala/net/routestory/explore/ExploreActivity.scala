@@ -196,11 +196,10 @@ class ExploreActivity extends StoryActivity {
                 def fadeOut(view: View) = new AlphaAnimation(1, 0).duration(400).runOn(view, hideOnFinish = true)
                 flow {
                     await(fadeOut(mProgress))
-                    List(
-                        R.id.latestStoriesSection, R.id.nearbyStoriesSection,
-                        R.id.tagsSection, R.id.searchSection).cps[Future[Any]] foreach { id ⇒
-                            await(fadeIn(find[LinearLayout](id)))
-                        }
+                    await(fadeIn(find[LinearLayout](R.id.latestStoriesSection)))
+                    await(fadeIn(find[LinearLayout](R.id.nearbyStoriesSection)))
+                    await(fadeIn(find[LinearLayout](R.id.tagsSection)))
+                    await(fadeIn(find[LinearLayout](R.id.searchSection)))
                 }
             }
         } onFailureUi {

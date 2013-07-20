@@ -64,8 +64,13 @@ class RecordActivity extends StoryActivity {
 
         val view = new LinearLayout(ctx) {
             setOrientation(LinearLayout.VERTICAL)
-            this += new FrameLayout(ctx) {
-                this += new FrameLayout(ctx).id(1)
+            this += new LinearLayout(ctx) {
+                setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    1.0f
+                ))
+                this += new LinearLayout(ctx).id(1)
             }
             this += new HapticButton(ctx) {
                 setText("Add media")
@@ -73,6 +78,7 @@ class RecordActivity extends StoryActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 ))
+                setTextAppearance(ctx, android.R.style.TextAppearance_Medium)
                 setOnClickListener { v: View ⇒
                     new AddMediaDialogFragment().show(getFragmentManager, "add_media")
                 }
@@ -225,7 +231,9 @@ class RecordActivity extends StoryActivity {
                 override def onProviderDisabled(provider: String) {}
             }
         }
-        //locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0, mLocationListener)
+        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("pref_networkloc", false)) {
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0, mLocationListener)
+        }
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, mLocationListener)
     }
     def untrackLocation() {
