@@ -33,6 +33,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import scala.concurrent.Future
 import scala.util.Try
 import rx._
+import android.widget.FrameLayout.LayoutParams
 
 class ResultMapFragment extends StoryFragment {
     lazy val mMap = findFrag[MapFragment]("results_map").getMap
@@ -62,27 +63,25 @@ class ResultMapFragment extends StoryFragment {
         "#232C16")
 
     override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-        val view = new SFrameLayout {
-            this += new SFrameLayout {
-                this += new SFrameLayout().id(1)
+        new FrameLayout(ctx) {
+            this += new FrameLayout(ctx) {
+                this += fragment(MapFragment.newInstance(), 1, "results_map")
             }
-            this += new SFrameLayout {
-                val search = SButton(R.string.search_this_area).<<(WRAP_CONTENT, WRAP_CONTENT).marginBottom(20 dip).Gravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL).>>
-                search.setOnClickListener { v: View ⇒
-                    val r = mMap.getProjection.getVisibleRegion
-                    getActivity.asInstanceOf[SearchResultsActivity].geoQuery("%f,%f,%f,%f".formatLocal(Locale.US, r.nearLeft.latitude, r.nearLeft.longitude, r.farRight.latitude, r.farRight.longitude));
+            this += new FrameLayout(ctx) {
+                this += new Button(ctx) {
+                    setText(R.string.search_this_area)
+                    setLayoutParams(new LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
+                    ))
+                    setOnClickListener { v: View ⇒
+                        val r = mMap.getProjection.getVisibleRegion
+                        getActivity.asInstanceOf[SearchResultsActivity].geoQuery("%f,%f,%f,%f".formatLocal(Locale.US, r.nearLeft.latitude, r.nearLeft.longitude, r.farRight.latitude, r.farRight.longitude));
+                    }
                 }
             }
         }
-
-        if (findFrag("results_map") == null) {
-            val mapFragment = MapFragment.newInstance()
-            val fragmentTransaction = getChildFragmentManager.beginTransaction()
-            fragmentTransaction.add(1, mapFragment, "results_map")
-            fragmentTransaction.commit()
-        }
-
-        view
     }
 
     override def onStart() {

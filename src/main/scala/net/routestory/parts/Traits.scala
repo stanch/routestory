@@ -2,10 +2,9 @@ package net.routestory.parts
 
 import org.scaloid.common._
 import android.app.Fragment
-import android.view.View
 import net.routestory.StoryApplication
 import android.app.Activity
-import org.macroid.Concurrency
+import org.macroid._
 
 trait FirstEveryStart {
     var everStarted = false
@@ -20,12 +19,14 @@ trait FirstEveryStart {
     }
 }
 
-trait StoryActivity extends Activity with Concurrency with FirstEveryStart with SActivity {
+trait StoryActivity extends Activity
+    with Concurrency
+    with ActivityViewSearch
+    with FirstEveryStart
+    with Fragments
+    with SActivity {
     lazy val app = getApplication.asInstanceOf[StoryApplication]
     lazy val bar = getActionBar
-
-    def findView[A <: View](id: Int) = findViewById(id).asInstanceOf[A]
-    def findFrag[A <: Fragment](tag: String) = getFragmentManager.findFragmentByTag(tag).asInstanceOf[A]
 
     override def onStart() {
         super.onStart()
@@ -33,12 +34,13 @@ trait StoryActivity extends Activity with Concurrency with FirstEveryStart with 
     }
 }
 
-trait StoryFragment extends Fragment with FirstEveryStart with Concurrency {
+trait StoryFragment extends Fragment
+    with Concurrency
+    with FragmentViewSearch
+    with Fragments
+    with FirstEveryStart {
     lazy val app = getActivity.getApplication.asInstanceOf[StoryApplication]
     implicit lazy val ctx = getActivity
-
-    def findView[A <: View](id: Int) = getView.findViewById(id).asInstanceOf[A]
-    def findFrag[A <: Fragment](tag: String) = getChildFragmentManager.findFragmentByTag(tag).asInstanceOf[A]
 
     override def onStart() {
         super.onStart()

@@ -49,9 +49,9 @@ class PreviewFragment extends StoryFragment {
     var mPositionMarker: Marker = _
 
     override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-        val view = new FrameLayout(ctx) {
+        new FrameLayout(ctx) {
             this += new FrameLayout(ctx) {
-                this += new FrameLayout(ctx) { setId(1) }
+                this += fragment(MapFragment.newInstance(), 1, "preview_map")
             }
             this += new FrameLayout(ctx) {
                 mImageView = new ImageView(ctx)
@@ -69,15 +69,6 @@ class PreviewFragment extends StoryFragment {
                 this += mPlayButton
             }
         }
-
-        if (findFrag("preview_map") == null) {
-            val mapFragment = MapFragment.newInstance()
-            val fragmentTransaction = getChildFragmentManager.beginTransaction()
-            fragmentTransaction.add(1, mapFragment, "preview_map")
-            fragmentTransaction.commit()
-        }
-
-        view
     }
 
     override def onFirstStart() {

@@ -70,7 +70,7 @@ class RecordActivity extends StoryActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     1.0f
                 ))
-                this += new LinearLayout(ctx).id(1)
+                this += fragment(MapFragment.newInstance(), 1, "recording_map")
             }
             this += new HapticButton(ctx) {
                 setText("Add media")
@@ -84,14 +84,6 @@ class RecordActivity extends StoryActivity {
                 }
             }
         }
-
-        if (findFrag("recording_map") == null) {
-            val mapFragment = MapFragment.newInstance()
-            val fragmentTransaction = getFragmentManager.beginTransaction()
-            fragmentTransaction.add(1, mapFragment, "recording_map")
-            fragmentTransaction.commit()
-        }
-
         setContentView(view)
 
         // setup action bar
