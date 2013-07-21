@@ -21,54 +21,54 @@ import net.routestory.parts.StoryFragment
 import net.routestory.parts.Implicits._
 
 class DescriptionFragment extends StoryFragment {
-    lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
+  lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
 
-    override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-        inflater.inflate(R.layout.fragment_description, container, false)
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
+    inflater.inflate(R.layout.fragment_description, container, false)
+  }
+
+  def setAvatar(imageView: ImageView, bitmap: Bitmap) {
+    if (bitmap != null) {
+      imageView.setImageBitmap(bitmap)
+    } else {
+      imageView.setImageResource(R.drawable.ic_launcher) // set default image
     }
+  }
 
-    def setAvatar(imageView: ImageView, bitmap: Bitmap) {
-        if (bitmap != null) {
-            imageView.setImageBitmap(bitmap)
+  override def onStart() {
+    super.onStart()
+
+    mStory onSuccessUi {
+      case story ⇒
+        // get screen width
+        val display = getActivity.getWindowManager.getDefaultDisplay
+        val width = display.getWidth()
+
+        if (story.author != null) {
+          val avatar = findView[ImageView](R.id.authorPicture)
+          avatar.setScaleType(ImageView.ScaleType.FIT_START)
+          avatar.setAdjustViewBounds(true)
+          findView[TextView](R.id.authorName).setText(story.author.name)
+          story.author.pictureCache.get onSuccessUi {
+            case picture ⇒
+              setAvatar(avatar, picture)
+          }
         } else {
-            imageView.setImageResource(R.drawable.ic_launcher) // set default image
+          findView[TextView](R.id.authorName).setText("Me") // TODO: strings.xml!
+        }
+
+        if (story.description != null && story.description.length() > 0) {
+          findView[TextView](R.id.storyDescription).setText(story.description)
+        } else {
+          findView[TextView](R.id.storyDescription).setText("No description.") // TODO: strings.xml!
+        }
+
+        if (story.tags != null && story.tags.length > 0) {
+          ResultRow.fillTags(findView[LinearLayout](R.id.storyTagRows), width - 20, story.tags, getActivity)
+        } else {
+          findView[View](R.id.storyTagsHeader).setVisibility(View.GONE)
+          findView[View](R.id.storyTags).setVisibility(View.GONE)
         }
     }
-
-    override def onStart() {
-        super.onStart()
-
-        mStory onSuccessUi {
-            case story ⇒
-                // get screen width
-                val display = getActivity.getWindowManager.getDefaultDisplay
-                val width = display.getWidth()
-
-                if (story.author != null) {
-                    val avatar = findView[ImageView](R.id.authorPicture)
-                    avatar.setScaleType(ImageView.ScaleType.FIT_START)
-                    avatar.setAdjustViewBounds(true)
-                    findView[TextView](R.id.authorName).setText(story.author.name)
-                    story.author.pictureCache.get onSuccessUi {
-                        case picture ⇒
-                            setAvatar(avatar, picture)
-                    }
-                } else {
-                    findView[TextView](R.id.authorName).setText("Me") // TODO: strings.xml!
-                }
-
-                if (story.description != null && story.description.length() > 0) {
-                    findView[TextView](R.id.storyDescription).setText(story.description)
-                } else {
-                    findView[TextView](R.id.storyDescription).setText("No description.") // TODO: strings.xml!
-                }
-
-                if (story.tags != null && story.tags.length > 0) {
-                    ResultRow.fillTags(findView[LinearLayout](R.id.storyTagRows), width - 20, story.tags, getActivity)
-                } else {
-                    findView[View](R.id.storyTagsHeader).setVisibility(View.GONE)
-                    findView[View](R.id.storyTags).setVisibility(View.GONE)
-                }
-        }
-    }
+  }
 }

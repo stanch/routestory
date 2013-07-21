@@ -20,68 +20,68 @@ import android.app.ActionBar
 import android.util.Log
 
 class MyStoriesActivity extends StoryActivity with HazStories {
-    var activeTab: ResultListFragment = null
-    val myStories: Var[Future[List[StoryResult]]] = Var(Future.failed(new UninitializedError))
+  var activeTab: ResultListFragment = null
+  val myStories: Var[Future[List[StoryResult]]] = Var(Future.failed(new UninitializedError))
 
-    def getStories = myStories
+  def getStories = myStories
 
-    override def onCreate(savedInstanceState: Bundle) {
-        super.onCreate(savedInstanceState)
-        setContentView(new FrameLayout(ctx))
+  override def onCreate(savedInstanceState: Bundle) {
+    super.onCreate(savedInstanceState)
+    setContentView(new FrameLayout(ctx))
 
-        bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
-        bar.setDisplayShowHomeEnabled(true)
-        bar.setDisplayHomeAsUpEnabled(true)
+    bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
+    bar.setDisplayShowHomeEnabled(true)
+    bar.setDisplayHomeAsUpEnabled(true)
 
-        val sel = Option(savedInstanceState) map (_.getInt("tab")) getOrElse 0
-        List(
-            R.string.title_tab_byme → TabListener[ResultListFragment](this, "byme"),
-            R.string.title_tab_saved → TabListener[ResultListFragment](this, "saved")).zipWithIndex.foreach {
-                case ((title, tabListener), n) ⇒
-                    bar.addTab(bar.newTab().setText(title).setTabListener(tabListener), n, n == sel)
-            }
+    val sel = Option(savedInstanceState) map (_.getInt("tab")) getOrElse 0
+    List(
+      R.string.title_tab_byme → TabListener[ResultListFragment](this, "byme"),
+      R.string.title_tab_saved → TabListener[ResultListFragment](this, "saved")).zipWithIndex.foreach {
+        case ((title, tabListener), n) ⇒
+          bar.addTab(bar.newTab().setText(title).setTabListener(tabListener), n, n == sel)
+      }
+  }
+
+  override def onSaveInstanceState(savedInstanceState: Bundle) {
+    super.onSaveInstanceState(savedInstanceState)
+    savedInstanceState.putInt("tab", bar.getSelectedTab.getPosition)
+  }
+
+  def showStories() {
+    val query = new ViewQuery().designDocId("_design/Story").viewName(activeTab.getTag).descending(true).includeDocs(true)
+    val stories = flow {
+      val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = false, query, None))
+      val authorIds = stories.map(_.authorId)
+      val authors = await(app.getObjects[Author](authorIds))
+      stories.filter(_.authorId != null) foreach { r ⇒
+        r.author = authors(r.authorId)
+      }
+      stories
+    } onFailureUi {
+      case e ⇒ e.printStackTrace()
     }
+    myStories.update(stories)
+  }
 
-    override def onSaveInstanceState(savedInstanceState: Bundle) {
-        super.onSaveInstanceState(savedInstanceState)
-        savedInstanceState.putInt("tab", bar.getSelectedTab.getPosition)
+  override def onAttachFragment(fragment: Fragment) {
+    activeTab = fragment.asInstanceOf[ResultListFragment]
+    if (fragment.getTag.equals("byme")) {
+      activeTab.tweakEmptyText(getResources.getString(R.string.empty_mystories))
+    } else {
+      activeTab.tweakEmptyText(getResources.getString(R.string.empty_savedstories))
     }
+    showStories()
+  }
 
-    def showStories() {
-        val query = new ViewQuery().designDocId("_design/Story").viewName(activeTab.getTag).descending(true).includeDocs(true)
-        val stories = flow {
-            val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = false, query, None))
-            val authorIds = stories.map(_.authorId)
-            val authors = await(app.getObjects[Author](authorIds))
-            stories.filter(_.authorId != null) foreach { r ⇒
-                r.author = authors(r.authorId)
-            }
-            stories
-        } onFailureUi {
-            case e ⇒ e.printStackTrace()
-        }
-        myStories.update(stories)
+  override def onOptionsItemSelected(item: MenuItem): Boolean = {
+    item.getItemId match {
+      case android.R.id.home ⇒ {
+        val intent = SIntent[MainActivity]
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        startActivity(intent)
+        true
+      }
+      case _ ⇒ super.onOptionsItemSelected(item)
     }
-
-    override def onAttachFragment(fragment: Fragment) {
-        activeTab = fragment.asInstanceOf[ResultListFragment]
-        if (fragment.getTag.equals("byme")) {
-            activeTab.tweakEmptyText(getResources.getString(R.string.empty_mystories))
-        } else {
-            activeTab.tweakEmptyText(getResources.getString(R.string.empty_savedstories))
-        }
-        showStories()
-    }
-
-    override def onOptionsItemSelected(item: MenuItem): Boolean = {
-        item.getItemId match {
-            case android.R.id.home ⇒ {
-                val intent = SIntent[MainActivity]
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(intent)
-                true
-            }
-            case _ ⇒ super.onOptionsItemSelected(item)
-        }
-    }
+  }
 }

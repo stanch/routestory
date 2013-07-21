@@ -5,7 +5,6 @@ androidDefaults
 scalariformSettings
 
 ScalariformKeys.preferences := FormattingPreferences()
-.setPreference(IndentSpaces, 4)
 .setPreference(RewriteArrowSymbols, true)
 .setPreference(PreserveDanglingCloseParenthesis, true)
 
