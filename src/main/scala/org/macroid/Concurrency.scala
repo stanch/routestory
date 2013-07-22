@@ -52,3 +52,5 @@ trait Concurrency {
     }
   }
 }
+
+object Concurrency extends Concurrency

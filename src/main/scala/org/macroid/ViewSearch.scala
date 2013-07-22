@@ -1,10 +1,29 @@
 package org.macroid
 
+import scala.language.dynamics
 import android.view.View
 import android.app.{ Activity, Fragment, FragmentManager }
+import java.util.concurrent.atomic.AtomicInteger
+
+class IdGen(start: Int) extends Dynamic {
+  var ids = Map[String, Int]()
+  val counter = new AtomicInteger(start)
+
+  def selectDynamic(tag: String) = ids.get(tag) getOrElse {
+    val id = counter.incrementAndGet()
+    ids += tag → id
+    id
+  }
+}
+
+class TagGen extends Dynamic {
+  def selectDynamic(tag: String) = tag
+}
 
 sealed trait ViewSearch {
   def fragmentManager: FragmentManager
+  implicit val Id = new IdGen(1)
+  implicit val Tag = new TagGen
 
   def findView[A <: View](id: Int): A
   def findFrag[A <: Fragment](tag: String) = fragmentManager.findFragmentByTag(tag).asInstanceOf[A]

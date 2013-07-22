@@ -12,8 +12,8 @@ import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import rx._
-import org.scaloid.common._
 import scala.Some
+import org.scaloid.common._
 
 class ResultListFragment extends ListFragment with StoryFragment {
   lazy val storyteller = getActivity.asInstanceOf[HazStories]
@@ -63,7 +63,7 @@ class ResultListFragment extends ListFragment with StoryFragment {
     runOnUiThread(setListShown(false))
     results.onSuccessUi {
       case res ⇒
-        setListAdapter(new ResultListFragment.StoryListAdapter(ctx, res))
+        setListAdapter(new ResultListFragment.StoryListAdapter(res))
         prev.setEnabled(storyteller.hasPrev)
         next.setEnabled(storyteller.hasNext)
         setListShown(true)
@@ -72,9 +72,11 @@ class ResultListFragment extends ListFragment with StoryFragment {
 }
 
 object ResultListFragment {
-  class StoryListAdapter(ctx: Activity, results: List[StoryResult]) extends ArrayAdapter(ctx, R.layout.storylist_row, results) {
+  class StoryListAdapter(results: List[StoryResult])(implicit ctx: Activity) extends ArrayAdapter(ctx, R.layout.storylist_row, results) {
     override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-      ResultRow.getView(itemView, parent.getMeasuredWidth, getItem(position), ctx)
+      val view = ResultRow.getView(itemView, parent.getMeasuredWidth, getItem(position), ctx)
+      view.setPaddingRelative(8 dip, view.getPaddingTop, 8 dip, view.getPaddingBottom)
+      view
     }
     override def isEnabled(position: Int): Boolean = false
   }

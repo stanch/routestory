@@ -30,43 +30,46 @@ object ResultRow {
     var row: LinearLayout = null
     for (i ← tagz.indices) {
       if (i > 0) {
-        val spacer = new TextView(context)
-        spacer.setTextAppearance(context, android.R.attr.textAppearanceMedium)
-        spacer.setText(", ")
-        spacer.measure(0, 0)
-        width -= spacer.getMeasuredWidth()
+        val spacer = new TextView(context) {
+          setTextAppearance(context, android.R.attr.textAppearanceMedium)
+          setText(", ")
+          measure(0, 0)
+        }
+        width -= spacer.getMeasuredWidth
         row.addView(spacer)
       }
-      val tag = new TextView(context)
-      tag.setTextAppearance(context, R.style.TagAppearance)
-      tag.setText(underlined(tagz(i)))
-      tag.setOnClickListener { v: View ⇒
-        val intent = new Intent(context, classOf[SearchResultsActivity])
-        intent.putExtra("tag", tagz(i))
-        context.startActivityForResult(intent, 0)
+      val tag = new TextView(context) {
+        setTextAppearance(context, R.style.TagAppearance)
+        setText(underlined(tagz(i)))
+        setOnClickListener { v: View ⇒
+          val intent = new Intent(context, classOf[SearchResultsActivity])
+          intent.putExtra("tag", tagz(i))
+          context.startActivityForResult(intent, 0)
+        }
+        measure(0, 0)
       }
-      tag.measure(0, 0)
-      width -= tag.getMeasuredWidth()
+      width -= tag.getMeasuredWidth
       if (width < 0) {
-        row = new LinearLayout(context)
-        row.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
-        row.setOrientation(LinearLayout.HORIZONTAL)
+        row = new LinearLayout(context) {
+          setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+          setOrientation(LinearLayout.HORIZONTAL)
+        }
         tagRowsView.addView(row)
-        width = maxwidth - tag.getMeasuredWidth()
+        width = maxwidth - tag.getMeasuredWidth
       }
       row.addView(tag)
     }
   }
 
   def getView(_view: View, maxwidth: Int, story: StoryResult, context: Activity): View = {
-    val view = if (_view == null) {
+    val view = Option(_view) getOrElse {
       val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE).asInstanceOf[LayoutInflater]
       inflater.inflate(R.layout.storylist_row, null)
-    } else _view
+    }
 
     // title
     val title = view.findViewById(R.id.storyTitle).asInstanceOf[TextView]
-    title.setText(if (story.title != null && story.title.length() > 0) story.title else context.getResources().getString(R.string.untitled));
+    title.setText(if (story.title != null && story.title.length() > 0) story.title else context.getResources.getString(R.string.untitled));
     title.setOnClickListener { v: View ⇒
       val intent = new Intent(context, classOf[DisplayActivity])
       intent.putExtra("id", story.id)
@@ -79,7 +82,7 @@ object ResultRow {
     val tagged = view.findViewById(R.id.tagged).asInstanceOf[TextView]
     tagged.measure(0, 0)
     if (story.tags != null && story.tags.length > 0 && !(story.tags.length == 1 && story.tags(0).equals(""))) {
-      fillTags(tagRows, maxwidth - tagged.getMeasuredWidth() * 4 / 3, story.tags, context);
+      fillTags(tagRows, maxwidth - tagged.getMeasuredWidth * 4 / 3, story.tags, context)
       tags.setVisibility(View.VISIBLE)
     } else {
       tags.setVisibility(View.GONE)
