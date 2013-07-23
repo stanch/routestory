@@ -16,6 +16,8 @@ versionCode := 0
 
 scalaVersion := "2.10.2"
 
+scalaOrganization := "org.scala-lang"
+
 platformName := "android-17"
 
 compileOrder := CompileOrder.JavaThenScala
@@ -29,11 +31,13 @@ libraryDependencies <+= scalaVersion {
 scalacOptions += "-P:continuations:enable"
 
 resolvers ++= Seq(
-	"Couchbase" at "http://maven.hq.couchbase.com/nexus/content/repositories/releases/"
+	"Couchbase" at "http://maven.hq.couchbase.com/nexus/content/repositories/releases/",
+	Resolver.sonatypeRepo("snapshots")
 )
 
 libraryDependencies ++= Seq(
 	"org.scaloid" % "scaloid" % "1.1_8_2.10",
+	("org.macroid" %% "macroid" % "1.0") exclude ("org.scala-lang.macro-paradise", "scala-library"),
 	"com.typesafe.akka" %% "akka-dataflow" % "2.2.0-RC1",
 	"com.scalarx" %% "scalarx" % "0.1",
 	"me.lessis" %% "retry-core" % "0.1.0",
