@@ -20,11 +20,13 @@ import akka.dataflow._
 import scala.concurrent.Future
 import android.widget.{ Button, FrameLayout }
 import android.widget.FrameLayout.LayoutParams
+import net.routestory.model.Story
+import ViewGroup.LayoutParams._
 
 class OverviewFragment extends StoryFragment {
-  lazy val display = getActivity.getWindowManager.getDefaultDisplay
-  lazy val mMap = findFrag[MapFragment]("overview_map").getMap
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
+  lazy val display = getActivity.getWindowManager.getDefaultDisplay
+  lazy val mMap = findFrag[MapFragment](Tag.overviewMap).getMap
   lazy val mRouteManager = flow {
     val story = await(mStory)
     val rm = new RouteManager(mMap, story)
@@ -39,16 +41,12 @@ class OverviewFragment extends StoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     new FrameLayout(ctx) {
       this += new FrameLayout(ctx) {
-        this += fragment(MapFragment.newInstance(), 1, "overview_map")
+        this += fragment(MapFragment.newInstance(), Id.map, Tag.overviewMap)
       }
       this += new FrameLayout(ctx) {
         this += new Button(ctx) { self ⇒
           setText(R.string.hide_overlays)
-          setLayoutParams(new LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
-          ))
+          setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL))
           setOnClickListener { v: View ⇒
             mMarkerManager onSuccessUi {
               case mm ⇒

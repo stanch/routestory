@@ -6,15 +6,15 @@ import android.os.Bundle
 import android.widget.{ TextView, LinearLayout }
 import net.routestory.R
 import org.scaloid.common._
-import scala.concurrent.Promise
 import akka.dataflow._
 import org.ektorp.ViewQuery
 import net.routestory.model._
 import scala.concurrent.ExecutionContext.Implicits.global
 import android.graphics.Point
 
-class LatestFragment(number: Int) extends StoryFragment with WidgetFragment {
-  lazy val list = findView[LinearLayout](Id.list)
+class LatestFragment extends StoryFragment with WidgetFragment {
+  lazy val number = Option(getArguments).map(_.getInt("number")).getOrElse(3)
+  def list = findView[LinearLayout](Id.list)
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     new VerticalLinearLayout(ctx) {
@@ -45,5 +45,15 @@ class LatestFragment(number: Int) extends StoryFragment with WidgetFragment {
         list.addView(ResultRow.getView(null, displaySize.x, s, getActivity))
       }
     })
+  }
+}
+
+object LatestFragment {
+  def newInstance(number: Int) = {
+    val frag = new LatestFragment
+    val bundle = new Bundle
+    bundle.putInt("number", number)
+    frag.setArguments(bundle)
+    frag
   }
 }

@@ -32,10 +32,11 @@ import android.widget.FrameLayout.LayoutParams
 import scala.collection.mutable
 import android.view.animation.AlphaAnimation
 import net.routestory.parts.Animation._
+import ViewGroup.LayoutParams._
 
 class PreviewFragment extends StoryFragment {
-  lazy val mMap = findFrag[MapFragment]("preview_map").getMap
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
+  lazy val mMap = findFrag[MapFragment](Tag.previewMap).getMap
   lazy val mRouteManager = flow {
     val story = await(mStory)
     switchToUiThread()
@@ -43,30 +44,30 @@ class PreviewFragment extends StoryFragment {
   }
   lazy val mHandler = new Handler
 
-  var mPlayButton: Button = _
-  var mImageView: ImageView = _
+  def mPlayButton = findView[Button](Id.play)
+  def mImageView = findView[ImageView](Id.imageView)
   var mMediaPlayer: MediaPlayer = _
   var mPositionMarker: Marker = _
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     new FrameLayout(ctx) {
       this += new FrameLayout(ctx) {
-        this += fragment(MapFragment.newInstance(), 1, "preview_map")
+        this += fragment(MapFragment.newInstance(), Id.map, Tag.previewMap)
       }
       this += new FrameLayout(ctx) {
-        mImageView = new ImageView(ctx)
-        this += mImageView
+        this += new ImageView(ctx) {
+          setId(Id.imageView)
+        }
       }
       this += new FrameLayout(ctx) {
-        mPlayButton = new Button(ctx) {
+        this += new Button(ctx) {
           setText(R.string.play)
-          setLayoutParams(new LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
+          setId(Id.play)
+          setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER))
           setOnClickListener { v: View ⇒
             mStory zip mRouteManager onSuccessUi { case (x, y) ⇒ startPreview(x, y) }
           }
         }
-        this += mPlayButton
       }
     }
   }
@@ -80,7 +81,8 @@ class PreviewFragment extends StoryFragment {
       switchToUiThread()
       mPositionMarker = mMap.addMarker(new MarkerOptions()
         .position(rm.getStart)
-        .icon(BitmapDescriptorFactory.fromResource(R.drawable.man)))
+        .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
+      )
     }
 
     val display = getActivity.getWindowManager.getDefaultDisplay
@@ -104,8 +106,9 @@ class PreviewFragment extends StoryFragment {
           mMap.addMarker(new MarkerOptions()
             .position(story.getLocation(i.timestamp))
             .icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
-              bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize),
-              0.8, false))))
+              bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize), 0.8, false)
+            ))
+          )
         }
         progress.incrementProgressBy(1)
       }))
@@ -126,7 +129,8 @@ class PreviewFragment extends StoryFragment {
       case rm ⇒
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()
           .target(rm.getStart).tilt(90).zoom(19)
-          .bearing(rm.getStartBearing).build()))
+          .bearing(rm.getStartBearing).build()
+        ))
     }
   }
 

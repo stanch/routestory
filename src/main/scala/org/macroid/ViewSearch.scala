@@ -22,7 +22,7 @@ class TagGen extends Dynamic {
 
 sealed trait ViewSearch {
   def fragmentManager: FragmentManager
-  implicit val Id = new IdGen(1)
+  implicit val Id = new IdGen(1000)
   implicit val Tag = new TagGen
 
   def findView[A <: View](id: Int): A

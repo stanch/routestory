@@ -6,7 +6,7 @@ import net.routestory.MainActivity
 import net.routestory.R
 import net.routestory.model.Author
 import net.routestory.model.StoryResult
-import net.routestory.parts.{ GotoDialogFragments, StoryActivity }
+import net.routestory.parts.{ FragmentDataProvider, GotoDialogFragments, StoryActivity }
 import android.app.{ ActionBar, SearchManager }
 import android.content.Context
 import android.content.Intent
@@ -43,7 +43,7 @@ object SearchResultsActivity {
   }
 }
 
-class SearchResultsActivity extends StoryActivity with HazStories {
+class SearchResultsActivity extends StoryActivity with HazStories with FragmentDataProvider[HazStories] {
   import SearchResultsActivity._
 
   // TODO: see if this can be made easier...
@@ -71,6 +71,7 @@ class SearchResultsActivity extends StoryActivity with HazStories {
   }
 
   def getStories = searchResults
+  def getFragmentData(tag: String): HazStories = this
   override def next() = queryFactory() foreach { q ⇒
     searchResults() = fetchResults(q, bookmarks.headOption)
   }
@@ -89,9 +90,14 @@ class SearchResultsActivity extends StoryActivity with HazStories {
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
 
-    val showMap = getIntent.hasExtra("showmap")
-    bar.addTab(R.string.title_tab_resultslist, new ResultListFragment(this), Tag.list, !showMap)
-    bar.addTab(R.string.title_tab_resultsmap, new ResultMapFragment(this), Tag.map, showMap)
+    val sel = if (getIntent.hasExtra("showmap")) 1 else Option(savedInstanceState).map(_.getInt("tab")).getOrElse(0)
+    bar.addTab(R.string.title_tab_resultslist, new ResultListFragment, Tag.list, sel == 0)
+    bar.addTab(R.string.title_tab_resultsmap, new ResultMapFragment, Tag.map, sel == 1)
+  }
+
+  override def onSaveInstanceState(savedInstanceState: Bundle) {
+    super.onSaveInstanceState(savedInstanceState)
+    savedInstanceState.putInt("tab", bar.getSelectedTab.getPosition)
   }
 
   override def onStart() {
@@ -156,17 +162,5 @@ class SearchResultsActivity extends StoryActivity with HazStories {
       }
     })
     true
-  }
-
-  override def onOptionsItemSelected(item: MenuItem): Boolean = {
-    item.getItemId match {
-      case android.R.id.home ⇒
-        val intent = SIntent[MainActivity]
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        startActivity(intent)
-        true
-      case _ ⇒
-        super.onOptionsItemSelected(item)
-    }
   }
 }

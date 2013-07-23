@@ -2,12 +2,13 @@ package net.routestory.parts
 
 import org.scaloid.common._
 import android.app.Fragment
-import net.routestory.StoryApplication
+import net.routestory.{ MainActivity, StoryApplication }
 import android.app.Activity
 import org.macroid._
 import scala.concurrent.Promise
-import android.view.View
+import android.view.{ MenuItem, View }
 import android.view.animation.AlphaAnimation
+import android.content.Intent
 
 trait FirstEveryStart {
   var everStarted = false
@@ -24,6 +25,14 @@ trait FirstEveryStart {
 
 trait WidgetFragment {
   val loaded = Promise[Any]()
+}
+
+trait FragmentDataProvider[A] {
+  def getFragmentData(tag: String): A
+}
+
+trait FragmentData[A] { self: Fragment ⇒
+  def getFragmentData = getActivity.asInstanceOf[FragmentDataProvider[A]].getFragmentData(getTag)
 }
 
 trait Animations {
@@ -47,6 +56,18 @@ trait StoryActivity extends Activity
   override def onStart() {
     super.onStart()
     firstOrEvery()
+  }
+
+  override def onOptionsItemSelected(item: MenuItem): Boolean = {
+    item.getItemId match {
+      case android.R.id.home ⇒ {
+        val intent = SIntent[MainActivity]
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        startActivity(intent)
+        true
+      }
+      case _ ⇒ super.onOptionsItemSelected(item)
+    }
   }
 }
 

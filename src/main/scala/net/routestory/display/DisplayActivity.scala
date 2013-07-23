@@ -35,10 +35,6 @@ import akka.dataflow._
 import retry.Defaults.timer
 import retry.Backoff
 
-trait HazStory {
-  def getStory: Future[Story]
-}
-
 object DisplayActivity {
   object NfcIntent {
     def unapply(i: Intent): Option[Uri] = if (i.getAction == NfcAdapter.ACTION_NDEF_DISCOVERED) {
@@ -60,6 +56,10 @@ object DisplayActivity {
   }
 }
 
+trait HazStory {
+  def getStory: Future[Story]
+}
+
 class DisplayActivity extends StoryActivity with HazStory {
   import DisplayActivity._
 
@@ -71,10 +71,9 @@ class DisplayActivity extends StoryActivity with HazStory {
     story.author = author
     story
   }
+  def getStory = mStory
 
   var mShareable = false
-
-  override def getStory = mStory
 
   lazy val mNfcAdapter: Option[NfcAdapter] = Option(NfcAdapter.getDefaultAdapter(getApplicationContext))
 

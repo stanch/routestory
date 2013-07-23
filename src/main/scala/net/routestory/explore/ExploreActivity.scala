@@ -8,19 +8,19 @@ import android.widget._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import net.routestory.MainActivity
-import net.routestory.parts.GotoDialogFragments
-import net.routestory.parts.StoryActivity
+import net.routestory.parts.{ WidgetFragment, GotoDialogFragments, StoryActivity }
 import akka.dataflow._
 import android.widget.FrameLayout.LayoutParams
 import ViewGroup.LayoutParams._
+import android.app.Fragment
 
 class ExploreActivity extends StoryActivity {
-  lazy val progress = findView[ProgressBar](Id.progress)
-  lazy val retry = findView[Button](Id.retry)
+  def progress = findView[ProgressBar](Id.progress)
+  def retry = findView[Button](Id.retry)
 
-  lazy val latest = new LatestFragment(4)
-  lazy val tags = new TagsFragment
-  lazy val search = new SearchFragment
+  def latest = findFrag[Fragment with WidgetFragment](Tag.latest)
+  def tags = findFrag[Fragment with WidgetFragment](Tag.tags)
+  def search = findFrag[Fragment with WidgetFragment](Tag.search)
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -28,9 +28,9 @@ class ExploreActivity extends StoryActivity {
       this += new ScrollView(ctx) {
         this += new VerticalLinearLayout(ctx) {
           setPaddingRelative(8 dip, 8 dip, 8 dip, 8 dip)
-          this += fragment(latest, Id.latest, Tag.latest, hide = true)
-          this += fragment(tags, Id.tags, Tag.tags, hide = true)
-          this += fragment(search, Id.search, Tag.search, hide = true)
+          this += fragment(LatestFragment.newInstance(4), Id.latest, Tag.latest, hide = true)
+          this += fragment(new TagsFragment, Id.tags, Tag.tags, hide = true)
+          this += fragment(new SearchFragment, Id.search, Tag.search, hide = true)
         }
       }
       this += new FrameLayout(ctx) {
@@ -113,16 +113,5 @@ class ExploreActivity extends StoryActivity {
     //          }
     //        }
     //      }
-  }
-
-  override def onOptionsItemSelected(item: MenuItem) = {
-    item.getItemId match {
-      case android.R.id.home ⇒
-        val intent = SIntent[MainActivity]
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        startActivity(intent)
-        true
-      case _ ⇒ false
-    }
   }
 }

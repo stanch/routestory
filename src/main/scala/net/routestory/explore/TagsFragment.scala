@@ -14,7 +14,7 @@ import android.graphics.Point
 import scala.collection.JavaConversions._
 
 class TagsFragment extends StoryFragment with WidgetFragment {
-  lazy val rows = findView[LinearLayout](Id.rows)
+  def rows = findView[LinearLayout](Id.rows)
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     new VerticalLinearLayout(ctx) {

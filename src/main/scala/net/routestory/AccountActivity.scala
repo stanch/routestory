@@ -47,18 +47,6 @@ class AccountActivity extends StoryActivity {
     }
   }
 
-  override def onOptionsItemSelected(item: MenuItem): Boolean = {
-    item.getItemId match {
-      case android.R.id.home ⇒
-        val intent = SIntent[MainActivity]
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        startActivity(intent)
-        true
-      case _ ⇒
-        super.onOptionsItemSelected(item)
-    }
-  }
-
   def showSignedOut() {
     val view = new SLinearLayout {
       setOrientation(LinearLayout.VERTICAL)

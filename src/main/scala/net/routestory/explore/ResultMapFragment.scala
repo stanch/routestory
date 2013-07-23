@@ -19,7 +19,7 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
-import net.routestory.parts.StoryFragment
+import net.routestory.parts.{ FragmentData, StoryFragment }
 import org.scaloid.common._
 import net.routestory.parts.Implicits._
 import scala.collection.JavaConversions._
@@ -29,15 +29,14 @@ import scala.concurrent.Future
 import scala.util.Try
 import rx._
 
-class ResultMapFragment(storyteller: HazStories) extends StoryFragment {
+class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
   lazy val mMap = findFrag[MapFragment](Tag.resultsMap).getMap
   var mMarkers = Map[Marker, StoryResult]()
   var mRoutes = List[Polyline]()
 
-  def stories = storyteller.getStories
-  lazy val observe = Obs(stories) {
-    update(stories())
-  }
+  lazy val storyteller = getFragmentData
+  lazy val stories = storyteller.getStories
+  var observer: Obs = _
 
   val kellyColors = List(
     "#FFB300",
@@ -90,12 +89,14 @@ class ResultMapFragment(storyteller: HazStories) extends StoryFragment {
       new AlertDialog.Builder(ctx).setView(ResultRow.getView(null, a.toInt, story, getActivity)).create().show()
       true
     }
-    observe.active = true
+    observer = Obs(stories) {
+      update(stories())
+    }
   }
 
   override def onDestroyView() {
     super.onDestroyView()
-    observe.active = false
+    observer.active = false
   }
 
   def update(res: Future[List[StoryResult]]) {
