@@ -2,9 +2,7 @@ package net.routestory.explore
 
 import net.routestory.R
 import net.routestory.model.StoryResult
-import android.content.Context
-import android.os.Bundle
-import android.view.{ Gravity, LayoutInflater, View, ViewGroup }
+import android.view.{ Gravity, View, ViewGroup }
 import android.widget._
 import net.routestory.parts.StoryFragment
 import android.app.{ ListFragment, Activity }
@@ -15,9 +13,8 @@ import rx._
 import scala.Some
 import org.scaloid.common._
 
-class ResultListFragment extends ListFragment with StoryFragment {
-  lazy val storyteller = getActivity.asInstanceOf[HazStories]
-  lazy val stories = storyteller.getStories
+class ResultListFragment(storyteller: HazStories) extends ListFragment with StoryFragment {
+  def stories = storyteller.getStories
   lazy val observe = Obs(stories) {
     update(stories())
   }
@@ -25,27 +22,26 @@ class ResultListFragment extends ListFragment with StoryFragment {
   lazy val defaultEmptyText = getResources.getString(R.string.empty_search)
   var emptyText: Option[String] = None
 
-  var next: Button = _
-  var prev: Button = _
+  lazy val next = findView[Button](Id.next)
+  lazy val prev = findView[Button](Id.prev)
 
   def tweakEmptyText(text: String) {
     emptyText = Some(text)
   }
 
   override def onFirstStart() {
-    findView[ListView](android.R.id.list).addFooterView(new LinearLayout(ctx) {
-      setOrientation(LinearLayout.HORIZONTAL)
+    findView[ListView](android.R.id.list).addFooterView(new HorizontalLinearLayout(ctx) {
       setGravity(Gravity.CENTER_HORIZONTAL)
-      prev = new Button(ctx) {
+      this += new Button(ctx) {
+        setId(Id.prev)
         setText("Prev")
         setOnClickListener(storyteller.prev())
       }
-      this += prev
-      next = new Button(ctx) {
+      this += new Button(ctx) {
+        setId(Id.next)
         setText("Next")
         setOnClickListener(storyteller.next())
       }
-      this += next
     })
     setEmptyText(emptyText.getOrElse(defaultEmptyText))
   }

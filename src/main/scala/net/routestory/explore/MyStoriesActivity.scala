@@ -12,12 +12,10 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
 import akka.dataflow._
-import net.routestory.parts.TabListener
 import net.routestory.{ MainActivity, R }
 import rx._
 import android.view.MenuItem
 import android.app.ActionBar
-import android.util.Log
 
 class MyStoriesActivity extends StoryActivity with HazStories {
   var activeTab: ResultListFragment = null
@@ -33,13 +31,9 @@ class MyStoriesActivity extends StoryActivity with HazStories {
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
 
-    val sel = Option(savedInstanceState) map (_.getInt("tab")) getOrElse 0
-    List(
-      R.string.title_tab_byme → TabListener[ResultListFragment](this, "byme"),
-      R.string.title_tab_saved → TabListener[ResultListFragment](this, "saved")).zipWithIndex.foreach {
-        case ((title, tabListener), n) ⇒
-          bar.addTab(bar.newTab().setText(title).setTabListener(tabListener), n, n == sel)
-      }
+    val sel = Option(savedInstanceState).map(_.getInt("tab")).getOrElse(0)
+    bar.addTab(R.string.title_tab_byme, new ResultListFragment(this), Tag.byme, sel == 0)
+    bar.addTab(R.string.title_tab_saved, new ResultListFragment(this), Tag.saved, sel == 1)
   }
 
   override def onSaveInstanceState(savedInstanceState: Bundle) {

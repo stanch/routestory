@@ -5,16 +5,13 @@ import net.routestory.model.StoryResult
 import android.app.AlertDialog
 import android.graphics.Color
 import android.os.Bundle
-import android.os.Handler
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
-import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import com.google.android.gms.maps._
-import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -22,10 +19,8 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
-import com.google.android.gms.maps.model.VisibleRegion
 import net.routestory.parts.StoryFragment
 import org.scaloid.common._
-import java.util.Locale
 import net.routestory.parts.Implicits._
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,12 +28,16 @@ import com.google.android.gms.maps.model.CameraPosition
 import scala.concurrent.Future
 import scala.util.Try
 import rx._
-import android.widget.FrameLayout.LayoutParams
 
-class ResultMapFragment extends StoryFragment {
-  lazy val mMap = findFrag[MapFragment]("results_map").getMap
+class ResultMapFragment(storyteller: HazStories) extends StoryFragment {
+  lazy val mMap = findFrag[MapFragment](Tag.resultsMap).getMap
   var mMarkers = Map[Marker, StoryResult]()
   var mRoutes = List[Polyline]()
+
+  def stories = storyteller.getStories
+  lazy val observe = Obs(stories) {
+    update(stories())
+  }
 
   val kellyColors = List(
     "#FFB300",
@@ -65,22 +64,20 @@ class ResultMapFragment extends StoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     new FrameLayout(ctx) {
       this += new FrameLayout(ctx) {
-        this += fragment(MapFragment.newInstance(), 1, "results_map")
+        this += fragment(MapFragment.newInstance(), Id.map, Tag.resultsMap)
       }
-      this += new FrameLayout(ctx) {
-        this += new Button(ctx) {
-          setText(R.string.search_this_area)
-          setLayoutParams(new LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
-          ))
-          setOnClickListener { v: View ⇒
-            val r = mMap.getProjection.getVisibleRegion
-            getActivity.asInstanceOf[SearchResultsActivity].geoQuery("%f,%f,%f,%f".formatLocal(Locale.US, r.nearLeft.latitude, r.nearLeft.longitude, r.farRight.latitude, r.farRight.longitude));
-          }
-        }
-      }
+      //      this += new FrameLayout(ctx) {
+      //        this += new Button(ctx) {
+      //          setText(R.string.search_this_area)
+      //          setLayoutParams(new LayoutParams(
+      //            WRAP_CONTENT, WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
+      //          ))
+      //          setOnClickListener { v: View ⇒
+      //            val r = mMap.getProjection.getVisibleRegion
+      //            getActivity.asInstanceOf[SearchResultsActivity].geoQuery("%f,%f,%f,%f".formatLocal(Locale.US, r.nearLeft.latitude, r.nearLeft.longitude, r.farRight.latitude, r.farRight.longitude));
+      //          }
+      //        }
+      //      }
     }
   }
 
@@ -93,10 +90,12 @@ class ResultMapFragment extends StoryFragment {
       new AlertDialog.Builder(ctx).setView(ResultRow.getView(null, a.toInt, story, getActivity)).create().show()
       true
     }
-    val stories = getActivity.asInstanceOf[HazStories].getStories
-    Obs(stories) {
-      update(stories())
-    }
+    observe.active = true
+  }
+
+  override def onDestroyView() {
+    super.onDestroyView()
+    observe.active = false
   }
 
   def update(res: Future[List[StoryResult]]) {

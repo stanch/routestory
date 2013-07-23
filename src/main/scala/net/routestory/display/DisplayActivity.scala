@@ -73,7 +73,6 @@ class DisplayActivity extends StoryActivity with HazStory {
   }
 
   var mShareable = false
-  var mStartTab: Int = 0
 
   override def getStory = mStory
 
@@ -83,10 +82,6 @@ class DisplayActivity extends StoryActivity with HazStory {
     super.onCreate(savedInstanceState)
     requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS)
     setContentView(new FrameLayout(this))
-
-    if (savedInstanceState != null && savedInstanceState.containsKey("tab")) {
-      mStartTab = savedInstanceState.getInt("tab")
-    }
 
     id = getIntent match {
       case NfcIntent(uri) ⇒
@@ -131,15 +126,10 @@ class DisplayActivity extends StoryActivity with HazStory {
         bar.setSubtitle(if (story.author != null) "by " + story.author.name else "by me")
     }
 
-        // format: OFF
-        List(
-            (R.string.title_tab_storypreview, TabListener[PreviewFragment](this, "preview")),
-            (R.string.title_tab_storydescription, TabListener[DescriptionFragment](this, "description")),
-            (R.string.title_tab_storyoverview, TabListener[OverviewFragment](this, "map"))
-        ).zipWithIndex.foreach { case ((title, tabListener), n) ⇒
-            bar.addTab(bar.newTab().setText(title).setTabListener(tabListener), n, n == mStartTab)
-        }
-    // format: ON
+    val sel = Option(savedInstanceState).map(_.getInt("tab")).getOrElse(0)
+    bar.addTab(R.string.title_tab_storypreview, new PreviewFragment, Tag.preview, sel == 0)
+    bar.addTab(R.string.title_tab_storydescription, new DescriptionFragment, Tag.description, sel == 1)
+    bar.addTab(R.string.title_tab_storyoverview, new OverviewFragment, Tag.map, sel == 2)
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean = {

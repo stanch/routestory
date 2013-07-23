@@ -6,7 +6,7 @@ import net.routestory.MainActivity
 import net.routestory.R
 import net.routestory.model.Author
 import net.routestory.model.StoryResult
-import net.routestory.parts.{ TabListener, GotoDialogFragments, StoryActivity }
+import net.routestory.parts.{ GotoDialogFragments, StoryActivity }
 import android.app.{ ActionBar, SearchManager }
 import android.content.Context
 import android.content.Intent
@@ -90,12 +90,8 @@ class SearchResultsActivity extends StoryActivity with HazStories {
     bar.setDisplayHomeAsUpEnabled(true)
 
     val showMap = getIntent.hasExtra("showmap")
-    List(
-      R.string.title_tab_resultslist → TabListener[ResultListFragment](this, "list"),
-      R.string.title_tab_resultsmap → TabListener[ResultMapFragment](this, "map")).zipWithIndex.foreach {
-        case ((title, tabListener), n) ⇒
-          bar.addTab(bar.newTab().setText(title).setTabListener(tabListener), n, (n == 0) ^ showMap)
-      }
+    bar.addTab(R.string.title_tab_resultslist, new ResultListFragment(this), Tag.list, !showMap)
+    bar.addTab(R.string.title_tab_resultsmap, new ResultMapFragment(this), Tag.map, showMap)
   }
 
   override def onStart() {
