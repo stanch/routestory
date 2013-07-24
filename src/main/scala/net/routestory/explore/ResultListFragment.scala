@@ -13,8 +13,10 @@ import rx._
 import org.scaloid.common._
 import android.os.Bundle
 import android.content.Context
+import org.macroid.LayoutDsl
+import org.macroid.Transforms._
 
-class ResultListFragment extends ListFragment with StoryFragment with FragmentData[HazStories] {
+class ResultListFragment extends ListFragment with StoryFragment with FragmentData[HazStories] with LayoutDsl {
   lazy val storyteller = getFragmentData
   lazy val stories = storyteller.getStories
   var observer: Obs = _
@@ -25,24 +27,19 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
     getResources.getString(R.string.empty_search)
   }
 
-  def next = findView[Button](Id.next)
-  def prev = findView[Button](Id.prev)
+  var next: Button = _
+  var prev: Button = _
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val view = super.onCreateView(inflater, container, savedInstanceState)
-    view.findViewById(android.R.id.list).asInstanceOf[ListView].addFooterView(new HorizontalLinearLayout(ctx) {
-      setGravity(Gravity.CENTER_HORIZONTAL)
-      this += new Button(ctx) {
-        setId(Id.prev)
-        setText("Prev")
-        setOnClickListener(storyteller.prev())
-      }
-      this += new Button(ctx) {
-        setId(Id.next)
-        setText("Next")
-        setOnClickListener(storyteller.next())
-      }
-    })
+    view.findViewById(android.R.id.list).asInstanceOf[ListView].addFooterView(l[HorizontalLinearLayout](
+      w[Button] ~> text("Prev") ~> wire(prev) ~> (
+        _.setOnClickListener(storyteller.prev())
+      ),
+      w[Button] ~> text("Next") ~> wire(next) ~> (
+        _.setOnClickListener(storyteller.next())
+      )
+    ) ~> (_.setGravity(Gravity.CENTER_HORIZONTAL)))
     view
   }
 

@@ -11,21 +11,20 @@ import org.ektorp.ViewQuery
 import net.routestory.model._
 import scala.concurrent.ExecutionContext.Implicits.global
 import android.graphics.Point
+import org.macroid.LayoutDsl
+import org.macroid.Transforms._
 
-class LatestFragment extends StoryFragment with WidgetFragment {
+class LatestFragment extends StoryFragment with WidgetFragment with LayoutDsl {
   lazy val number = Option(getArguments).map(_.getInt("number")).getOrElse(3)
-  def list = findView[LinearLayout](Id.list)
+  var list: LinearLayout = _
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    new VerticalLinearLayout(ctx) {
-      this += new TextView(ctx) {
-        setText(R.string.explore_lateststories)
-        setTextAppearance(ctx, R.style.ExploreSectionAppearance)
-      }
-      this += new VerticalLinearLayout(ctx) {
-        setId(Id.list)
-      }
-    }
+    l[VerticalLinearLayout](
+      w[TextView] ~> text(R.string.explore_lateststories) ~> { x ⇒
+        x.setTextAppearance(ctx, R.style.ExploreSectionAppearance)
+      },
+      l[VerticalLinearLayout]() ~> wire(list)
+    )
   }
 
   override def onStart() {
