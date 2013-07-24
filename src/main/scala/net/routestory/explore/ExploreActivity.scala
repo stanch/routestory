@@ -2,21 +2,21 @@ package net.routestory.explore
 
 import org.scaloid.common._
 import android.os.Bundle
-import android.content.Intent
 import android.view._
 import android.widget._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import net.routestory.MainActivity
 import net.routestory.parts.{ WidgetFragment, GotoDialogFragments, StoryActivity }
 import akka.dataflow._
 import android.widget.FrameLayout.LayoutParams
 import ViewGroup.LayoutParams._
 import android.app.Fragment
+import org.macroid.LayoutDsl
+import org.macroid.Transforms._
 
-class ExploreActivity extends StoryActivity {
-  def progress = findView[ProgressBar](Id.progress)
-  def retry = findView[Button](Id.retry)
+class ExploreActivity extends StoryActivity with LayoutDsl {
+  var progress: ProgressBar = _
+  var retry: Button = _
 
   def latest = findFrag[Fragment with WidgetFragment](Tag.latest)
   def tags = findFrag[Fragment with WidgetFragment](Tag.tags)
@@ -24,33 +24,28 @@ class ExploreActivity extends StoryActivity {
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
-    val view = new FrameLayout(ctx) {
-      this += new ScrollView(ctx) {
-        this += new VerticalLinearLayout(ctx) {
-          setPaddingRelative(8 dip, 8 dip, 8 dip, 8 dip)
-          this += fragment(LatestFragment.newInstance(4), Id.latest, Tag.latest, hide = true)
-          this += fragment(new TagsFragment, Id.tags, Tag.tags, hide = true)
-          this += fragment(new SearchFragment, Id.search, Tag.search, hide = true)
-        }
-      }
-      this += new FrameLayout(ctx) {
-        this += new ProgressBar(ctx, null, android.R.attr.progressBarStyleLarge) {
-          setId(Id.progress)
-          setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER))
-        }
-        this += new Button(ctx) { self ⇒
-          setId(Id.retry)
-          setVisibility(View.GONE)
-          setText("Retry") // TODO: strings.xml
-          setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER))
-          setOnClickListener { v: View ⇒
-            self.setVisibility(View.GONE)
-            findView[ProgressBar](Id.progress).setVisibility(View.VISIBLE)
+    val view = l[FrameLayout](
+      l[ScrollView](
+        l[VerticalLinearLayout](
+          f[LatestFragment](Id.latest, Tag.latest, Map("number" → 4)) ~> hide,
+          f[TagsFragment](Id.tags, Tag.tags, Map()) ~> hide,
+          f[SearchFragment](Id.search, Tag.search, Map()) ~> hide
+        ) ~> { x ⇒ x.setPaddingRelative(8 dip, 8 dip, 8 dip, 8 dip) }
+      ),
+      l[FrameLayout](
+        w[ProgressBar](null, android.R.attr.progressBarStyleLarge) ~>
+          id(Id.progress) ~>
+          center() ~>
+          wire(progress),
+        w[Button] ~> id(Id.retry) ~> center() ~> hide ~> text("Retry") ~> wire(retry) ~> { x ⇒
+          x.setOnClickListener { v: View ⇒
+            x ~> hide
+            progress ~> hide
             onFirstStart()
           }
         }
-      }
-    }
+      )
+    )
     setContentView(view)
     bar.setDisplayHomeAsUpEnabled(true)
   }
@@ -67,8 +62,8 @@ class ExploreActivity extends StoryActivity {
     } onFailureUi {
       case t ⇒
         t.printStackTrace()
-        progress.setVisibility(View.GONE)
-        retry.setVisibility(View.VISIBLE)
+        progress ~> hide
+        retry ~> show
     }
 
     // Stories nearby
