@@ -220,7 +220,7 @@ class Story extends CouchDbDocument with CouchDbObject {
   @JsonIgnore
   def setTags(tags: String) {
     if (tags.trim.length > 0) {
-      this.tags = tags.split(",").map(_.trim)
+      this.tags = tags.split(",").map(_.trim).filter(!_.isEmpty)
     }
   }
 
