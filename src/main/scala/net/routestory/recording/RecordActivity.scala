@@ -73,7 +73,7 @@ class RecordActivity extends StoryActivity {
         this += fragment(MapFragment.newInstance(), 1, "recording_map")
       }
       this += new HapticButton(ctx) {
-        setText("Add media")
+        setText("Add stuff")
         setLayoutParams(new LinearLayout.LayoutParams(
           ViewGroup.LayoutParams.MATCH_PARENT,
           ViewGroup.LayoutParams.WRAP_CONTENT
@@ -199,7 +199,7 @@ class RecordActivity extends StoryActivity {
     if (mLocationListener == null) {
       mLocationListener = new LocationListener() {
         override def onLocationChanged(location: Location) {
-          val pt = mStory.addLocation(System.currentTimeMillis() / 1000L, location).asLatLng
+          lazy val pt = mStory.addLocation(System.currentTimeMillis() / 1000L, location).asLatLng
           if (mRouteManager.isEmpty) {
             // now that we know where we are, start recording!
             mProgressDialog.dismiss()
