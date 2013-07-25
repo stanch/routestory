@@ -91,8 +91,13 @@ class RecordActivity extends StoryActivity {
     bar.setDisplayShowHomeEnabled(false)
   }
 
-  override def onFirstStart() {
+  var started = false
+
+  override def onStart() {
+    super.onStart()
+    if (started) return
     if (!GotoDialogFragments.ensureGPS(this)) return
+    started = true
 
     // toggle automatic audio recording
     val prefs = PreferenceManager.getDefaultSharedPreferences(this)
