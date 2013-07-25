@@ -6,7 +6,7 @@ import java.io.FileOutputStream
 
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.future
+import scala.concurrent.{ Future, future }
 
 import org.scaloid.common._
 
@@ -345,6 +345,10 @@ class RecordActivity extends StoryActivity {
         future {
           mAudioTrackerThread.join()
           addAudio()
+        } recover {
+          case t ⇒
+            t.printStackTrace()
+        } map { _ ⇒
           createStory()
         } onSuccessUi {
           case _ ⇒
@@ -355,6 +359,12 @@ class RecordActivity extends StoryActivity {
             intent.putExtra("id", mStory.getId)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             startActivity(intent)
+        } onFailureUi {
+          case t ⇒
+            t.printStackTrace()
+            mProgressDialog.dismiss()
+            toast("Something went wrong!")
+            finish()
         }
       }
       case _ ⇒ ;
