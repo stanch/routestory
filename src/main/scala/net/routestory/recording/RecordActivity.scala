@@ -199,11 +199,11 @@ class RecordActivity extends StoryActivity {
     if (mLocationListener == null) {
       mLocationListener = new LocationListener() {
         override def onLocationChanged(location: Location) {
-          lazy val pt = mStory.addLocation(System.currentTimeMillis() / 1000L, location).asLatLng
+          if (mRouteManager.isEmpty) mStory.start()
+          val pt = mStory.addLocation(System.currentTimeMillis() / 1000L, location).asLatLng
           if (mRouteManager.isEmpty) {
             // now that we know where we are, start recording!
             mProgressDialog.dismiss()
-            mStory.start()
             trackAudio()
             mRouteManager.init()
             invalidateOptionsMenu()
@@ -214,9 +214,7 @@ class RecordActivity extends StoryActivity {
             mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder().target(pt).tilt(45).zoom(19).build())) // TODO: zoom adaptivity
           } else {
             mRouteManager.update()
-            if (mManMarker != null) {
-              mManMarker.remove()
-            }
+            Option(mManMarker).map(_.remove())
             mManMarker = mMap.addMarker(new MarkerOptions()
               .position(pt)
               .icon(BitmapDescriptorFactory.fromResource(R.drawable.man)))
