@@ -86,7 +86,7 @@ object AudioTracker {
     // note that `pieces` is reversed, i.e. starts with the latest one
     val sparse = pieces.foldLeft(List[(Long, String)]()) {
       case (Nil, p) ⇒ p :: Nil
-      case (acc, (time, path)) if acc.head._1 - time > dst ⇒ (time, path) :: acc
+      case (acc, (time, path)) if acc.head._1 - time > dst / 1000 ⇒ (time, path) :: acc
       case (acc, _) ⇒ acc
     }
 

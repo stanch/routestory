@@ -33,6 +33,7 @@ import scala.collection.mutable
 import android.view.animation.AlphaAnimation
 import net.routestory.parts.Animation._
 import ViewGroup.LayoutParams._
+import android.util.Log
 
 class PreviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
@@ -45,7 +46,9 @@ class PreviewFragment extends StoryFragment {
   lazy val mHandler = new Handler
 
   def mPlayButton = findView[Button](Id.play)
+
   def mImageView = findView[ImageView](Id.imageView)
+
   var mMediaPlayer: MediaPlayer = _
   var mPositionMarker: Marker = _
 
@@ -64,8 +67,11 @@ class PreviewFragment extends StoryFragment {
           setText(R.string.play)
           setId(Id.play)
           setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER))
-          setOnClickListener { v: View ⇒
-            mStory zip mRouteManager onSuccessUi { case (x, y) ⇒ startPreview(x, y) }
+          setOnClickListener {
+            v: View ⇒
+              mStory zip mRouteManager onSuccessUi {
+                case (x, y) ⇒ startPreview(x, y)
+              }
           }
         }
       }
@@ -102,13 +108,14 @@ class PreviewFragment extends StoryFragment {
       val photos = Future.sequence(story.photos.map(i ⇒ flow {
         val pic = await(i.get(maxSize))
         switchToUiThread()
-        Option(pic) foreach { bitmap ⇒
-          mMap.addMarker(new MarkerOptions()
-            .position(story.getLocation(i.timestamp))
-            .icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
-              bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize), 0.8, false)
-            ))
-          )
+        Option(pic) foreach {
+          bitmap ⇒
+            mMap.addMarker(new MarkerOptions()
+              .position(story.getLocation(i.timestamp))
+              .icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
+                bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize), 0.8, false)
+              ))
+            )
         }
         progress.incrementProgressBy(1)
       }))
@@ -145,31 +152,42 @@ class PreviewFragment extends StoryFragment {
     val ratio = story.duration.toDouble / StoryApplication.storyPreviewDuration / 1000
     val lastLocation = story.locations.last.timestamp / ratio
 
-    story.notes foreach { note ⇒
-      mHandler.postAtTime({
-        toast(note.text)
-      }, start + (note.timestamp / ratio).toInt)
+    Log.d("PreviewFragment", "Preparing preview")
+
+    story.notes foreach {
+      note ⇒
+        Log.d("PreviewFragment", s"Scheduling note with text “${note.text}”")
+        mHandler.postAtTime({
+          toast(note.text)
+        }, start + (note.timestamp / ratio).toInt)
     }
 
-    story.heartbeat foreach { beat ⇒
-      mHandler.postAtTime({
-        vibrator.vibrate(beat.getVibrationPattern(4), -1)
-      }, start + (beat.timestamp / ratio).toInt)
+    story.heartbeat foreach {
+      beat ⇒
+        Log.d("PreviewFragment", s"Scheduling beat with bpm “${beat.bpm}”")
+        mHandler.postAtTime({
+          vibrator.vibrate(beat.getVibrationPattern(4), -1)
+        }, start + (beat.timestamp / ratio).toInt)
     }
 
     def fadeIn(view: View) = new AlphaAnimation(0, 1).duration(300).runOn(view)
     def fadeOut(view: View) = new AlphaAnimation(1, 0).duration(300).runOn(view, hideOnFinish = true)
-    val spans = story.photos.map(_.timestamp / ratio).sorted.sliding(2).map { case mutable.Buffer(a, b) ⇒ (b - a).toInt }.toList ::: List(1000)
+    val spans = story.photos.map(_.timestamp / ratio).sorted.sliding(2).map {
+      case mutable.Buffer(a, b) ⇒ (b - a).toInt
+      case _ ⇒ 1000
+    }.toList ::: List(1000)
     (story.photos zip spans) foreach {
       case (photo, span) ⇒
+        Log.d("PreviewFragment", "Scheduling a photo")
         if (span > 600) {
           mHandler.postAtTime({
-            photo.get(400) foreach { bitmap ⇒
-              runOnUiThread(mImageView.setImageBitmap(bitmap))
-              fadeIn(mImageView)
-              mHandler.postDelayed({
-                fadeOut(mImageView)
-              }, List(span - 600, 1500).min)
+            photo.get(400) foreach {
+              bitmap ⇒
+                runOnUiThread(mImageView.setImageBitmap(bitmap))
+                fadeIn(mImageView)
+                mHandler.postDelayed({
+                  fadeOut(mImageView)
+                }, List(span - 600, 1500).min)
             }
           }, start + (photo.timestamp / ratio).toInt)
         }
@@ -179,13 +197,15 @@ class PreviewFragment extends StoryFragment {
       val elapsed = SystemClock.uptimeMillis() - start
       val now = story.getLocation(elapsed * ratio)
 
-      val bearing = (List(100, 300, 500) map { t ⇒
-        rm.getBearing(now, story.getLocation((elapsed + t) * ratio))
+      val bearing = (List(100, 300, 500) map {
+        t ⇒
+          rm.getBearing(now, story.getLocation((elapsed + t) * ratio))
       } zip List(0.3f, 0.4f, 0.3f) map {
         case (b, w) ⇒
           b * w
       }).sum
 
+      Log.d("PreviewFragment", "Walking")
       mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder(mMap.getCameraPosition).target(now).bearing(bearing).build()))
       if (elapsed < lastLocation) {
         mHandler.postDelayed(move, 300)
