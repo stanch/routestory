@@ -36,7 +36,6 @@ import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.HapticButton
 import net.routestory.parts.Implicits.func2OnCancelListener
 import net.routestory.parts.StoryActivity
-import org.macroid.LayoutDsl
 import ViewGroup.LayoutParams._
 import org.macroid.Transforms._
 import scala.ref.WeakReference
@@ -54,7 +53,7 @@ class AudioHandler(activity: WeakReference[RecordActivity]) extends Handler {
   }
 }
 
-class RecordActivity extends StoryActivity with LayoutDsl {
+class RecordActivity extends StoryActivity {
   lazy val mStory = new Story()
   var mMedia = Map[String, (String, String)]()
   var mAudioPieces = List[(Long, String)]()

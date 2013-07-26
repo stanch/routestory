@@ -14,10 +14,9 @@ import rx._
 import org.scaloid.common._
 import android.os.Bundle
 import android.content.Context
-import org.macroid.LayoutDsl
 import org.macroid.Transforms._
 
-class ResultListFragment extends ListFragment with StoryFragment with FragmentData[HazStories] with LayoutDsl {
+class ResultListFragment extends ListFragment with StoryFragment with FragmentData[HazStories] {
   lazy val storyteller = getFragmentData
   lazy val stories = storyteller.getStories
   var observer: Obs = _

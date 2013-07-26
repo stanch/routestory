@@ -25,6 +25,9 @@ import android.net.Uri
 import akka.dataflow._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.parts.Implicits._
+import org.macroid.{ FragmentViewSearch, LayoutDsl }
+import org.macroid.Transforms._
+import org.macroid.Layouts
 
 class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
@@ -73,7 +76,7 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   }
 }
 
-class NoteDialogFragment extends AddMediaDialogFragment {
+class NoteDialogFragment extends DialogFragment {
   override def onDismiss(dialog: DialogInterface) {
     super.onDismiss(dialog)
     getActivity.asInstanceOf[RecordActivity].trackAudio()
@@ -168,7 +171,7 @@ class VoiceDialogFragment extends DialogFragment {
   }
 }
 
-class MeasurePulseDialogFragment extends DialogFragment {
+class MeasurePulseDialogFragment extends DialogFragment with FragmentViewSearch with LayoutDsl with Layouts {
   implicit lazy val ctx = getActivity
   var taps = List[Long]()
   def beats = if (taps.length < 5) 0 else {
@@ -184,31 +187,20 @@ class MeasurePulseDialogFragment extends DialogFragment {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val activity = getActivity.asInstanceOf[RecordActivity]
 
-    val layout = new LinearLayout(ctx) {
-      //val lp = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
-      //setLayoutParams(lp)
-      setOrientation(LinearLayout.VERTICAL)
-
-      this += new TextView(ctx) {
-        setText(R.string.message_pulsehowto)
-        setTextAppearance(ctx, android.R.style.TextAppearance_Medium)
-      }
-
-      val bpm = new TextView(ctx) {
-        setText("BPM: 0") // TODO: strings.xml
-      }
-      this += bpm
-
-      this += new Button(ctx) {
-        setHeight(100 dip)
-        setGravity(Gravity.CENTER)
-        setText("TAP") // TODO: strings.xml
-        setOnClickListener { v: View ⇒
+    var bpm: TextView = null
+    val layout = l[VerticalLinearLayout](
+      w[TextView] ~> text(R.string.message_pulsehowto) ~> (_.setTextAppearance(ctx, android.R.style.TextAppearance_Medium)),
+      w[TextView] ~> text("BPM: 0") ~> wire(bpm),
+      w[Button] ~> { x ⇒
+        x.setHeight(100 dip)
+        x.setGravity(Gravity.CENTER)
+        x.setText("TAP") // TODO: strings.xml
+        x.setOnClickListener { v: View ⇒
           taps = (System.currentTimeMillis() :: taps) take (5)
           bpm.setText("BPM: %d".format(beats))
         }
       }
-    }
+    )
 
     new AlertDialog.Builder(ctx) {
       setView(layout)

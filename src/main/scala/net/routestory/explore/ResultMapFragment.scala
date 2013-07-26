@@ -28,9 +28,8 @@ import com.google.android.gms.maps.model.CameraPosition
 import scala.concurrent.Future
 import scala.util.Try
 import rx._
-import org.macroid.LayoutDsl
 
-class ResultMapFragment extends StoryFragment with FragmentData[HazStories] with LayoutDsl {
+class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
   lazy val mMap = findFrag[SupportMapFragment](Tag.resultsMap).getMap
   var mMarkers = Map[Marker, StoryResult]()
   var mRoutes = List[Polyline]()

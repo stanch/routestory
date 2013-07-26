@@ -11,10 +11,9 @@ import org.ektorp.ViewQuery
 import net.routestory.model._
 import scala.concurrent.ExecutionContext.Implicits.global
 import android.graphics.Point
-import org.macroid.LayoutDsl
 import org.macroid.Transforms._
 
-class LatestFragment extends StoryFragment with WidgetFragment with LayoutDsl {
+class LatestFragment extends StoryFragment with WidgetFragment {
   lazy val number = Option(getArguments).map(_.getInt("number")).getOrElse(3)
   var list: LinearLayout = _
 

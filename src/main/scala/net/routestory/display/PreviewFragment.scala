@@ -34,6 +34,7 @@ import android.view.animation.AlphaAnimation
 import net.routestory.parts.Animation._
 import ViewGroup.LayoutParams._
 import android.util.Log
+import org.macroid.Transforms._
 
 class PreviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
@@ -45,37 +46,31 @@ class PreviewFragment extends StoryFragment {
   }
   lazy val mHandler = new Handler
 
-  def mPlayButton = findView[Button](Id.play)
-
-  def mImageView = findView[ImageView](Id.imageView)
+  var mPlayButton: Button = _
+  var mImageView: ImageView = _
 
   var mMediaPlayer: MediaPlayer = _
   var mPositionMarker: Marker = _
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    new FrameLayout(ctx) {
-      this += new FrameLayout(ctx) {
-        this += fragment(SupportMapFragment.newInstance(), Id.map, Tag.previewMap)
-      }
-      this += new FrameLayout(ctx) {
-        this += new ImageView(ctx) {
-          setId(Id.imageView)
-        }
-      }
-      this += new FrameLayout(ctx) {
-        this += new Button(ctx) {
-          setText(R.string.play)
-          setId(Id.play)
-          setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER))
-          setOnClickListener {
-            v: View ⇒
-              mStory zip mRouteManager onSuccessUi {
-                case (x, y) ⇒ startPreview(x, y)
-              }
+    l[FrameLayout](
+      l[FrameLayout](
+        fragment(SupportMapFragment.newInstance(), Id.map, Tag.previewMap)
+      ),
+      l[FrameLayout](
+        w[ImageView] ~> wire(mImageView)
+      ),
+      l[FrameLayout](
+        w[Button] ~> text(R.string.play) ~> wire(mPlayButton) ~> { x ⇒
+          x.setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER))
+          x.setOnClickListener { v: View ⇒
+            mStory zip mRouteManager onSuccessUi {
+              case (x, y) ⇒ startPreview(x, y)
+            }
           }
         }
-      }
-    }
+      )
+    )
   }
 
   override def onFirstStart() {

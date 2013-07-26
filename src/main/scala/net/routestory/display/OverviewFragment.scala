@@ -22,6 +22,7 @@ import android.widget.{ Button, FrameLayout }
 import android.widget.FrameLayout.LayoutParams
 import net.routestory.model.Story
 import ViewGroup.LayoutParams._
+import org.macroid.Transforms._
 
 class OverviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
@@ -39,25 +40,24 @@ class OverviewFragment extends StoryFragment {
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    new FrameLayout(ctx) {
-      this += new FrameLayout(ctx) {
-        this += fragment(SupportMapFragment.newInstance(), Id.map, Tag.overviewMap)
-      }
-      this += new FrameLayout(ctx) {
-        this += new Button(ctx) { self ⇒
-          setText(R.string.hide_overlays)
-          setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL))
-          setOnClickListener { v: View ⇒
+    l[FrameLayout](
+      l[FrameLayout](
+        fragment(SupportMapFragment.newInstance(), Id.map, Tag.overviewMap)
+      ),
+      l[FrameLayout](
+        w[Button] ~> text(R.string.hide_overlays) ~> { x ⇒
+          x.setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL))
+          x.setOnClickListener { v: View ⇒
             mMarkerManager onSuccessUi {
               case mm ⇒
                 mm.hide_overlays = !mm.hide_overlays
-                self.setText(if (mm.hide_overlays) R.string.show_overlays else R.string.hide_overlays)
+                x ~> text(if (mm.hide_overlays) R.string.show_overlays else R.string.hide_overlays)
                 mm.update()
             }
           }
         }
-      }
-    }
+      )
+    )
   }
 
   override def onFirstStart() {

@@ -9,10 +9,9 @@ import ExecutionContext.Implicits.global
 import net.routestory.parts.{ WidgetFragment, GotoDialogFragments, StoryActivity }
 import akka.dataflow._
 import android.support.v4.app.Fragment
-import org.macroid.LayoutDsl
 import org.macroid.Transforms._
 
-class ExploreActivity extends StoryActivity with LayoutDsl {
+class ExploreActivity extends StoryActivity {
   var progress: ProgressBar = _
   var retry: Button = _
 

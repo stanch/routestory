@@ -49,6 +49,7 @@ trait StoryActivity extends FragmentActivity
   with Fragments
   with Layouts
   with Animations
+  with LayoutDsl
   with SActivity {
   lazy val app = getApplication.asInstanceOf[StoryApplication]
   lazy val bar = getActionBar
@@ -77,7 +78,8 @@ trait StoryFragment extends Fragment
   with Fragments
   with Layouts
   with Animations
-  with FirstEveryStart {
+  with FirstEveryStart
+  with LayoutDsl {
   lazy val app = getActivity.getApplication.asInstanceOf[StoryApplication]
   implicit def ctx = getActivity
 

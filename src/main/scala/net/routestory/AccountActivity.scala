@@ -30,6 +30,7 @@ import net.routestory.parts.HapticButton
 import net.routestory.parts.StoryActivity
 import akka.dataflow._
 import android.util.Log
+import org.macroid.Transforms._
 
 class AccountActivity extends StoryActivity {
   override def onCreate(savedInstanceState: Bundle) {
@@ -48,19 +49,10 @@ class AccountActivity extends StoryActivity {
   }
 
   def showSignedOut() {
-    val view = new SLinearLayout {
-      setOrientation(LinearLayout.VERTICAL)
-      this += new TextView(ctx) {
-        setText(R.string.account_policy)
-        setTextAppearance(ctx, android.R.style.TextAppearance_Medium)
-      }
-      this += new HapticButton(ctx) {
-        setText(R.string.signin)
-        setOnClickListener(selectAccount)
-      }
-    }
-
-    setContentView(view)
+    setContentView(l[VerticalLinearLayout](
+      w[TextView] ~> text(R.string.account_policy) ~> (_.setTextAppearance(ctx, android.R.style.TextAppearance_Medium)),
+      w[HapticButton] ~> text(R.string.signin) ~> (_.setOnClickListener(selectAccount))
+    ))
   }
 
   def selectAccount() {
@@ -71,13 +63,10 @@ class AccountActivity extends StoryActivity {
       setTitle(R.string.title_dialog_selectaccount)
       setAdapter(new ArrayAdapter[Account](ctx, 0, R.id.textView1, accounts) {
         override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-          val view = Option(itemView).getOrElse(new LinearLayout(ctx) {
-            this += new TextView(ctx) {
-              setTextAppearance(ctx, android.R.style.TextAppearance_Large)
-              setId(1)
-            }
-          })
-          view.findViewById(1).asInstanceOf[TextView].setText(accounts(position).name)
+          val view = Option(itemView).getOrElse(l[LinearLayout](
+            w[TextView] ~> id(Id.accound) ~> (_.setTextAppearance(ctx, android.R.style.TextAppearance_Large))
+          ))
+          view.findViewById(Id.account).asInstanceOf[TextView].setText(accounts(position).name)
           view
         }
       }, { (dialog: DialogInterface, which: Int) ⇒
@@ -96,31 +85,25 @@ class AccountActivity extends StoryActivity {
       switchToUiThread()
       progress.dismiss()
       val author = app.getAuthor
-      val view = new ScrollView(ctx) {
-        this += new LinearLayout(ctx) {
-          setOrientation(LinearLayout.VERTICAL)
-          this += new ImageView(ctx) {
-            setScaleType(ImageView.ScaleType.FIT_START)
-            setAdjustViewBounds(true)
+      setContentView(l[ScrollView](
+        l[VerticalLinearLayout](
+          w[ImageView] ~> { x ⇒
+            x.setScaleType(ImageView.ScaleType.FIT_START)
+            x.setAdjustViewBounds(true)
             author.pictureCache.get onSuccessUi {
-              case bitmap if bitmap != null ⇒ setImageBitmap(bitmap)
-              case _ ⇒ setImageResource(R.drawable.ic_launcher)
+              case bitmap if bitmap != null ⇒ x.setImageBitmap(bitmap)
+              case _ ⇒ x.setImageResource(R.drawable.ic_launcher)
             }
-          }
-          this += new TextView(ctx) {
-            setText(author.name)
-            setTextAppearance(AccountActivity.this, android.R.style.TextAppearance_Large)
-          }
-          this += new HapticButton(ctx) {
-            setText(R.string.signout)
-            setOnClickListener { v: View ⇒
+          },
+          w[TextView] ~> text(author.name) ~> (_.setTextAppearance(AccountActivity.this, android.R.style.TextAppearance_Large)),
+          w[HapticButton] ~> text(R.string.signout) ~> { x ⇒
+            x.setOnClickListener { v: View ⇒
               app.signOut()
               showSignedOut()
             }
           }
-        }
-      }
-      setContentView(view)
+        )
+      ))
     } onFailureUi {
       case e ⇒ e.printStackTrace()
     }
