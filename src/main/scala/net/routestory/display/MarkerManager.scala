@@ -368,6 +368,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 
   def update() {
     if (!readyFuture.isCompleted) return
+    if (rootMarkerItem.isEmpty) return
     if (hide_overlays) {
       remove()
       return
