@@ -5,7 +5,8 @@ import net.routestory.model.StoryResult
 import android.view.{ LayoutInflater, Gravity, View, ViewGroup }
 import android.widget._
 import net.routestory.parts.{ FragmentData, StoryFragment }
-import android.app.{ ListFragment, Activity }
+import android.support.v4.app.ListFragment
+import android.app.Activity
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

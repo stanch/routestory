@@ -15,7 +15,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
-import com.google.android.gms.maps.{ MapFragment, CameraUpdateFactory, GoogleMap }
+import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.Marker
@@ -37,7 +37,7 @@ import android.util.Log
 
 class PreviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
-  lazy val mMap = findFrag[MapFragment](Tag.previewMap).getMap
+  lazy val mMap = findFrag[SupportMapFragment](Tag.previewMap).getMap
   lazy val mRouteManager = flow {
     val story = await(mStory)
     switchToUiThread()
@@ -55,7 +55,7 @@ class PreviewFragment extends StoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     new FrameLayout(ctx) {
       this += new FrameLayout(ctx) {
-        this += fragment(MapFragment.newInstance(), Id.map, Tag.previewMap)
+        this += fragment(SupportMapFragment.newInstance(), Id.map, Tag.previewMap)
       }
       this += new FrameLayout(ctx) {
         this += new ImageView(ctx) {

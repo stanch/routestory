@@ -9,7 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.MapFragment
+import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model._
 import net.routestory.parts.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -26,7 +26,7 @@ import ViewGroup.LayoutParams._
 class OverviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
   lazy val display = getActivity.getWindowManager.getDefaultDisplay
-  lazy val mMap = findFrag[MapFragment](Tag.overviewMap).getMap
+  lazy val mMap = findFrag[SupportMapFragment](Tag.overviewMap).getMap
   lazy val mRouteManager = flow {
     val story = await(mStory)
     val rm = new RouteManager(mMap, story)
@@ -41,7 +41,7 @@ class OverviewFragment extends StoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     new FrameLayout(ctx) {
       this += new FrameLayout(ctx) {
-        this += fragment(MapFragment.newInstance(), Id.map, Tag.overviewMap)
+        this += fragment(SupportMapFragment.newInstance(), Id.map, Tag.overviewMap)
       }
       this += new FrameLayout(ctx) {
         this += new Button(ctx) { self ⇒

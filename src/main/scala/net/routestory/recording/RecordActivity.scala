@@ -10,7 +10,7 @@ import scala.concurrent.{ Future, future }
 
 import org.scaloid.common._
 
-import com.google.android.gms.maps.{ MapFragment, CameraUpdateFactory, GoogleMap }
+import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.Marker
@@ -62,7 +62,7 @@ class RecordActivity extends StoryActivity with LayoutDsl {
   var mProgressDialog: ProgressDialog = null
   var mLocationListener: LocationListener = null
 
-  lazy val mMap = findFrag[MapFragment](Tag.recordingMap).getMap
+  lazy val mMap = findFrag[SupportMapFragment](Tag.recordingMap).getMap
   lazy val mRouteManager = new RouteManager(mMap, mStory)
 
   var mManMarker: Marker = null
@@ -80,11 +80,11 @@ class RecordActivity extends StoryActivity with LayoutDsl {
         x.setLayoutParams(new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         x.setTextAppearance(ctx, android.R.style.TextAppearance_Large)
         x.setOnClickListener { v: View ⇒
-          new AddMediaDialogFragment().show(getFragmentManager, Tag.addMedia)
+          new AddMediaDialogFragment().show(getSupportFragmentManager, Tag.addMedia)
         }
       },
       l[LinearLayout](
-        fragment(MapFragment.newInstance(), Id.map, Tag.recordingMap)
+        fragment(SupportMapFragment.newInstance(), Id.map, Tag.recordingMap)
       )
     ))
 

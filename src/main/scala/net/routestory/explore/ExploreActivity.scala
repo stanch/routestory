@@ -8,7 +8,7 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import net.routestory.parts.{ WidgetFragment, GotoDialogFragments, StoryActivity }
 import akka.dataflow._
-import android.app.Fragment
+import android.support.v4.app.Fragment
 import org.macroid.LayoutDsl
 import org.macroid.Transforms._
 

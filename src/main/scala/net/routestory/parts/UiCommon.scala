@@ -1,9 +1,9 @@
 package net.routestory.parts
 
 import org.scaloid.common._
-import android.app.Fragment
+import android.support.v4.app.Fragment
 import net.routestory.{ MainActivity, StoryApplication }
-import android.app.Activity
+import android.support.v4.app.FragmentActivity
 import org.macroid._
 import scala.concurrent.Promise
 import android.view.{ MenuItem, View }
@@ -42,7 +42,7 @@ trait Animations {
   def fadeOut(view: View) = new AlphaAnimation(1, 0).duration(400).runOn(view, hideOnFinish = true)
 }
 
-trait StoryActivity extends Activity
+trait StoryActivity extends FragmentActivity
   with Concurrency
   with ActivityViewSearch
   with FirstEveryStart

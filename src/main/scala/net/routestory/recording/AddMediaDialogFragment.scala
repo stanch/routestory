@@ -1,6 +1,6 @@
 package net.routestory.recording
 
-import android.app.DialogFragment
+import android.support.v4.app.DialogFragment
 import android.widget.EditText
 import android.os.Bundle
 import android.media.MediaRecorder
@@ -42,7 +42,7 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
               await(activity.untrackAudio())
               switchToUiThread()
               dismiss()
-              factory().show(activity.getFragmentManager, tag)
+              factory().show(activity.getSupportFragmentManager, tag)
             }
           }
       }

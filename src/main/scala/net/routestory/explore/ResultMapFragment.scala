@@ -1,4 +1,4 @@
-package net.routestory.explore;
+package net.routestory.explore
 
 import net.routestory.R
 import net.routestory.model.StoryResult
@@ -31,7 +31,7 @@ import rx._
 import org.macroid.LayoutDsl
 
 class ResultMapFragment extends StoryFragment with FragmentData[HazStories] with LayoutDsl {
-  lazy val mMap = findFrag[MapFragment](Tag.resultsMap).getMap
+  lazy val mMap = findFrag[SupportMapFragment](Tag.resultsMap).getMap
   var mMarkers = Map[Marker, StoryResult]()
   var mRoutes = List[Polyline]()
 
@@ -64,7 +64,7 @@ class ResultMapFragment extends StoryFragment with FragmentData[HazStories] with
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[FrameLayout](
       l[FrameLayout](
-        fragment(MapFragment.newInstance(), Id.map, Tag.resultsMap)
+        fragment(SupportMapFragment.newInstance(), Id.map, Tag.resultsMap)
       )
     )
     //      this += new FrameLayout(ctx) {
