@@ -16,7 +16,6 @@ import java.nio.{ ByteOrder, ByteBuffer }
 class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone: Int = 0) extends Runnable {
   import AudioTracker._
 
-  val bufferSize = ms(10000) * 2 // 10s * 2B per float
   val frameSize = ms(10) * 2 // 10 ms * 2B per Float
 
   val buffer = new Array[Byte](bufferSize)
@@ -74,6 +73,8 @@ class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone
 
 object AudioTracker {
   def ms(v: Int) = (44.100 * v).toInt
+
+  val bufferSize = ms(10000) * 2 // 10s * 2B per float
   def delay(n: Int) = 50e3.toInt * Math.pow(2, n / 5).toInt // 50s, doubles every 5 pieces
   val fadeLength = ms(1500)
 
@@ -99,7 +100,7 @@ object AudioTracker {
     val preview = new Array[Short](dur)
     val previewBytes = new Array[Byte](dur * 2)
     val offset = if (sparse.length > 1) {
-      (dur - ms(dst)) / (sparse.length - 1)
+      (dur - bufferSize) / (sparse.length - 1)
     } else 0
 
     var (i, j) = (0, 0)
