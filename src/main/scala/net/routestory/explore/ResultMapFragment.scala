@@ -28,8 +28,9 @@ import com.google.android.gms.maps.model.CameraPosition
 import scala.concurrent.Future
 import scala.util.Try
 import rx._
+import org.macroid.LayoutDsl
 
-class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
+class ResultMapFragment extends StoryFragment with FragmentData[HazStories] with LayoutDsl {
   lazy val mMap = findFrag[MapFragment](Tag.resultsMap).getMap
   var mMarkers = Map[Marker, StoryResult]()
   var mRoutes = List[Polyline]()
@@ -61,23 +62,23 @@ class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
     "#232C16")
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    new FrameLayout(ctx) {
-      this += new FrameLayout(ctx) {
-        this += fragment(MapFragment.newInstance(), Id.map, Tag.resultsMap)
-      }
-      //      this += new FrameLayout(ctx) {
-      //        this += new Button(ctx) {
-      //          setText(R.string.search_this_area)
-      //          setLayoutParams(new LayoutParams(
-      //            WRAP_CONTENT, WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
-      //          ))
-      //          setOnClickListener { v: View ⇒
-      //            val r = mMap.getProjection.getVisibleRegion
-      //            getActivity.asInstanceOf[SearchResultsActivity].geoQuery("%f,%f,%f,%f".formatLocal(Locale.US, r.nearLeft.latitude, r.nearLeft.longitude, r.farRight.latitude, r.farRight.longitude));
-      //          }
-      //        }
-      //      }
-    }
+    l[FrameLayout](
+      l[FrameLayout](
+        fragment(MapFragment.newInstance(), Id.map, Tag.resultsMap)
+      )
+    )
+    //      this += new FrameLayout(ctx) {
+    //        this += new Button(ctx) {
+    //          setText(R.string.search_this_area)
+    //          setLayoutParams(new LayoutParams(
+    //            WRAP_CONTENT, WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
+    //          ))
+    //          setOnClickListener { v: View ⇒
+    //            val r = mMap.getProjection.getVisibleRegion
+    //            getActivity.asInstanceOf[SearchResultsActivity].geoQuery("%f,%f,%f,%f".formatLocal(Locale.US, r.nearLeft.latitude, r.nearLeft.longitude, r.farRight.latitude, r.farRight.longitude));
+    //          }
+    //        }
+    //      }
   }
 
   override def onStart() {
@@ -86,7 +87,9 @@ class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
       val story = mMarkers(marker)
       // TODO: wtf? how to measure one?
       val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8
-      new AlertDialog.Builder(ctx).setView(ResultRow.getView(null, a.toInt, story, getActivity)).create().show()
+      val view = ResultRow.getView(null, a.toInt, story, getActivity)
+      view.setPadding(8 dip, 8 dip, 8 dip, 8 dip)
+      new AlertDialog.Builder(ctx).setView(view).create().show()
       true
     }
     observer = Obs(stories) {
@@ -110,7 +113,7 @@ class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
         for (i ← results.indices) {
           val r = results(i)
           val routeOptions = new PolylineOptions()
-          r.geometry.coordinates map { l ⇒
+          r.geom.coordinates map { l ⇒
             new LatLng(l(0), l(1))
           } foreach { p ⇒
             boundsBuilder.include(p)
@@ -118,7 +121,7 @@ class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
           }
           routeOptions.color(Color.parseColor(kellyColors(i % kellyColors.length)))
           mRoutes ::= mMap.addPolyline(routeOptions)
-          val start = r.geometry.coordinates.take(1).map(l ⇒ new LatLng(l(0), l(1))).toList(0)
+          val start = r.geom.coordinates.take(1).map(l ⇒ new LatLng(l(0), l(1))).toList(0)
           mMarkers += (mMap.addMarker(new MarkerOptions()
             .position(start)
             .icon(BitmapDescriptorFactory.fromResource(R.drawable.flag_start))

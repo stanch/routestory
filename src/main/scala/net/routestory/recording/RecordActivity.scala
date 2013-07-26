@@ -18,16 +18,15 @@ import com.google.android.gms.maps.model.MarkerOptions
 
 import android.app.AlertDialog
 import android.app.ProgressDialog
-import android.content.DialogInterface
-import android.content.Intent
+import android.content.{ Context, DialogInterface, Intent }
 import android.graphics.Bitmap
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.os.Bundle
+import android.os.{ Message, Handler, Bundle }
 import android.preference.PreferenceManager
 import android.view._
-import android.widget.{ LinearLayout, FrameLayout }
+import android.widget.LinearLayout
 import net.routestory.R
 import net.routestory.display.DisplayActivity
 import net.routestory.display.RouteManager
@@ -37,54 +36,57 @@ import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.HapticButton
 import net.routestory.parts.Implicits.func2OnCancelListener
 import net.routestory.parts.StoryActivity
+import org.macroid.LayoutDsl
+import ViewGroup.LayoutParams._
+import org.macroid.Transforms._
+import scala.ref.WeakReference
+import android.util.Log
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
   val REQUEST_CODE_TITLE_AND_TAG = 1
 }
 
-class RecordActivity extends StoryActivity {
+class AudioHandler(activity: WeakReference[RecordActivity]) extends Handler {
+  override def handleMessage(msg: Message) {
+    val path = msg.getData.getString("path")
+    activity.get.get.mAudioPieces ::= (System.currentTimeMillis, path)
+  }
+}
+
+class RecordActivity extends StoryActivity with LayoutDsl {
   lazy val mStory = new Story()
   var mMedia = Map[String, (String, String)]()
+  var mAudioPieces = List[(Long, String)]()
 
   var mProgressDialog: ProgressDialog = null
   var mLocationListener: LocationListener = null
 
-  lazy val mMap = findFrag("recording_map").asInstanceOf[MapFragment].getMap
+  lazy val mMap = findFrag[MapFragment](Tag.recordingMap).getMap
   lazy val mRouteManager = new RouteManager(mMap, mStory)
 
   var mManMarker: Marker = null
 
-  var mAudioTracker: AudioTracker = null
-  var mAudioTrackerThread: Thread = null
+  //var mAudioTracker: AudioTracker = null
+  var mAudioTrackerThread: Thread = _
   var mToggleAudio: Boolean = false
+  var mAudioProcessingTask = Future.successful(())
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
 
-    val view = new LinearLayout(ctx) {
-      setOrientation(LinearLayout.VERTICAL)
-      this += new LinearLayout(ctx) {
-        setLayoutParams(new LinearLayout.LayoutParams(
-          ViewGroup.LayoutParams.MATCH_PARENT,
-          ViewGroup.LayoutParams.MATCH_PARENT,
-          1.0f
-        ))
-        this += fragment(MapFragment.newInstance(), 1, "recording_map")
-      }
-      this += new HapticButton(ctx) {
-        setText("Add stuff")
-        setLayoutParams(new LinearLayout.LayoutParams(
-          ViewGroup.LayoutParams.MATCH_PARENT,
-          ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
-        setTextAppearance(ctx, android.R.style.TextAppearance_Medium)
-        setOnClickListener { v: View ⇒
-          new AddMediaDialogFragment().show(getFragmentManager, "add_media")
+    setContentView(l[VerticalLinearLayout](
+      w[HapticButton] ~> text("Add stuff") ~> { x ⇒
+        x.setLayoutParams(new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        x.setTextAppearance(ctx, android.R.style.TextAppearance_Large)
+        x.setOnClickListener { v: View ⇒
+          new AddMediaDialogFragment().show(getFragmentManager, Tag.addMedia)
         }
-      }
-    }
-    setContentView(view)
+      },
+      l[LinearLayout](
+        fragment(MapFragment.newInstance(), Id.map, Tag.recordingMap)
+      )
+    ))
 
     // setup action bar
     bar.setDisplayShowTitleEnabled(false)
@@ -132,7 +134,8 @@ class RecordActivity extends StoryActivity {
         new AlertDialog.Builder(ctx) {
           setMessage(R.string.message_stoprecord)
           setPositiveButton(R.string.button_yes, {
-            cleanUp()
+            cleanUp(saving = true)
+            mAudioProcessingTask = addAudio()
             mStory.end()
             val intent = SIntent[DescriptionActivity]
             startActivityForResult(intent, RecordActivity.REQUEST_CODE_TITLE_AND_TAG)
@@ -144,8 +147,8 @@ class RecordActivity extends StoryActivity {
       }
       case R.id.toggleAudio ⇒ {
         mToggleAudio = !mToggleAudio
-        if (mToggleAudio) unpauseAudio()
-        else pauseAudio()
+        if (mToggleAudio) trackAudio()
+        else untrackAudio()
         invalidateOptionsMenu()
         true
       }
@@ -157,7 +160,7 @@ class RecordActivity extends StoryActivity {
     new AlertDialog.Builder(ctx) {
       setMessage(R.string.message_giveup)
       setPositiveButton(R.string.button_yes, {
-        cleanUp()
+        cleanUp(saving = false)
         finish()
       })
       setNegativeButton(R.string.button_no, {
@@ -170,9 +173,13 @@ class RecordActivity extends StoryActivity {
   }
 
   /* just what is says on the tin */
-  def cleanUp() {
+  def cleanUp(saving: Boolean) {
     untrackLocation()
     untrackAudio()
+    if (!saving) {
+      mAudioPieces.foreach(p ⇒ new File(p._2).delete())
+      mMedia.foreach { case (_, (path, _)) ⇒ new File(path).delete() }
+    }
   }
 
   override def onKeyDown(keyCode: Int, event: KeyEvent): Boolean = {
@@ -189,8 +196,7 @@ class RecordActivity extends StoryActivity {
 
   override def onPrepareOptionsMenu(menu: Menu): Boolean = {
     menu.findItem(R.id.stopRecord).setEnabled(!mRouteManager.isEmpty)
-    menu.findItem(R.id.toggleAudio).setTitle(
-      if (mAudioTrackerThread != null && !mAudioTracker.isPaused) R.string.menu_audioon else R.string.menu_audiooff)
+    menu.findItem(R.id.toggleAudio).setTitle(if (mToggleAudio) R.string.menu_audioon else R.string.menu_audiooff)
     true
   }
 
@@ -237,42 +243,41 @@ class RecordActivity extends StoryActivity {
 
   /* audio tracking routines */
   def trackAudio() {
-    mAudioTracker = new AudioTracker(getApplicationContext)
-    if (!mToggleAudio) mAudioTracker.pause()
-    mAudioTrackerThread = new Thread(mAudioTracker, "AudioTracker")
-    mAudioTrackerThread.start()
-  }
-  def pauseAudio() {
-    if (mAudioTrackerThread != null) {
-      mAudioTracker.pause()
-    }
-  }
-  def unpauseAudio() {
-    if (mAudioTrackerThread != null && mToggleAudio) {
-      mAudioTracker.unpause()
-    }
-  }
-  def untrackAudio() {
-    // TODO: this should delete all audio samples if we quit without finishing
-    if (mAudioTrackerThread != null) {
-      mAudioTracker.unpause()
-      mAudioTrackerThread.interrupt()
-    }
-  }
-  def addAudio() {
-    mAudioTracker.output foreach { piece ⇒
-      val id = if (piece.timestamp > 0) {
-        mStory.addAudio(piece.timestamp, "audio/aac", "aac")
-      } else {
-        mStory.addAudioPreview("audio/aac", "aac")
+    if (mToggleAudio) {
+      Option(mAudioTrackerThread) getOrElse {
+        val tracker = new AudioTracker(WeakReference(ctx), new AudioHandler(WeakReference(this)), mAudioPieces.length)
+        mAudioTrackerThread = new Thread(tracker, "AudioTracker")
+        mAudioTrackerThread.start()
       }
-      mMedia += id -> (piece.filename, "audio/aac")
     }
+  }
+  def untrackAudio() = {
+    Option(mAudioTrackerThread) map { t ⇒
+      t.interrupt()
+      future {
+        t.join(1000)
+        mAudioTrackerThread = null
+      }
+    } getOrElse {
+      Future.successful[Unit](())
+    }
+  }
+
+  def addAudio() = future {
+    val (preview, pieces) = AudioTracker.process(ctx, mAudioPieces)
+    pieces.foreach { p ⇒
+      val id = mStory.addAudio(p._1, "audio/aac", "aac")
+      mMedia += id → (p._2, "audio/aac")
+    }
+    preview.foreach { p ⇒
+      val id = mStory.addAudioPreview("audio/aac", "aac")
+      mMedia += id → (p, "audio/aac")
+    }
+    mAudioPieces = List()
   }
 
   /* adding voice */
   def addVoice(filename: String) {
-    unpauseAudio()
     val id = mStory.addVoice(System.currentTimeMillis() / 1000L, "audio/m4a", "m4a")
     mMedia += id -> (filename, "audio/m4a")
     mMap.addMarker(new MarkerOptions()
@@ -282,7 +287,6 @@ class RecordActivity extends StoryActivity {
 
   /* adding text */
   def addNote(note: String) {
-    unpauseAudio()
     mStory.addNote(System.currentTimeMillis() / 1000L, note)
     mMap.addMarker(new MarkerOptions()
       .icon(BitmapDescriptorFactory.fromResource(R.drawable.note))
@@ -291,7 +295,6 @@ class RecordActivity extends StoryActivity {
 
   /* adding heartbeat */
   def addHeartbeat(bpm: Int) {
-    unpauseAudio()
     mStory.addHeartbeat(System.currentTimeMillis() / 1000L, bpm)
     mMap.addMarker(new MarkerOptions()
       .icon(BitmapDescriptorFactory.fromResource(R.drawable.heart))
@@ -300,7 +303,6 @@ class RecordActivity extends StoryActivity {
 
   /* adding photos */
   def addPhoto(filename: String) {
-    unpauseAudio()
     future {
       val downsized = BitmapUtils.decodeFile(new File(filename), 1000)
       val output = new FileOutputStream(new File(filename))
@@ -342,10 +344,7 @@ class RecordActivity extends StoryActivity {
         mStory.authorId = app.getAuthorId
         mProgressDialog.setMessage(getResources.getString(R.string.message_finishing))
         mProgressDialog.show()
-        future {
-          mAudioTrackerThread.join()
-          addAudio()
-        } recover {
+        mAudioProcessingTask recover {
           case t ⇒
             t.printStackTrace()
         } map { _ ⇒

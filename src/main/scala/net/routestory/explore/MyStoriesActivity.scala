@@ -13,17 +13,12 @@ import akka.dataflow._
 import net.routestory.R
 import rx._
 import android.app.ActionBar
+import android.util.Log
 
-class MyStoriesActivity extends StoryActivity with FragmentDataProvider[HazStories] {
-  lazy val myStories = new HazStories {
-    val s: Var[Future[List[StoryResult]]] = Var(fetchStories("byme"))
-    def getStories = s
-  }
-  lazy val savedStories = new HazStories {
-    val s: Var[Future[List[StoryResult]]] = Var(fetchStories("saved"))
-    def getStories = s
-  }
-  def getFragmentData(tag: String): HazStories = if (tag == Tag.my) myStories else savedStories
+class MyStoriesActivity extends StoryActivity with HazStories with FragmentDataProvider[HazStories] {
+  lazy val myStories: Var[Future[List[StoryResult]]] = Var(fetchStories)
+  def getStories = myStories
+  def getFragmentData(tag: String): HazStories = this
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -34,8 +29,8 @@ class MyStoriesActivity extends StoryActivity with FragmentDataProvider[HazStori
     bar.setDisplayHomeAsUpEnabled(true)
 
     val sel = Option(savedInstanceState).map(_.getInt("tab")).getOrElse(0)
-    bar.addTab(R.string.title_tab_byme, ResultListFragment.newInstance(R.string.empty_mystories), Tag.my, sel == 0)
-    bar.addTab(R.string.title_tab_saved, ResultListFragment.newInstance(R.string.empty_savedstories), Tag.saved, sel == 1)
+    bar.addTab(R.string.title_tab_resultslist, ResultListFragment.newInstance(R.string.empty_mystories), Tag.list, sel == 0)
+    bar.addTab(R.string.title_tab_resultsmap, new ResultMapFragment, Tag.map, sel == 1)
   }
 
   override def onSaveInstanceState(savedInstanceState: Bundle) {
@@ -43,8 +38,8 @@ class MyStoriesActivity extends StoryActivity with FragmentDataProvider[HazStori
     savedInstanceState.putInt("tab", bar.getSelectedTab.getPosition)
   }
 
-  def fetchStories(view: String) = {
-    val query = new ViewQuery().designDocId("_design/Story").viewName(view).descending(true).includeDocs(true)
+  def fetchStories = {
+    val query = new ViewQuery().designDocId("_design/Story").viewName("byme").descending(true).includeDocs(true)
     flow {
       val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = false, query, None))
       val authorIds = stories.map(_.authorId)

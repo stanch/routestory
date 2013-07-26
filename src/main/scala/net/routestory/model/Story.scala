@@ -25,7 +25,7 @@ object Story {
   class TimedData {
     @JsonIgnore
     def bind(story: Story) {
-      this.storyRef = new WeakReference[Story](story)
+      this.storyRef = WeakReference(story)
     }
 
     @JsonIgnore
@@ -147,7 +147,7 @@ class Story extends CouchDbDocument with CouchDbObject {
 
   @JsonIgnore
   def bind(couch: CouchDbConnector) {
-    couchRef = new WeakReference[CouchDbConnector](couch)
+    couchRef = WeakReference(couch)
     List(audio, photos, notes, voice, heartbeat).foreach(_.foreach(_.bind(this)))
     if (audioPreview != null) {
       audioPreview.bind(this)

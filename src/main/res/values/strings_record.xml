@@ -10,6 +10,6 @@
     <string name="message_finishing">Hold on, we are almost there!</string>
     
     <string name="menu_stoprecord">Stop &amp; Save</string>
-    <string name="menu_audioon">Ambient sound: On</string>
-    <string name="menu_audiooff">Ambient sound: Off</string>
+    <string name="menu_audioon">Ambient sound: ON</string>
+    <string name="menu_audiooff">Ambient sound: OFF</string>
 </resources>

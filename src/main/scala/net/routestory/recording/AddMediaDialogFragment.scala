@@ -6,27 +6,27 @@ import android.os.Bundle
 import android.media.MediaRecorder
 import MediaRecorder._
 import android.app.AlertDialog
-import java.io.IOException
 import java.io.File
 import android.view.Gravity
 import net.routestory.R
 import android.view.View
-import net.routestory.parts.HapticButton
 import android.widget.Button
 import android.app.Dialog
 import org.scaloid.common._
 import android.widget.TextView
 import android.content.DialogInterface
 import android.widget.LinearLayout
-import android.view.ViewGroup.LayoutParams
 import net.routestory.parts.HapticImageButton
 import android.content.Intent
 import android.app.Activity
 import net.routestory.parts.StoryFragment
 import android.provider.MediaStore
 import android.net.Uri
+import akka.dataflow._
+import scala.concurrent.ExecutionContext.Implicits.global
+import net.routestory.parts.Implicits._
 
-class AddMediaDialogFragment extends DialogFragment {
+class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
@@ -34,21 +34,27 @@ class AddMediaDialogFragment extends DialogFragment {
 
     val view = activity.getLayoutInflater.inflate(R.layout.dialog_add_media, null)
     List(R.id.addTextNote, R.id.addVoiceNote, R.id.addHeartbeat) zip
-      List(classOf[NoteDialogFragment], classOf[VoiceDialogFragment], classOf[MeasurePulseDialogFragment]) zip
-      List("note_dialog", "voice_dialog", "pulse_dialog") map {
-        case ((id, cls), tag) ⇒
+      List(() ⇒ new NoteDialogFragment, () ⇒ new VoiceDialogFragment, () ⇒ new MeasurePulseDialogFragment) zip
+      List(Tag.noteDialog, Tag.voiceDialog, Tag.photoDialog) map {
+        case ((id, factory), tag) ⇒
           view.findViewById(id).asInstanceOf[HapticImageButton].setOnClickListener { v: View ⇒
-            activity.pauseAudio()
-            dismiss()
-            cls.newInstance().show(activity.getFragmentManager, tag)
+            flow {
+              await(activity.untrackAudio())
+              switchToUiThread()
+              dismiss()
+              factory().show(activity.getFragmentManager, tag)
+            }
           }
       }
 
     view.findViewById(R.id.addPhoto).asInstanceOf[HapticImageButton].setOnClickListener { v: View ⇒
-      activity.pauseAudio()
-      val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
-      startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
+      flow {
+        await(activity.untrackAudio())
+        switchToUiThread()
+        val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
+        startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
+      }
     }
 
     new AlertDialog.Builder(activity).setView(view).create()
@@ -59,9 +65,8 @@ class AddMediaDialogFragment extends DialogFragment {
     if (requestCode == RecordActivity.REQUEST_CODE_TAKE_PICTURE) {
       dismiss()
       val activity = getActivity.asInstanceOf[RecordActivity]
-      if (resultCode != Activity.RESULT_OK) {
-        activity.unpauseAudio()
-      } else {
+      activity.trackAudio()
+      if (resultCode == Activity.RESULT_OK) {
         activity.addPhoto(mPhotoPath)
       }
     }
@@ -69,6 +74,11 @@ class AddMediaDialogFragment extends DialogFragment {
 }
 
 class NoteDialogFragment extends AddMediaDialogFragment {
+  override def onDismiss(dialog: DialogInterface) {
+    super.onDismiss(dialog)
+    getActivity.asInstanceOf[RecordActivity].trackAudio()
+  }
+
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val activity = getActivity.asInstanceOf[RecordActivity]
 
@@ -86,9 +96,7 @@ class NoteDialogFragment extends AddMediaDialogFragment {
           activity.addNote(note)
         }
       })
-      setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒
-        activity.unpauseAudio()
-      })
+      setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒ ; })
     }.create()
   }
 }
@@ -124,6 +132,11 @@ class VoiceDialogFragment extends DialogFragment {
     mStartStop.setText("Click if you want to try again")
   }
 
+  override def onDismiss(dialog: DialogInterface) {
+    super.onDismiss(dialog)
+    getActivity.asInstanceOf[RecordActivity].trackAudio()
+  }
+
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val activity = getActivity.asInstanceOf[RecordActivity]
 
@@ -147,7 +160,9 @@ class VoiceDialogFragment extends DialogFragment {
         activity.addVoice(mOutputPath)
       })
       setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒
-        activity.unpauseAudio()
+        if (mRecording) {
+          stop()
+        }
       })
     }.create()
   }
@@ -159,6 +174,11 @@ class MeasurePulseDialogFragment extends DialogFragment {
   def beats = if (taps.length < 5) 0 else {
     val interval = taps.sliding(2).map { case List(a, b) ⇒ a - b }.sum.toInt / 5
     60000 / interval
+  }
+
+  override def onDismiss(dialog: DialogInterface) {
+    super.onDismiss(dialog)
+    getActivity.asInstanceOf[RecordActivity].trackAudio()
   }
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
@@ -197,9 +217,7 @@ class MeasurePulseDialogFragment extends DialogFragment {
           activity.addHeartbeat(beats)
         }
       })
-      setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒
-        activity.unpauseAudio()
-      })
+      setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒ ; })
     }.create()
   }
 }

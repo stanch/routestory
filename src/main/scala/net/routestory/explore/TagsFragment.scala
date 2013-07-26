@@ -12,22 +12,19 @@ import org.ektorp.ViewQuery
 import scala.util.Random
 import android.graphics.Point
 import scala.collection.JavaConversions._
+import org.macroid.LayoutDsl
+import org.macroid.Transforms._
 
-class TagsFragment extends StoryFragment with WidgetFragment {
-  def rows = findView[LinearLayout](Id.rows)
+class TagsFragment extends StoryFragment with WidgetFragment with LayoutDsl {
+  var rows: LinearLayout = _
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    new VerticalLinearLayout(ctx) {
-      this += new TextView(ctx) {
-        setText(R.string.explore_tags)
-        setTextAppearance(ctx, R.style.ExploreSectionAppearance)
-      }
-      this += new HorizontalLinearLayout(ctx) {
-        this += new VerticalLinearLayout(ctx) {
-          setId(Id.rows)
-        }
-      }
-    }
+    l[VerticalLinearLayout](
+      w[TextView] ~> text(R.string.explore_tags) ~> (_.setTextAppearance(ctx, R.style.ExploreSectionAppearance)),
+      l[HorizontalLinearLayout](
+        l[VerticalLinearLayout]() ~> wire(rows)
+      )
+    )
   }
 
   override def onStart() {
@@ -41,7 +38,7 @@ class TagsFragment extends StoryFragment with WidgetFragment {
       val tags = await(app.getPlainQueryResults(remote = true, query))
       switchToUiThread()
       val tagArray = Random.shuffle(tags.getRows.toList).take(10).map(_.getKey)
-      ResultRow.fillTags(rows, displaySize.x - 20, tagArray.toArray, getActivity)
+      ResultRow.fillTags(rows, displaySize.x - 30, tagArray.toArray, getActivity)
     })
   }
 }
