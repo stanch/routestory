@@ -50,7 +50,7 @@ object RecordActivity {
 class AudioHandler(activity: WeakReference[RecordActivity]) extends Handler {
   override def handleMessage(msg: Message) {
     val path = msg.getData.getString("path")
-    activity.get.get.mAudioPieces ::= (System.currentTimeMillis, path)
+    activity.get.get.mAudioPieces ::= (System.currentTimeMillis / 1000L, path)
   }
 }
 
