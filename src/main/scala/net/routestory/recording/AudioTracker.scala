@@ -28,7 +28,7 @@ class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone
       Log.d("AudioTracker", "Starting")
       val audioRecord = new AudioRecord(
         1, 44100, CHANNEL_IN_MONO, ENCODING_PCM_16BIT,
-        AudioRecord.getMinBufferSize(44100, CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
+        AudioRecord.getMinBufferSize(44100, CHANNEL_IN_MONO, ENCODING_PCM_16BIT) * 10
       )
       audioRecord.startRecording()
       val dump = File.createTempFile("audio-sample", ".snd", ctx.get.get.getExternalCacheDir)
@@ -74,7 +74,7 @@ class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone
 
 object AudioTracker {
   def ms(v: Int) = (44.100 * v).toInt
-  def delay(n: Int) = 1e3.toInt * Math.pow(2, n / 2).toInt // 50s, doubles every 5 pieces
+  def delay(n: Int) = 50e3.toInt * Math.pow(2, n / 5).toInt // 50s, doubles every 5 pieces
   val fadeLength = ms(1500)
 
   def process(ctx: Context, pieces: List[(Long, String)]): (Option[String], List[(Long, String)]) = {
@@ -128,7 +128,7 @@ object AudioTracker {
       j = index
       while (i < faded.length && j < dur) {
         // see http://www.vttoth.com/CMS/index.php/technical-notes/68
-        preview(j) = (faded(i) + preview(j) - (faded(i).toLong * preview(j)) >>> 16).toShort
+        preview(j) = (faded(i) + preview(j) - ((faded(i).toLong * preview(j)) >>> 16)).toShort
         i += 1
         j += 1
       }
