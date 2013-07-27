@@ -1,6 +1,6 @@
 package net.routestory
 
-import _root_.android.util.Log
+import _root_.android.widget.Toast
 import android.app.Application
 import android.content.Context
 import android.content.Context._
@@ -10,14 +10,12 @@ import com.couchbase.cblite.ektorp.CBLiteHttpClient
 import com.couchbase.cblite.router.CBLURLStreamHandlerFactory
 import com.couchbase.cblite.support.HttpClientFactory
 import net.routestory.model._
-import org.apache.http.HttpException
 import org.apache.http.HttpRequest
 import org.apache.http.HttpRequestInterceptor
 import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.protocol.HttpContext
 import org.ektorp.android.http.AndroidHttpClient
 import org.ektorp._
-import org.ektorp.http.HttpClient
 import org.ektorp.impl.StdCouchDbInstance
 
 import java.io.InputStream
@@ -26,6 +24,11 @@ import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.map.ObjectMapper
+import akka.dataflow._
+import org.macroid.Concurrency._
+import net.routestory.parts.Concurrency._
+import java.util.Observable
+import com.couchbase.cblite.replicator.CBLReplicator
 
 object StoryApplication {
   val storyPreviewDuration = 30
@@ -209,14 +212,24 @@ class StoryApplication extends Application {
     (netInfo != null && netInfo.isConnected)
   }
 
+  def replicate(c: ReplicationCommand) = flow {
+    val status = cblInstance.get.replicate(c)
+    val replicator = cblServer.get.getDatabaseNamed("story").getReplicator(status.getSessionId)
+    observeUntil(replicator) { (o: Observable, d: Object) ⇒
+      !o.asInstanceOf[CBLReplicator].isRunning
+    }
+  }
+
   def sync() {
     if (localCouch.isEmpty) initLocalCouch()
     if (remoteCouch.isEmpty) initRemoteCouch()
     if (isSignedIn && isOnline) {
-      val push = new ReplicationCommand.Builder().source("story").target("https://bag-routestory-net.herokuapp.com/story").build()
-      cblInstance.map(_.replicate(push))
-      val pull = new ReplicationCommand.Builder().target("story").source("https://bag-routestory-net.herokuapp.com/story").build()
-      cblInstance.map(_.replicate(pull))
+      flow {
+        val push = new ReplicationCommand.Builder().source("story").target("https://bag-routestory-net.herokuapp.com/story").build()
+        await(replicate(push))
+        val pull = new ReplicationCommand.Builder().target("story").source("https://bag-routestory-net.herokuapp.com/story").build()
+        await(replicate(pull))
+      }
     }
   }
 }
