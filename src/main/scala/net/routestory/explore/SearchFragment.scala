@@ -12,13 +12,14 @@ import android.content.Intent
 import android.app.SearchManager
 import net.routestory.parts.Implicits._
 import org.macroid.Transforms._
+import net.routestory.parts.Transforms._
 
 class SearchFragment extends StoryFragment with WidgetFragment {
   loaded.success(true)
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.explore_search) ~> (_.setTextAppearance(ctx, R.style.ExploreSectionAppearance)),
+      w[TextView] ~> text(R.string.explore_search) ~> headerText,
       w[EditText] ~> { x ⇒
         x.setInputType(InputType.TYPE_CLASS_TEXT)
         x.setEms(10)

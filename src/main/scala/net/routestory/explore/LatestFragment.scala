@@ -12,6 +12,7 @@ import net.routestory.model._
 import scala.concurrent.ExecutionContext.Implicits.global
 import android.graphics.Point
 import org.macroid.Transforms._
+import net.routestory.parts.Transforms._
 
 class LatestFragment extends StoryFragment with WidgetFragment {
   lazy val number = Option(getArguments).map(_.getInt("number")).getOrElse(3)
@@ -19,9 +20,7 @@ class LatestFragment extends StoryFragment with WidgetFragment {
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.explore_lateststories) ~> { x ⇒
-        x.setTextAppearance(ctx, R.style.ExploreSectionAppearance)
-      },
+      w[TextView] ~> text(R.string.explore_lateststories) ~> headerText,
       l[VerticalLinearLayout]() ~> wire(list)
     )
   }

@@ -40,6 +40,7 @@ import ViewGroup.LayoutParams._
 import org.macroid.Transforms._
 import scala.ref.WeakReference
 import android.util.Log
+import net.routestory.parts.Transforms._
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -75,9 +76,8 @@ class RecordActivity extends StoryActivity {
     super.onCreate(savedInstanceState)
 
     setContentView(l[VerticalLinearLayout](
-      w[HapticButton] ~> text("Add stuff") ~> { x ⇒
+      w[HapticButton] ~> text("Add stuff") ~> largeText ~> { x ⇒
         x.setLayoutParams(new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        x.setTextAppearance(ctx, android.R.style.TextAppearance_Large)
         x.setOnClickListener { v: View ⇒
           new AddMediaDialogFragment().show(getSupportFragmentManager, Tag.addMedia)
         }

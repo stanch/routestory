@@ -31,6 +31,7 @@ import net.routestory.parts.StoryActivity
 import akka.dataflow._
 import android.util.Log
 import org.macroid.Transforms._
+import net.routestory.parts.Transforms._
 
 class AccountActivity extends StoryActivity {
   override def onCreate(savedInstanceState: Bundle) {
@@ -50,7 +51,7 @@ class AccountActivity extends StoryActivity {
 
   def showSignedOut() {
     setContentView(l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.account_policy) ~> (_.setTextAppearance(ctx, android.R.style.TextAppearance_Medium)),
+      w[TextView] ~> text(R.string.account_policy) ~> mediumText,
       w[HapticButton] ~> text(R.string.signin) ~> (_.setOnClickListener(selectAccount))
     ))
   }
@@ -95,7 +96,7 @@ class AccountActivity extends StoryActivity {
               case _ ⇒ x.setImageResource(R.drawable.ic_launcher)
             }
           },
-          w[TextView] ~> text(author.name) ~> (_.setTextAppearance(AccountActivity.this, android.R.style.TextAppearance_Large)),
+          w[TextView] ~> text(author.name) ~> largeText,
           w[HapticButton] ~> text(R.string.signout) ~> { x ⇒
             x.setOnClickListener { v: View ⇒
               app.signOut()

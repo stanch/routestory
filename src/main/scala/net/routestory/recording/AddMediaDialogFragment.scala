@@ -28,6 +28,7 @@ import net.routestory.parts.Implicits._
 import org.macroid.{ FragmentViewSearch, LayoutDsl }
 import org.macroid.Transforms._
 import org.macroid.Layouts
+import net.routestory.parts.Transforms._
 
 class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
@@ -189,7 +190,7 @@ class MeasurePulseDialogFragment extends DialogFragment with FragmentViewSearch 
 
     var bpm: TextView = null
     val layout = l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.message_pulsehowto) ~> (_.setTextAppearance(ctx, android.R.style.TextAppearance_Medium)),
+      w[TextView] ~> text(R.string.message_pulsehowto) ~> mediumText,
       w[TextView] ~> text("BPM: 0") ~> wire(bpm),
       w[Button] ~> { x ⇒
         x.setHeight(100 dip)

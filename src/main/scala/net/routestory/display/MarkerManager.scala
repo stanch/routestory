@@ -1,6 +1,5 @@
 package net.routestory.display
 
-import java.io.File
 import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.parts.BitmapUtils
@@ -13,8 +12,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Point
 import android.media.MediaPlayer
-import android.os.Handler
-import android.os.Vibrator
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
@@ -23,8 +20,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener
-import com.google.android.gms.maps.Projection
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds

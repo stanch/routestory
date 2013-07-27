@@ -13,13 +13,14 @@ import scala.util.Random
 import android.graphics.Point
 import scala.collection.JavaConversions._
 import org.macroid.Transforms._
+import net.routestory.parts.Transforms._
 
 class TagsFragment extends StoryFragment with WidgetFragment {
   var rows: LinearLayout = _
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.explore_tags) ~> (_.setTextAppearance(ctx, R.style.ExploreSectionAppearance)),
+      w[TextView] ~> text(R.string.explore_tags) ~> headerText,
       l[HorizontalLinearLayout](
         l[VerticalLinearLayout]() ~> wire(rows)
       )
