@@ -1,5 +1,6 @@
 package net.routestory
 
+import _root_.android.util.Log
 import _root_.android.widget.Toast
 import android.app.Application
 import android.content.Context
@@ -212,24 +213,29 @@ class StoryApplication extends Application {
     (netInfo != null && netInfo.isConnected)
   }
 
-  def replicate(c: ReplicationCommand) = flow {
+  def replicate(c: ReplicationCommand) = Future.firstCompletedOf(Seq(flow {
     val status = cblInstance.get.replicate(c)
     val replicator = cblServer.get.getDatabaseNamed("story").getReplicator(status.getSessionId)
     observeUntil(replicator) { (o: Observable, d: Object) ⇒
       !o.asInstanceOf[CBLReplicator].isRunning
     }
-  }
+  }, flow {
+    Thread.sleep(5000)
+  }))
 
   def sync() {
     if (localCouch.isEmpty) initLocalCouch()
     if (remoteCouch.isEmpty) initRemoteCouch()
     if (isSignedIn && isOnline) {
+      Log.d("Sync", "Starting to sync")
       flow {
         val push = new ReplicationCommand.Builder().source("story").target("https://bag-routestory-net.herokuapp.com/story").build()
         await(replicate(push))
+        Log.d("Sync", "Finished pushing")
         val pull = new ReplicationCommand.Builder().target("story").source("https://bag-routestory-net.herokuapp.com/story").build()
         await(replicate(pull))
-      }
+        Log.d("Sync", "Finished pulling")
+      } onFailure { case t ⇒ t.printStackTrace() }
     }
   }
 }
