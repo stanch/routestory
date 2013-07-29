@@ -65,7 +65,7 @@ class AccountActivity extends StoryActivity {
       setAdapter(new ArrayAdapter[Account](ctx, 0, R.id.textView1, accounts) {
         override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
           val view = Option(itemView).getOrElse(l[LinearLayout](
-            w[TextView] ~> id(Id.accound) ~> (_.setTextAppearance(ctx, android.R.style.TextAppearance_Large))
+            w[TextView] ~> id(Id.account) ~> (_.setTextAppearance(ctx, android.R.style.TextAppearance_Large))
           ))
           view.findViewById(Id.account).asInstanceOf[TextView].setText(accounts(position).name)
           view
