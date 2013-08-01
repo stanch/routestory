@@ -1,4 +1,4 @@
-package net.routestory.explore;
+package net.routestory.explore
 
 import scala.collection.JavaConversions._
 import org.scaloid.common._
@@ -9,7 +9,6 @@ import android.text.SpannableString
 import android.text.style.UnderlineSpan
 import android.view.LayoutInflater
 import android.view.View
-import android.view.View.OnClickListener
 import android.widget.LinearLayout
 import android.widget.TextView
 import net.routestory.R

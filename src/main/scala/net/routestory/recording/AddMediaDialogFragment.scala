@@ -1,21 +1,17 @@
 package net.routestory.recording
 
 import android.support.v4.app.DialogFragment
-import android.widget.EditText
+import android.widget._
 import android.os.Bundle
 import android.media.MediaRecorder
 import MediaRecorder._
 import android.app.AlertDialog
 import java.io.File
-import android.view.Gravity
+import android.view.{ Gravity, View }
 import net.routestory.R
-import android.view.View
-import android.widget.Button
 import android.app.Dialog
 import org.scaloid.common._
-import android.widget.TextView
 import android.content.DialogInterface
-import android.widget.LinearLayout
 import net.routestory.parts.HapticImageButton
 import android.content.Intent
 import android.app.Activity
@@ -36,22 +32,16 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val activity = getActivity.asInstanceOf[RecordActivity]
 
-    val view = activity.getLayoutInflater.inflate(R.layout.dialog_add_media, null)
-    List(R.id.addTextNote, R.id.addVoiceNote, R.id.addHeartbeat) zip
-      List(() ⇒ new NoteDialogFragment, () ⇒ new VoiceDialogFragment, () ⇒ new MeasurePulseDialogFragment) zip
-      List(Tag.noteDialog, Tag.voiceDialog, Tag.photoDialog) map {
-        case ((id, factory), tag) ⇒
-          view.findViewById(id).asInstanceOf[HapticImageButton].setOnClickListener { v: View ⇒
-            flow {
-              await(activity.untrackAudio())
-              switchToUiThread()
-              dismiss()
-              factory().show(activity.getSupportFragmentManager, tag)
-            }
-          }
+    def makeClicker(factory: () ⇒ DialogFragment, tag: String) = { v: View ⇒
+      flow {
+        await(activity.untrackAudio())
+        switchToUiThread()
+        dismiss()
+        factory().show(activity.getSupportFragmentManager, tag)
       }
+    }
 
-    view.findViewById(R.id.addPhoto).asInstanceOf[HapticImageButton].setOnClickListener { v: View ⇒
+    def makeCameraClicker = { v: View ⇒
       flow {
         await(activity.untrackAudio())
         switchToUiThread()
@@ -61,6 +51,18 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
       }
     }
 
+    // format: OFF
+    val buttons = Seq(
+      (Id.takePicture, R.drawable.take_a_picture, makeCameraClicker),
+      (Id.textNote, R.drawable.leave_a_note, makeClicker(() ⇒ new NoteDialogFragment, Tag.noteDialog)),
+      (Id.voiceNote, R.drawable.record_sound, makeClicker(() ⇒ new VoiceDialogFragment, Tag.noteDialog)),
+      (Id.heartbeat, R.drawable.record_heartbeat, makeClicker(() ⇒ new MeasurePulseDialogFragment, Tag.noteDialog))
+    ) map { case (i, b, c) ⇒
+      w[HapticImageButton] ~> id(i) ~> (_.setBackgroundResource(b)) ~> (_.setOnClickListener(c))
+    }
+    // format: ON
+
+    val view = l[ScrollView](l[GridLayout]() ~> addViews(buttons) ~> (_.setRowCount(2)))
     new AlertDialog.Builder(activity).setView(view).create()
   }
 
@@ -77,15 +79,17 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   }
 }
 
-class NoteDialogFragment extends DialogFragment {
+class AddSomethingDialogFragment extends DialogFragment {
+  lazy val activity = getActivity.asInstanceOf[RecordActivity]
+
   override def onDismiss(dialog: DialogInterface) {
     super.onDismiss(dialog)
-    getActivity.asInstanceOf[RecordActivity].trackAudio()
+    activity.trackAudio()
   }
+}
 
+class NoteDialogFragment extends AddSomethingDialogFragment {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val activity = getActivity.asInstanceOf[RecordActivity]
-
     val input = new EditText(activity) {
       setHint(R.string.message_typenotehere)
       setMinLines(5)
@@ -105,9 +109,10 @@ class NoteDialogFragment extends DialogFragment {
   }
 }
 
-class VoiceDialogFragment extends DialogFragment {
+class VoiceDialogFragment extends AddSomethingDialogFragment {
   var mMediaRecorder: MediaRecorder = null
   var mRecording = false
+  var mRecorded = false
   var mStartStop: Button = null
   lazy val mOutputPath = File.createTempFile("voice", ".mp4", getActivity.getExternalCacheDir).getAbsolutePath
 
@@ -122,6 +127,7 @@ class VoiceDialogFragment extends DialogFragment {
       mMediaRecorder.prepare()
       mMediaRecorder.start()
       mRecording = true
+      mRecorded = true
       mStartStop.setText("Stop recording")
     } catch {
       case e: Throwable ⇒ e.printStackTrace()
@@ -136,14 +142,7 @@ class VoiceDialogFragment extends DialogFragment {
     mStartStop.setText("Click if you want to try again")
   }
 
-  override def onDismiss(dialog: DialogInterface) {
-    super.onDismiss(dialog)
-    getActivity.asInstanceOf[RecordActivity].trackAudio()
-  }
-
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val activity = getActivity.asInstanceOf[RecordActivity]
-
     mStartStop = new Button(activity) {
       setText("Start recording")
       setOnClickListener { v: View ⇒
@@ -161,7 +160,9 @@ class VoiceDialogFragment extends DialogFragment {
         if (mRecording) {
           stop()
         }
-        activity.addVoice(mOutputPath)
+        if (mRecorded) {
+          activity.addVoice(mOutputPath)
+        }
       })
       setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒
         if (mRecording) {
@@ -172,7 +173,7 @@ class VoiceDialogFragment extends DialogFragment {
   }
 }
 
-class MeasurePulseDialogFragment extends DialogFragment with FragmentViewSearch with LayoutDsl with Layouts {
+class MeasurePulseDialogFragment extends AddSomethingDialogFragment with FragmentViewSearch with LayoutDsl with Layouts {
   implicit lazy val ctx = getActivity
   var taps = List[Long]()
   def beats = if (taps.length < 5) 0 else {
@@ -180,14 +181,7 @@ class MeasurePulseDialogFragment extends DialogFragment with FragmentViewSearch 
     60000 / interval
   }
 
-  override def onDismiss(dialog: DialogInterface) {
-    super.onDismiss(dialog)
-    getActivity.asInstanceOf[RecordActivity].trackAudio()
-  }
-
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val activity = getActivity.asInstanceOf[RecordActivity]
-
     var bpm: TextView = null
     val layout = l[VerticalLinearLayout](
       w[TextView] ~> text(R.string.message_pulsehowto) ~> mediumText,

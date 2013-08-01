@@ -26,7 +26,7 @@ import android.location.LocationManager
 import android.os.{ Message, Handler, Bundle }
 import android.preference.PreferenceManager
 import android.view._
-import android.widget.LinearLayout
+import android.widget.{ FrameLayout, LinearLayout }
 import net.routestory.R
 import net.routestory.display.DisplayActivity
 import net.routestory.display.RouteManager
@@ -76,12 +76,11 @@ class RecordActivity extends StoryActivity {
     super.onCreate(savedInstanceState)
 
     setContentView(l[VerticalLinearLayout](
-      w[HapticButton] ~> text("Add stuff") ~> largeText ~> { x ⇒
-        x.setLayoutParams(new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        x.setOnClickListener { v: View ⇒
+      w[HapticButton] ~> text("Add stuff") ~> largeText ~>
+        layoutParams(MATCH_PARENT, WRAP_CONTENT) ~>
+        On.click { v: View ⇒
           new AddMediaDialogFragment().show(getSupportFragmentManager, Tag.addMedia)
-        }
-      },
+        },
       l[LinearLayout](
         fragment(SupportMapFragment.newInstance(), Id.map, Tag.recordingMap)
       )
