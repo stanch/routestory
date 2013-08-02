@@ -41,6 +41,7 @@ import org.macroid.Transforms._
 import scala.ref.WeakReference
 import android.util.Log
 import net.routestory.parts.Transforms._
+import android.view.View.OnLongClickListener
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -78,9 +79,7 @@ class RecordActivity extends StoryActivity {
     setContentView(l[VerticalLinearLayout](
       w[HapticButton] ~> text("Add stuff") ~> largeText ~>
         layoutParams(MATCH_PARENT, WRAP_CONTENT) ~>
-        On.click { v: View ⇒
-          new AddMediaDialogFragment().show(getSupportFragmentManager, Tag.addMedia)
-        },
+        On.click(new AddMediaDialogFragment().show(getSupportFragmentManager, Tag.addMedia)),
       l[LinearLayout](
         fragment(SupportMapFragment.newInstance(), Id.map, Tag.recordingMap)
       )
