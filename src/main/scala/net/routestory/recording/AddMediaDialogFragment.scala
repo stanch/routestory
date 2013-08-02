@@ -21,10 +21,12 @@ import android.net.Uri
 import akka.dataflow._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.parts.Implicits._
-import org.macroid.{ FragmentViewSearch, LayoutDsl }
+import org.macroid.{ Concurrency, FragmentViewSearch, LayoutDsl, Layouts }
 import org.macroid.Transforms._
-import org.macroid.Layouts
 import net.routestory.parts.Transforms._
+import java.net.{ HttpURLConnection, URLEncoder, URL }
+import org.apache.commons.io.IOUtils
+import scala.concurrent.future
 
 class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
@@ -56,13 +58,25 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
       (Id.takePicture, R.drawable.take_a_picture, makeCameraClicker),
       (Id.textNote, R.drawable.leave_a_note, makeClicker(() ⇒ new NoteDialogFragment, Tag.noteDialog)),
       (Id.voiceNote, R.drawable.record_sound, makeClicker(() ⇒ new VoiceDialogFragment, Tag.noteDialog)),
-      (Id.heartbeat, R.drawable.record_heartbeat, makeClicker(() ⇒ new MeasurePulseDialogFragment, Tag.noteDialog))
+      (Id.heartbeat, R.drawable.record_heartbeat, makeClicker(() ⇒ new MeasurePulseDialogFragment, Tag.noteDialog)),
+      (Id.foursquare, R.drawable.record_heartbeat, makeClicker(() ⇒ new FoursquareDialogFragment, Tag.fsqDialog))
     ) map { case (i, b, c) ⇒
-      w[HapticImageButton] ~> id(i) ~> (_.setBackgroundResource(b)) ~> (_.setOnClickListener(c))
+      w[HapticImageButton] ~> id(i) ~> On.click(c) ~> { x ⇒
+        x.setBackgroundResource(b)
+        x.setLayoutParams(new GridLayout.LayoutParams {
+          setGravity(Gravity.CENTER)
+        })
+      }
     }
     // format: ON
 
-    val view = l[ScrollView](l[GridLayout]() ~> addViews(buttons) ~> (_.setRowCount(2)))
+    val view = l[ScrollView](
+      l[GridLayout]() ~> addViews(buttons) ~> { x ⇒
+        x.setOrientation(GridLayout.VERTICAL)
+        x.setColumnCount(2)
+        x.setRowCount(3)
+      }
+    )
     new AlertDialog.Builder(activity).setView(view).create()
   }
 
@@ -85,6 +99,30 @@ class AddSomethingDialogFragment extends DialogFragment {
   override def onDismiss(dialog: DialogInterface) {
     super.onDismiss(dialog)
     activity.trackAudio()
+  }
+}
+
+class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurrency {
+  override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
+    val client_id = "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05"
+    val client_secret = "SIPSHLBOLADA2HW3RT44GE14OGBDNSM0VPBN4MSEWH2E4VLN"
+    val ll = "40.7,-74"
+    val url = new URL(s"https://api.foursquare.com/v2/venues/search?ll=$ll&client_id=$client_id&client_secret=$client_secret")
+    val venues = future {
+      val conn = url.openConnection().asInstanceOf[HttpURLConnection]
+      IOUtils.toString(conn.getInputStream)
+    }
+
+    val view = new TextView(activity)
+    venues.onSuccessUi { case v ⇒ view.setText(v) }
+
+    new AlertDialog.Builder(activity) {
+      setView(view)
+      setPositiveButton(R.string.button_save, { (d: DialogInterface, w: Int) ⇒
+        ;
+      })
+      setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒ ; })
+    }.create()
   }
 }
 

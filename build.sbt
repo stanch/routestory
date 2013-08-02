@@ -44,8 +44,7 @@ libraryDependencies ++= Seq(
 	aarlib("com.couchbase.cblite" % "CBLite" % "0.7.2"),
 	aarlib("com.couchbase.cblite" % "CBLiteEktorp" % "0.7.4"),
 	"com.android.support" % "support-v13" % "13.0.0",
-	aarlib("com.google.android.gms" % "play-services" % "3.1.36"),
-	"net.databinder.dispatch" %% "dispatch-core" % "0.11.0"
+	aarlib("com.google.android.gms" % "play-services" % "3.1.36")
 )
 
 proguardOptions ++= Seq(
