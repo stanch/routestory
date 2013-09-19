@@ -34,7 +34,6 @@ import android.view.animation.AlphaAnimation
 import net.routestory.parts.Animation._
 import ViewGroup.LayoutParams._
 import android.util.Log
-import org.macroid.Transforms._
 
 class PreviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory

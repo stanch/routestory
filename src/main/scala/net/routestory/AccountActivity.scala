@@ -30,8 +30,8 @@ import net.routestory.parts.HapticButton
 import net.routestory.parts.StoryActivity
 import akka.dataflow._
 import android.util.Log
-import org.macroid.Transforms._
-import net.routestory.parts.Transforms._
+import net.routestory.parts.Tweaks._
+import org.macroid.Layouts.VerticalLinearLayout
 
 class AccountActivity extends StoryActivity {
   override def onCreate(savedInstanceState: Bundle) {

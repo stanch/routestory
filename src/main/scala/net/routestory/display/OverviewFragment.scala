@@ -20,9 +20,7 @@ import akka.dataflow._
 import scala.concurrent.Future
 import android.widget.{ Button, FrameLayout }
 import android.widget.FrameLayout.LayoutParams
-import net.routestory.model.Story
 import ViewGroup.LayoutParams._
-import org.macroid.Transforms._
 
 class OverviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory

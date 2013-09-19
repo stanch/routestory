@@ -12,8 +12,8 @@ import org.ektorp.ViewQuery
 import scala.util.Random
 import android.graphics.Point
 import scala.collection.JavaConversions._
-import org.macroid.Transforms._
-import net.routestory.parts.Transforms._
+import net.routestory.parts.Tweaks._
+import org.macroid.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 
 class TagsFragment extends StoryFragment with WidgetFragment {
   var rows: LinearLayout = _

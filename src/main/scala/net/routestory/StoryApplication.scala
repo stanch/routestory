@@ -1,5 +1,6 @@
 package net.routestory
 
+import _root_.android.os.Looper
 import _root_.android.util.Log
 import _root_.android.widget.Toast
 import android.app.Application
@@ -164,8 +165,9 @@ class StoryApplication extends Application {
   }
 
   def localOrRemote[A](local: Boolean, f: CouchDbConnector ⇒ A): Future[A] = {
-    if (local) Future.successful(
-      f(localCouch.get))
+    if (local) Future.successful {
+      f(localCouch.get)
+    }
     else future {
       f(remoteCouch.get)
     }
@@ -186,8 +188,9 @@ class StoryApplication extends Application {
   def getObjects[A <: CouchDbObject: ClassTag](ids: List[String]): Future[Map[String, A]] = {
     val (local, remote) = ids.filter(_ != null).partition(localContains(_))
     val localObjects = local.map(id ⇒ (id, couchGet[A](localCouch.get, id))).toMap
-    if (remote.isEmpty) Future.successful(
-      localObjects)
+    if (remote.isEmpty) Future.successful {
+      localObjects
+    }
     else future {
       localObjects ++ remote.map(id ⇒ (id, couchGet[A](remoteCouch.get, id))).toMap
     }

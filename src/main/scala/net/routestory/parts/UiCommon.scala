@@ -43,14 +43,10 @@ trait Animations {
 }
 
 trait StoryActivity extends FragmentActivity
-  with Concurrency
-  with ActivityViewSearch
+  with FullDslActivity
   with FirstEveryStart
-  with Fragments
-  with Layouts
-  with Animations
-  with LayoutDsl
-  with SActivity {
+  with Animations /*with SActivity*/ {
+
   lazy val app = getApplication.asInstanceOf[StoryApplication]
   lazy val bar = getActionBar
 
@@ -73,15 +69,11 @@ trait StoryActivity extends FragmentActivity
 }
 
 trait StoryFragment extends Fragment
-  with Concurrency
-  with FragmentViewSearch
-  with Fragments
-  with Layouts
+  with FullDslFragment
   with Animations
-  with FirstEveryStart
-  with LayoutDsl {
+  with FirstEveryStart {
+
   lazy val app = getActivity.getApplication.asInstanceOf[StoryApplication]
-  implicit def ctx = getActivity
 
   override def onStart() {
     super.onStart()

@@ -2,7 +2,7 @@ package net.routestory.explore
 
 import net.routestory.parts.{ WidgetFragment, StoryFragment }
 import android.view.{ View, ViewGroup, LayoutInflater }
-import android.os.Bundle
+import android.os.{ Looper, Bundle }
 import android.widget.{ TextView, LinearLayout }
 import net.routestory.R
 import org.scaloid.common._
@@ -11,8 +11,8 @@ import org.ektorp.ViewQuery
 import net.routestory.model._
 import scala.concurrent.ExecutionContext.Implicits.global
 import android.graphics.Point
-import org.macroid.Transforms._
-import net.routestory.parts.Transforms._
+import net.routestory.parts.Tweaks._
+import org.macroid.Layouts.VerticalLinearLayout
 
 class LatestFragment extends StoryFragment with WidgetFragment {
   lazy val number = Option(getArguments).map(_.getInt("number")).getOrElse(3)

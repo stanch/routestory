@@ -7,8 +7,7 @@
     	<item name="android:windowBackground">@drawable/startup_screen_gradient</item>
     </style>
     
-    <style name="TitleStyle">
-        <item name="android:textAppearance">@android:style/TextAppearance.Large</item>
+    <style name="TitleAppearance" parent="@android:style/TextAppearance.Medium">
         <item name="android:background">@color/aquadark</item>
         <item name="android:textStyle">bold</item>
         <item name="android:padding">3sp</item>

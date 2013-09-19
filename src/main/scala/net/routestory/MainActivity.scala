@@ -9,12 +9,35 @@ import net.routestory.parts.HapticButton
 import net.routestory.recording.RecordActivity
 import android.preference.PreferenceManager
 import net.routestory.parts.StoryActivity
-import android.view.{ Menu, MenuItem }
+import android.view.{ ViewGroup, Menu, MenuItem }
+import com.google.android.apps.iosched.ui.widget.DashboardLayout
+import net.routestory.parts.Tweaks._
+import android.app.Activity
+import org.macroid.Util.Thunk
+import android.view.ViewGroup.LayoutParams._
+import android.content.Intent
+import scala.reflect.ClassTag
 
 class MainActivity extends StoryActivity {
+
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
-    setContentView(R.layout.startup_screen)
+
+    def clicker[A <: Activity: ClassTag] = Thunk {
+      startActivityForResult(new Intent(this, implicitly[ClassTag[A]].runtimeClass), 0)
+    }
+    // format: OFF
+    val buttons = List(
+      (R.drawable.record2, clicker[RecordActivity]),
+      (R.drawable.explore2, clicker[ExploreActivity]),
+      (R.drawable.my_stories2, clicker[MyStoriesActivity]),
+      (R.drawable.profile2, clicker[AccountActivity])
+    ) map { case (b, c) ⇒
+      w[HapticButton] ~> bg(b) ~> ThunkOn.click(c)
+    }
+    // format: ON
+
+    setContentView(l[DashboardLayout]() ~> bg(R.drawable.startup_screen_gradient) ~> addViews(buttons))
 
     // install Google Play Services if needed
     val result = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this)
@@ -30,13 +53,6 @@ class MainActivity extends StoryActivity {
     if (!prefs.getBoolean("pref_tutorialshown", false)) {
       //startActivityForResult(SIntent[TutorialActivity], 0);
     }
-
-    // map buttons to activities
-    List(R.id.recordStory, R.id.explore, R.id.myStories, R.id.myAccount) zip
-      List(SIntent[RecordActivity], SIntent[ExploreActivity], SIntent[MyStoriesActivity], SIntent[AccountActivity]) foreach {
-        case (id, int) ⇒ find[HapticButton](id).onClick(
-          startActivityForResult(int, 0))
-      }
   }
 
   override def onStart() {

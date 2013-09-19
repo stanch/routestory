@@ -5,9 +5,8 @@ import android.location.{ LocationManager, LocationListener, Location ⇒ Loc }
 import android.os.Bundle
 import android.content.Context
 import java.util.Locale
-import org.macroid.Concurrency
 
-object Location extends Concurrency {
+object Location extends org.macroid.Concurrency {
   def getBbox(loc: Loc) = {
     // see [http://janmatuschek.de/LatitudeLongitudeBoundingCoordinates]
     val conv = Math.PI / 180

@@ -37,11 +37,10 @@ import net.routestory.parts.HapticButton
 import net.routestory.parts.Implicits.func2OnCancelListener
 import net.routestory.parts.StoryActivity
 import ViewGroup.LayoutParams._
-import org.macroid.Transforms._
 import scala.ref.WeakReference
 import android.util.Log
-import net.routestory.parts.Transforms._
-import android.view.View.OnLongClickListener
+import net.routestory.parts.Tweaks._
+import org.macroid.Layouts.VerticalLinearLayout
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -81,7 +80,7 @@ class RecordActivity extends StoryActivity {
         layoutParams(MATCH_PARENT, WRAP_CONTENT) ~>
         On.click(new AddMediaDialogFragment().show(getSupportFragmentManager, Tag.addMedia)),
       l[LinearLayout](
-        fragment(SupportMapFragment.newInstance(), Id.map, Tag.recordingMap)
+        f[SupportMapFragment](Id.map, Tag.recordingMap)
       )
     ))
 

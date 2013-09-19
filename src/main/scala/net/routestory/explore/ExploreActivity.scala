@@ -9,7 +9,9 @@ import ExecutionContext.Implicits.global
 import net.routestory.parts.{ WidgetFragment, GotoDialogFragments, StoryActivity }
 import akka.dataflow._
 import android.support.v4.app.Fragment
-import org.macroid.Transforms._
+import net.routestory.parts.Tweaks._
+import org.macroid.Layouts.VerticalLinearLayout
+import ViewGroup.LayoutParams._
 
 class ExploreActivity extends StoryActivity {
   var progress: ProgressBar = _
@@ -24,23 +26,25 @@ class ExploreActivity extends StoryActivity {
     val view = l[FrameLayout](
       l[ScrollView](
         l[VerticalLinearLayout](
-          f[LatestFragment](Id.latest, Tag.latest, Map("number" → 4)) ~> hide,
-          f[TagsFragment](Id.tags, Tag.tags, Map()) ~> hide,
-          f[SearchFragment](Id.search, Tag.search, Map()) ~> hide
-        ) ~> { x ⇒ x.setPaddingRelative(8 dip, 8 dip, 8 dip, 8 dip) }
+          f[LatestFragment](Id.latest, Tag.latest, "number" → 4) ~> hide,
+          f[TagsFragment](Id.tags, Tag.tags) ~> hide,
+          f[SearchFragment](Id.search, Tag.search) ~> hide
+        ) ~> p8dding
       ),
       l[FrameLayout](
         w[ProgressBar](null, android.R.attr.progressBarStyleLarge) ~>
           id(Id.progress) ~>
-          center() ~>
+          lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER) ~>
           wire(progress),
-        w[Button] ~> id(Id.retry) ~> center() ~> hide ~> text("Retry") ~> wire(retry) ~> { x ⇒
-          x.setOnClickListener { v: View ⇒
-            x ~> hide
+        w[Button] ~>
+          id(Id.retry) ~>
+          lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER) ~>
+          hide ~> text("Retry") ~> wire(retry) ⇝
+          On.click {
+            retry ~> hide
             progress ~> hide
             onFirstStart()
           }
-        }
       )
     )
     setContentView(view)

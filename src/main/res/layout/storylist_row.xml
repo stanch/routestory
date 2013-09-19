@@ -10,7 +10,7 @@
         android:id="@+id/storyTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        style="@style/TitleStyle"
+        style="@style/TitleAppearance"
         android:textStyle="bold" />
     
     <LinearLayout

@@ -21,12 +21,13 @@ import android.net.Uri
 import akka.dataflow._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.parts.Implicits._
-import org.macroid.{ Concurrency, FragmentViewSearch, LayoutDsl, Layouts }
-import org.macroid.Transforms._
-import net.routestory.parts.Transforms._
+import org.macroid._
+import net.routestory.parts.Tweaks._
 import java.net.{ HttpURLConnection, URLEncoder, URL }
 import org.apache.commons.io.IOUtils
 import scala.concurrent.future
+import org.macroid.Layouts.{ GravityGridLayout, VerticalLinearLayout }
+import org.macroid.Util.Thunk
 
 class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
@@ -34,45 +35,36 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val activity = getActivity.asInstanceOf[RecordActivity]
 
-    def makeClicker(factory: () ⇒ DialogFragment, tag: String) = { v: View ⇒
-      flow {
-        await(activity.untrackAudio())
-        switchToUiThread()
-        dismiss()
-        factory().show(activity.getSupportFragmentManager, tag)
-      }
+    def clicker(factory: Thunk[DialogFragment], tag: String) = flow {
+      await(activity.untrackAudio())
+      switchToUiThread()
+      dismiss()
+      factory().show(activity.getSupportFragmentManager, tag)
     }
 
-    def makeCameraClicker = { v: View ⇒
-      flow {
-        await(activity.untrackAudio())
-        switchToUiThread()
-        val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
-        startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
-      }
+    def cameraClicker = flow {
+      await(activity.untrackAudio())
+      switchToUiThread()
+      val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
+      startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
     }
 
     // format: OFF
     val buttons = Seq(
-      (Id.takePicture, R.drawable.take_a_picture, makeCameraClicker),
-      (Id.textNote, R.drawable.leave_a_note, makeClicker(() ⇒ new NoteDialogFragment, Tag.noteDialog)),
-      (Id.voiceNote, R.drawable.record_sound, makeClicker(() ⇒ new VoiceDialogFragment, Tag.noteDialog)),
-      (Id.heartbeat, R.drawable.record_heartbeat, makeClicker(() ⇒ new MeasurePulseDialogFragment, Tag.noteDialog)),
-      (Id.foursquare, R.drawable.record_heartbeat, makeClicker(() ⇒ new FoursquareDialogFragment, Tag.fsqDialog))
-    ) map { case (i, b, c) ⇒
-      w[HapticImageButton] ~> id(i) ~> On.click(c) ~> { x ⇒
-        x.setBackgroundResource(b)
-        x.setLayoutParams(new GridLayout.LayoutParams {
-          setGravity(Gravity.CENTER)
-        })
-      }
+      (R.drawable.take_a_picture, Thunk(cameraClicker)),
+      (R.drawable.leave_a_note, Thunk(clicker(ff[NoteDialogFragment](), Tag.noteDialog))),
+      (R.drawable.record_sound, Thunk(clicker(ff[VoiceDialogFragment](), Tag.noteDialog))),
+      (R.drawable.record_heartbeat, Thunk(clicker(ff[MeasurePulseDialogFragment](), Tag.noteDialog))),
+      (R.drawable.foursquare_logo, Thunk(clicker(ff[FoursquareDialogFragment](), Tag.fsqDialog)))
+    ) map { case (b, c) ⇒
+      w[HapticImageButton] ~> bg(b) ~> ThunkOn.click(c) ~> layoutParamsOf[GravityGridLayout](Gravity.CENTER)
     }
     // format: ON
 
     val view = l[ScrollView](
-      l[GridLayout]() ~> addViews(buttons) ~> { x ⇒
-        x.setOrientation(GridLayout.VERTICAL)
+      l[GravityGridLayout]() ~> addViews(buttons) ~> { x ⇒
+        x.setOrientation(GridLayout.HORIZONTAL)
         x.setColumnCount(2)
         x.setRowCount(3)
       }
@@ -211,27 +203,25 @@ class VoiceDialogFragment extends AddSomethingDialogFragment {
   }
 }
 
-class MeasurePulseDialogFragment extends AddSomethingDialogFragment with FragmentViewSearch with LayoutDsl with Layouts {
-  implicit lazy val ctx = getActivity
+class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutDsl with Tweaks with FragmentContext {
   var taps = List[Long]()
   def beats = if (taps.length < 5) 0 else {
-    val interval = taps.sliding(2).map { case List(a, b) ⇒ a - b }.sum.toInt / 5
+    val interval = taps.sliding(2).map { case List(a, b) ⇒ a - b }.sum.toInt / 4
     60000 / interval
   }
 
+  var bpm: TextView = _
+
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    var bpm: TextView = null
     val layout = l[VerticalLinearLayout](
       w[TextView] ~> text(R.string.message_pulsehowto) ~> mediumText,
       w[TextView] ~> text("BPM: 0") ~> wire(bpm),
-      w[Button] ~> { x ⇒
+      w[Button] ~> text("TAP") ~> On.click {
+        taps = System.currentTimeMillis() :: taps.take(4)
+        bpm ~> text(s"BPM: $beats")
+      } ~> { x ⇒
         x.setHeight(100 dip)
         x.setGravity(Gravity.CENTER)
-        x.setText("TAP") // TODO: strings.xml
-        x.setOnClickListener { v: View ⇒
-          taps = (System.currentTimeMillis() :: taps) take (5)
-          bpm.setText("BPM: %d".format(beats))
-        }
       }
     )
 

@@ -14,7 +14,7 @@ import rx._
 import org.scaloid.common._
 import android.os.Bundle
 import android.content.Context
-import org.macroid.Transforms._
+import org.macroid.Layouts.HorizontalLinearLayout
 
 class ResultListFragment extends ListFragment with StoryFragment with FragmentData[HazStories] {
   lazy val storyteller = getFragmentData
@@ -60,7 +60,7 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
     runOnUiThread(setListShown(false))
     results.onSuccessUi {
       case res ⇒
-        setListAdapter(new ResultListFragment.StoryListAdapter(res))
+        setListAdapter(new ResultListFragment.StoryListAdapter(res, getActivity))
         prev.setEnabled(storyteller.hasPrev)
         next.setEnabled(storyteller.hasNext)
         setListShown(true)
@@ -85,9 +85,9 @@ object ResultListFragment {
     frag
   }
 
-  class StoryListAdapter(results: List[StoryResult])(implicit ctx: Activity) extends ArrayAdapter(ctx, R.layout.storylist_row, results) {
+  class StoryListAdapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, R.layout.storylist_row, results) {
     override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-      val view = ResultRow.getView(itemView, parent.getMeasuredWidth, getItem(position), ctx)
+      val view = ResultRow2.getView(itemView, parent.getMeasuredWidth, getItem(position), activity)
       view.setPaddingRelative(8 dip, view.getPaddingTop, 8 dip, view.getPaddingBottom)
       view
     }
