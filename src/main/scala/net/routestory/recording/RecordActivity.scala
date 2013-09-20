@@ -76,7 +76,7 @@ class RecordActivity extends StoryActivity {
     super.onCreate(savedInstanceState)
 
     setContentView(l[VerticalLinearLayout](
-      w[HapticButton] ~> text("Add stuff") ~> largeText ~>
+      w[HapticButton] ~> text("Add stuff") ~> TextSize.large ~>
         layoutParams(MATCH_PARENT, WRAP_CONTENT) ~>
         On.click(new AddMediaDialogFragment().show(getSupportFragmentManager, Tag.addMedia)),
       l[LinearLayout](

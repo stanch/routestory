@@ -33,7 +33,7 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
 
         // create spacer if needed
         val (spacer, spacerWidth) = if (row.isEmpty) (Nil, 0) else {
-          val s = w[TextView] ~> mediumText ~> text(", ") ~> measure
+          val s = w[TextView] ~> TextSize.medium ~> text(", ") ~> measure
           (s :: Nil, s.getMeasuredWidth)
         }
 
@@ -71,7 +71,7 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
         w[TextView] ~> id(Id.storyTitle) ~> titleStyle ~> lp(WRAP_CONTENT, WRAP_CONTENT),
         l[HorizontalLinearLayout](
           w[TextView] ~> text(R.string.by) ~> captionStyle,
-          w[TextView] ~> id(Id.storyAuthor) ~> mediumText
+          w[TextView] ~> id(Id.storyAuthor) ~> TextSize.medium
         ),
         l[HorizontalLinearLayout](
           w[TextView] ~> id(Id.tagged) ~> text(R.string.tagged) ~> captionStyle,

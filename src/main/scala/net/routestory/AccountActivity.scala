@@ -51,7 +51,7 @@ class AccountActivity extends StoryActivity {
 
   def showSignedOut() {
     setContentView(l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.account_policy) ~> mediumText,
+      w[TextView] ~> text(R.string.account_policy) ~> TextSize.medium,
       w[HapticButton] ~> text(R.string.signin) ~> (_.setOnClickListener(selectAccount))
     ))
   }
@@ -96,7 +96,7 @@ class AccountActivity extends StoryActivity {
               case _ ⇒ x.setImageResource(R.drawable.ic_launcher)
             }
           },
-          w[TextView] ~> text(author.name) ~> largeText,
+          w[TextView] ~> text(author.name) ~> TextSize.large,
           w[HapticButton] ~> text(R.string.signout) ~> { x ⇒
             x.setOnClickListener { v: View ⇒
               app.signOut()

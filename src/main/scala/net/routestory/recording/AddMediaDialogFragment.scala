@@ -214,7 +214,7 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val layout = l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.message_pulsehowto) ~> mediumText,
+      w[TextView] ~> text(R.string.message_pulsehowto) ~> TextSize.medium,
       w[TextView] ~> text("BPM: 0") ~> wire(bpm),
       w[Button] ~> text("TAP") ~> On.click {
         taps = System.currentTimeMillis() :: taps.take(4)

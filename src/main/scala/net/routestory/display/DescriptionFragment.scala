@@ -8,15 +8,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
-import net.routestory.model.Author
-import net.routestory.model.Story
 import net.routestory.explore.ResultRow
 import android.graphics.Bitmap
 import android.widget.ImageView
-import android.content.Context
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import scala.util.{ Success, Failure }
 import net.routestory.parts.StoryFragment
 import net.routestory.parts.Implicits._
 
