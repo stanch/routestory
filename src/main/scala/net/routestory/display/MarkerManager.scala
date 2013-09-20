@@ -82,6 +82,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
           val view = w[ImageView] ~> lpOf[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER) ~> { x ⇒
             x.setImageBitmap(bitmap)
             x.setAdjustViewBounds(true)
+            x.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE)
           }
           val attacher = new PhotoViewAttacher(view)
           attacher.update()
@@ -170,7 +171,8 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
           (
             other :: group.asInstanceOf[GroupMarkerItem].children,
             group.asInstanceOf[GroupMarkerItem].closest,
-            group.asInstanceOf[GroupMarkerItem].bounds)
+            group.asInstanceOf[GroupMarkerItem].bounds
+          )
         } else {
           (
             List(group, other),
@@ -179,7 +181,8 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
               boundsBuilder.include(group.coords)
               boundsBuilder.include(other.coords)
               boundsBuilder.build()
-            })
+            }
+          )
         }
       }
       new GroupMarkerItem(children, closest, bounds)
