@@ -7,15 +7,13 @@ import android.media.MediaRecorder
 import MediaRecorder._
 import android.app.AlertDialog
 import java.io.File
-import android.view.{ Gravity, View }
+import android.view.{ ViewGroup, Gravity, View }
 import net.routestory.R
 import android.app.Dialog
 import org.scaloid.common._
-import android.content.DialogInterface
-import net.routestory.parts.HapticImageButton
-import android.content.Intent
+import android.content.{ Context, DialogInterface, Intent }
+import net.routestory.parts.{ Animations, HapticImageButton, StoryFragment }
 import android.app.Activity
-import net.routestory.parts.StoryFragment
 import android.provider.MediaStore
 import android.net.Uri
 import akka.dataflow._
@@ -26,10 +24,15 @@ import net.routestory.parts.Tweaks._
 import java.net.{ HttpURLConnection, URLEncoder, URL }
 import org.apache.commons.io.IOUtils
 import scala.concurrent.future
-import org.macroid.Layouts.{ GravityGridLayout, VerticalLinearLayout }
+import org.macroid.Layouts.{ HorizontalLinearLayout, GravityGridLayout, VerticalLinearLayout }
 import org.macroid.Util.Thunk
+import scala.collection.JavaConversions._
+import org.macroid.contrib.ExtraTweaks
+import org.codehaus.jackson.map.ObjectMapper
+import java.util.Locale
 
 class AddMediaDialogFragment extends DialogFragment with StoryFragment {
+  import AddMediaDialogFragment._
   lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
@@ -50,25 +53,15 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
       startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
     }
 
-    // format: OFF
-    val buttons = Seq(
-      (R.drawable.take_a_picture, Thunk(cameraClicker)),
-      (R.drawable.leave_a_note, Thunk(clicker(ff[NoteDialogFragment](), Tag.noteDialog))),
-      (R.drawable.record_sound, Thunk(clicker(ff[VoiceDialogFragment](), Tag.noteDialog))),
-      (R.drawable.record_heartbeat, Thunk(clicker(ff[MeasurePulseDialogFragment](), Tag.noteDialog))),
-      (R.drawable.foursquare_logo, Thunk(clicker(ff[FoursquareDialogFragment](), Tag.fsqDialog)))
-    ) map { case (b, c) ⇒
-      w[HapticImageButton] ~> bg(b) ~> ThunkOn.click(c) ~> layoutParamsOf[GravityGridLayout](Gravity.CENTER)
-    }
-    // format: ON
-
-    val view = l[ScrollView](
-      l[GravityGridLayout]() ~> addViews(buttons) ~> { x ⇒
-        x.setOrientation(GridLayout.HORIZONTAL)
-        x.setColumnCount(2)
-        x.setRowCount(3)
-      }
+    val buttons = List(
+      (R.drawable.photo, "Take a picture", Thunk(cameraClicker)),
+      (R.drawable.text_note, "Add a text note", Thunk(clicker(ff[NoteDialogFragment](), Tag.noteDialog))),
+      (R.drawable.voice_note, "Make a voice note", Thunk(clicker(ff[VoiceDialogFragment](), Tag.voiceDialog))),
+      (R.drawable.heart, "Record heartbeat", Thunk(clicker(ff[MeasurePulseDialogFragment](), Tag.pulseDialog))),
+      (R.drawable.foursquare, "Mention a venue", Thunk(clicker(ff[FoursquareDialogFragment](), Tag.fsqDialog)))
     )
+
+    val view = w[ListView] ~> (_.setAdapter(new MediaListAdapter(buttons)))
     new AlertDialog.Builder(activity).setView(view).create()
   }
 
@@ -85,8 +78,25 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   }
 }
 
+object AddMediaDialogFragment {
+  class MediaListAdapter(media: List[(Int, String, Thunk[Any])])(implicit ctx: Context) extends ArrayAdapter(ctx, 0, media) with LayoutDsl with ExtraTweaks with BasicViewSearch {
+    override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
+      val item = getItem(position)
+      val v = Option(itemView) getOrElse {
+        l[HorizontalLinearLayout](
+          w[ImageView] ~> id(Id.image), w[TextView] ~> id(Id.text) ~> TextSize.large
+        ) ~> padding(top = (12 dip), bottom = (12 dip), left = (8 dip))
+      }
+      findView[ImageView](v, Id.image) ~> (_.setImageResource(item._1))
+      findView[TextView](v, Id.text) ~> text(item._2)
+      v ~> ThunkOn.click(item._3)
+    }
+  }
+}
+
 class AddSomethingDialogFragment extends DialogFragment {
   lazy val activity = getActivity.asInstanceOf[RecordActivity]
+  lazy val coords = activity.mRouteManager.getEnd
 
   override def onDismiss(dialog: DialogInterface) {
     super.onDismiss(dialog)
@@ -94,25 +104,44 @@ class AddSomethingDialogFragment extends DialogFragment {
   }
 }
 
-class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurrency {
+class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurrency with BasicViewSearch with FragmentContext with Animations {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val client_id = "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05"
     val client_secret = "SIPSHLBOLADA2HW3RT44GE14OGBDNSM0VPBN4MSEWH2E4VLN"
-    val ll = "40.7,-74"
-    val url = new URL(s"https://api.foursquare.com/v2/venues/search?ll=$ll&client_id=$client_id&client_secret=$client_secret")
+    val ll = "%f,%f".formatLocal(Locale.US, coords.latitude, coords.longitude)
+    val url = new URL(s"https://api.foursquare.com/v2/venues/search?ll=$ll&client_id=$client_id&client_secret=$client_secret&v=20130920&intent=browse&radius=100")
     val venues = future {
       val conn = url.openConnection().asInstanceOf[HttpURLConnection]
-      IOUtils.toString(conn.getInputStream)
+      conn.getInputStream
     }
 
-    val view = new TextView(activity)
-    venues.onSuccessUi { case v ⇒ view.setText(v) }
+    val list = w[ListView]
+    val progress = w[ProgressBar](null, android.R.attr.progressBarStyleLarge)
+    // format: OFF
+    flow {
+      val data = await(venues)
+      val vs = (new ObjectMapper).readTree(data).get("response").get("venues").iterator.map { v ⇒
+        val loc = v.get("location")
+        (v.get("id").asText, v.get("name").asText, loc.get("lat").asDouble, loc.get("lng").asDouble)
+      }
+      await(fadeOut(progress))
+      switchToUiThread()
+      list.setAdapter(new ArrayAdapter(activity, 0, vs.toArray) {
+        override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
+          val item = getItem(position)
+          val v = Option(itemView).getOrElse(w[TextView] ~> TextSize.large ~> padding(all = (3 sp)) ~> id(Id.text))
+          findView[TextView](v, Id.text) ~> text(item._2)
+          v ~> On.click {
+            activity.addVenue(item._1, item._2, item._3, item._4)
+            dismiss()
+          }
+        }
+      })
+    }
+    // format: ON
 
     new AlertDialog.Builder(activity) {
-      setView(view)
-      setPositiveButton(R.string.button_save, { (d: DialogInterface, w: Int) ⇒
-        ;
-      })
+      setView(l[FrameLayout](list, progress))
       setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒ ; })
     }.create()
   }

@@ -118,6 +118,24 @@ object Story {
     }
   }
 
+  class FoursquareData extends TimedData {
+    @JsonProperty("id") var id: String = _
+    @JsonProperty("name") var name: String = _
+    @JsonProperty("coordinates") var coordinates: Array[Double] = _
+
+    @JsonIgnore
+    override def getLocation = new LatLng(coordinates(0), coordinates(1))
+  }
+
+  object FoursquareData {
+    def apply(time: Int, i: String, n: String, lat: Double, lng: Double) = new FoursquareData {
+      timestamp = time
+      id = i
+      name = n
+      coordinates = Array(lat, lng)
+    }
+  }
+
   class HeartbeatData extends TimedData {
     @JsonIgnore
     def getVibrationPattern(times: Int): Array[Long] = {
@@ -171,6 +189,12 @@ class Story extends CouchDbDocument with CouchDbObject {
     val f = LocationData((time - starttime).toInt, l.getLatitude, l.getLongitude)
     locations.add(f)
     f
+  }
+
+  @JsonIgnore
+  def addVenue(time: Long, id: String, name: String, lat: Double, lng: Double) = {
+    val v = FoursquareData((time - starttime).toInt, id, name, lat, lng)
+    venues.add(v)
   }
 
   @JsonIgnore
@@ -259,5 +283,6 @@ class Story extends CouchDbDocument with CouchDbObject {
   @JsonProperty("notes") var notes = new java.util.LinkedList[Story.TextData]()
   @JsonProperty("voice") var voice = new java.util.LinkedList[Story.AudioData]()
   @JsonProperty("heartbeat") var heartbeat = new java.util.LinkedList[Story.HeartbeatData]()
+  @JsonProperty("venues") var venues = new java.util.LinkedList[Story.FoursquareData]()
 }
 

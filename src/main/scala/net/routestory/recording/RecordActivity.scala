@@ -11,10 +11,7 @@ import scala.concurrent.{ Future, future }
 import org.scaloid.common._
 
 import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model._
 
 import android.app.AlertDialog
 import android.app.ProgressDialog
@@ -277,7 +274,7 @@ class RecordActivity extends StoryActivity {
     val id = mStory.addVoice(System.currentTimeMillis() / 1000L, "audio/m4a", "m4a")
     mMedia += id -> (filename, "audio/m4a")
     mMap.addMarker(new MarkerOptions()
-      .icon(BitmapDescriptorFactory.fromResource(R.drawable.mic))
+      .icon(BitmapDescriptorFactory.fromResource(R.drawable.voice_note))
       .position(mStory.getLocation(System.currentTimeMillis() / 1000L)))
   }
 
@@ -285,8 +282,16 @@ class RecordActivity extends StoryActivity {
   def addNote(note: String) {
     mStory.addNote(System.currentTimeMillis() / 1000L, note)
     mMap.addMarker(new MarkerOptions()
-      .icon(BitmapDescriptorFactory.fromResource(R.drawable.note))
+      .icon(BitmapDescriptorFactory.fromResource(R.drawable.text_note))
       .position(mStory.getLocation(System.currentTimeMillis() / 1000L)))
+  }
+
+  /* adding venues */
+  def addVenue(id: String, name: String, lat: Double, lng: Double) {
+    mStory.addVenue(System.currentTimeMillis() / 1000L, id, name, lat, lng)
+    mMap.addMarker(new MarkerOptions()
+      .icon(BitmapDescriptorFactory.fromResource(R.drawable.foursquare))
+      .position(new LatLng(lat, lng)))
   }
 
   /* adding heartbeat */

@@ -34,7 +34,7 @@ class OverviewFragment extends StoryFragment {
   }
   lazy val mMarkerManager = flow {
     val story = await(mStory)
-    new MarkerManager(mMap, List(display.getWidth(), display.getHeight()), story)
+    new MarkerManager(mMap, List(display.getWidth(), display.getHeight()), story, getActivity)
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {

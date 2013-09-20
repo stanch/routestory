@@ -4,9 +4,8 @@ import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.parts.BitmapUtils
 import net.routestory.parts.BitmapUtils.MagicGrid
-import android.app.{ Dialog, AlertDialog }
-import android.content.Context
-import android.content.DialogInterface
+import android.app.{ Activity, Dialog, AlertDialog }
+import android.content.{ Intent, Context, DialogInterface }
 import android.content.DialogInterface.OnClickListener
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -31,8 +30,9 @@ import org.macroid.{ Tweaks, LayoutDsl, Concurrency }
 import org.macroid.contrib.ExtraTweaks
 import ViewGroup.LayoutParams._
 import uk.co.senab.photoview.PhotoViewAttacher
+import org.macroid.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
 
-class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(implicit ctx: Context) extends Concurrency {
+class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, activity: Activity)(implicit ctx: Context) extends Concurrency {
   var hide_overlays = false
 
   val maxIconSize = ((800 dip) :: displaySize).min / 4
@@ -137,7 +137,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
     }
   }
 
-  class SoundMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.audio)
+  class SoundMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.sound)
   class VoiceMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.voice_note)
 
   // Text note marker
@@ -148,6 +148,22 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
         text(data.text) ~> TextSize.medium ~> padding(all = (8 dip)) ~>
         (_.setMaxWidth((displaySize(0) * 0.75).toInt))
       bld.setView(textView).create().show()
+    }
+  }
+
+  // Foursquare venue marker
+  class VenueMarkerItem(data: Story.FoursquareData) extends IconMarkerItem(data, R.drawable.foursquare_bigger) with LayoutDsl with ExtraTweaks {
+    override def onClick() {
+      val bld = new AlertDialog.Builder(ctx)
+      val view = l[VerticalLinearLayout](
+        w[TextView] ~> text(data.name) ~> TextSize.large ~> padding(left = (3 sp)),
+        w[Button] ~> text("Open in Foursquare®") ~> On.click {
+          val intent = new Intent(Intent.ACTION_VIEW)
+          intent.setData(s"https://foursquare.com/v/${data.id}")
+          activity.startActivityForResult(intent, 0)
+        }
+      )
+      bld.setView(view).create().show()
     }
   }
 
@@ -226,7 +242,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
       // check if the closest pair of children is not overlapping
       // now features a hysteresis
       val List(ne, sw) = List(bounds.northeast, bounds.southwest).map(googleMap.getProjection.toScreenLocation)
-      wasExpanded = MarkerManager.manhattanDistance(ne, sw) > maxIconSize + (if (wasExpanded) -5 dip else 5 dip)
+      wasExpanded = MarkerManager.manhattanDistance(ne, sw) > maxIconSize + (if (wasExpanded) (-5 dip) else (5 dip))
       wasExpanded
     }
 
@@ -273,12 +289,15 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 
   lazy val rootMarkerItem: Option[MarkerItem] = {
     def makeMarkers[A <: Story.TimedData](d: java.util.List[A], m: A ⇒ MarkerItem) = d.toVector.map(m)
+    // format: OFF
     val markerItems =
       Option(story.photos).map(x ⇒ makeMarkers(x, new ImageMarkerItem(_: Story.ImageData))).getOrElse(Vector.empty) ++
-        Option(story.audio).map(x ⇒ makeMarkers(x, new SoundMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
-        Option(story.voice).map(x ⇒ makeMarkers(x, new VoiceMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
-        Option(story.notes).map(x ⇒ makeMarkers(x, new TextMarkerItem(_: Story.TextData))).getOrElse(Vector.empty) ++
-        Option(story.heartbeat).map(x ⇒ makeMarkers(x, new HeartbeatMarkerItem(_: Story.HeartbeatData))).getOrElse(Vector.empty)
+      Option(story.audio).map(x ⇒ makeMarkers(x, new SoundMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
+      Option(story.voice).map(x ⇒ makeMarkers(x, new VoiceMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
+      Option(story.notes).map(x ⇒ makeMarkers(x, new TextMarkerItem(_: Story.TextData))).getOrElse(Vector.empty) ++
+      Option(story.heartbeat).map(x ⇒ makeMarkers(x, new HeartbeatMarkerItem(_: Story.HeartbeatData))).getOrElse(Vector.empty) ++
+      Option(story.venues).map(x ⇒ makeMarkers(x, new VenueMarkerItem(_: Story.FoursquareData))).getOrElse(Vector.empty)
+    // format: ON
 
     markerItems.length match {
       case 0 ⇒ None
