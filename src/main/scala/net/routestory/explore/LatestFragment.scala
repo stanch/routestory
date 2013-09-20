@@ -20,7 +20,7 @@ class LatestFragment extends StoryFragment with WidgetFragment {
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.explore_lateststories) ~> headerText,
+      w[TextView] ~> text(R.string.explore_lateststories) ~> headerStyle,
       l[VerticalLinearLayout]() ~> wire(list)
     )
   }
@@ -39,7 +39,7 @@ class LatestFragment extends StoryFragment with WidgetFragment {
       switchToUiThread()
       list.removeAllViews()
       stories foreach { s ⇒
-        list.addView(ResultRow.getView(null, displaySize.x, s, getActivity))
+        list.addView(ResultRow.getView(None, displaySize.x, s, getActivity))
       }
     })
   }

@@ -19,7 +19,7 @@ class SearchFragment extends StoryFragment with WidgetFragment {
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.explore_search) ~> headerText,
+      w[TextView] ~> text(R.string.explore_search) ~> headerStyle,
       w[EditText] ~> FuncOn.editorAction { (v: TextView, actionId: Int, event: KeyEvent) ⇒
         if (Set(EditorInfo.IME_ACTION_SEARCH, EditorInfo.IME_ACTION_DONE).contains(actionId) ||
           event.getAction == KeyEvent.ACTION_DOWN && event.getKeyCode == KeyEvent.KEYCODE_ENTER) {

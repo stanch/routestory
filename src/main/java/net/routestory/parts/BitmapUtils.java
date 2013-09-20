@@ -29,7 +29,7 @@ public class BitmapUtils {
 		Canvas canvas = new Canvas(target);
 		canvas.save();
 		canvas.clipRect(new Rect(b, b, width+b, height+b), Op.XOR);
-		canvas.drawARGB(255, 255, 255, 255);
+		//canvas.drawARGB(0xfa, 0x67, 0x3d, 200);
 		canvas.restore();
 		Paint paint = new Paint();
 		paint.setAlpha((int)(alpha*255));
@@ -90,7 +90,7 @@ public class BitmapUtils {
 			private static final long serialVersionUID = 1L;
 			public double r;
 			public OversizedException(double r) { this.r = r; }
-		};
+		}
 		
 		public static Bitmap createSquarishGrid(List<Bitmap> bitmaps, int size) {
 			int d = (int)Math.sqrt(bitmaps.size());
@@ -112,7 +112,7 @@ public class BitmapUtils {
 			while(true) {
 				Bitmap target = Bitmap.createBitmap(width, height, Config.ARGB_8888);
 				Canvas canvas = new Canvas(target);
-				canvas.drawARGB(255, 255, 255, 255);
+				//canvas.drawARGB(255, 255, 255, 255);
 				try {
 					root.draw(canvas, 0, 0, width, null);
 					return target;

@@ -20,7 +20,7 @@ class TagsFragment extends StoryFragment with WidgetFragment {
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.explore_tags) ~> headerText,
+      w[TextView] ~> text(R.string.explore_tags) ~> headerStyle,
       l[HorizontalLinearLayout](
         l[VerticalLinearLayout]() ~> wire(rows)
       )

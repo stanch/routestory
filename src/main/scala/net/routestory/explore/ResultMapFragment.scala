@@ -28,6 +28,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import scala.concurrent.Future
 import scala.util.Try
 import rx._
+import net.routestory.parts.Tweaks._
 
 class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
   lazy val mMap = findFrag[SupportMapFragment](Tag.resultsMap).getMap
@@ -86,8 +87,7 @@ class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
       val story = mMarkers(marker)
       // TODO: wtf? how to measure one?
       val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8
-      val view = ResultRow.getView(null, a.toInt, story, getActivity)
-      view.setPadding(8 dip, 8 dip, 8 dip, 8 dip)
+      val view = ResultRow.getView(None, a.toInt, story, getActivity) ~> p8dding
       new AlertDialog.Builder(ctx).setView(view).create().show()
       true
     }

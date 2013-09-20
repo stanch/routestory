@@ -87,7 +87,7 @@ object ResultListFragment {
 
   class StoryListAdapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, R.layout.storylist_row, results) {
     override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-      val view = ResultRow2.getView(itemView, parent.getMeasuredWidth, getItem(position), activity)
+      val view = ResultRow.getView(Option(itemView), parent.getMeasuredWidth, getItem(position), activity)
       view.setPaddingRelative(8 dip, view.getPaddingTop, 8 dip, view.getPaddingBottom)
       view
     }

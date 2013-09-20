@@ -130,8 +130,8 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
     }
   }
 
-  class SoundMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.sound)
-  class VoiceMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.mic)
+  class SoundMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.audio)
+  class VoiceMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.voice_note)
 
   // Text note marker
   class TextMarkerItem(data: Story.TextData) extends IconMarkerItem(data, R.drawable.note) {
@@ -264,21 +264,18 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
   var markerDispatch = Map[Marker, MarkerItem]()
 
   lazy val rootMarkerItem: Option[MarkerItem] = {
-    val markerItems = Vector(
-      story.photos, story.audio, story.voice,
-      story.notes, story.heartbeat) zip Vector(
-        classOf[ImageMarkerItem], classOf[SoundMarkerItem], classOf[VoiceMarkerItem],
-        classOf[TextMarkerItem], classOf[HeartbeatMarkerItem]) flatMap {
-          case (d, m) ⇒
-            if (d != null) d map { v ⇒ m.getConstructor(classOf[MarkerManager], v.getClass).newInstance(this, v) } else Nil
-        } sortBy {
-          _.timestamp
-        }
+    def makeMarkers[A <: Story.TimedData](d: java.util.List[A], m: A ⇒ MarkerItem) = d.toVector.map(m)
+    val markerItems =
+      Option(story.photos).map(x ⇒ makeMarkers(x, new ImageMarkerItem(_: Story.ImageData))).getOrElse(Vector.empty) ++
+        Option(story.audio).map(x ⇒ makeMarkers(x, new SoundMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
+        Option(story.voice).map(x ⇒ makeMarkers(x, new VoiceMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
+        Option(story.notes).map(x ⇒ makeMarkers(x, new TextMarkerItem(_: Story.TextData))).getOrElse(Vector.empty) ++
+        Option(story.heartbeat).map(x ⇒ makeMarkers(x, new HeartbeatMarkerItem(_: Story.HeartbeatData))).getOrElse(Vector.empty)
 
     markerItems.length match {
       case 0 ⇒ None
       case 1 ⇒ Some(markerItems(0))
-      case _ ⇒ Some(clusterRounds(markerItems, story.duration.toDouble / 4))
+      case _ ⇒ Some(clusterRounds(markerItems.sortBy(_.timestamp), story.duration.toDouble / 4))
     }
   }
 
