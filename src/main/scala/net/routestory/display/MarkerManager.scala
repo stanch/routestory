@@ -4,7 +4,7 @@ import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.parts.BitmapUtils
 import net.routestory.parts.BitmapUtils.MagicGrid
-import android.app.AlertDialog
+import android.app.{ Dialog, AlertDialog }
 import android.content.Context
 import android.content.DialogInterface
 import android.content.DialogInterface.OnClickListener
@@ -12,12 +12,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Point
 import android.media.MediaPlayer
-import android.view.View
-import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.view.{ Gravity, View, ViewGroup }
+import android.widget._
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -31,7 +27,10 @@ import scala.collection.SeqExtractors
 import org.scaloid.common._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import org.macroid.Concurrency
+import org.macroid.{ Tweaks, LayoutDsl, Concurrency }
+import org.macroid.contrib.ExtraTweaks
+import ViewGroup.LayoutParams._
+import uk.co.senab.photoview.PhotoViewAttacher
 
 class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(implicit ctx: Context) extends Concurrency {
   var hide_overlays = false
@@ -57,7 +56,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
   }
 
   // Image marker
-  class ImageMarkerItem(data: Story.ImageData) extends MarkerItem(data.timestamp) {
+  class ImageMarkerItem(data: Story.ImageData) extends MarkerItem(data.timestamp) with LayoutDsl with Tweaks {
     private val icon = data.get(maxIconSize)
 
     override def addToMarkerList(list: List[MarkerItem]): List[MarkerItem] = {
@@ -76,16 +75,23 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
 
     override def onClick() {
       // show the image in a pop-up window
-      val bld = new AlertDialog.Builder(ctx)
-      val imageView = new ImageView(ctx)
       val progress = spinnerDialog("", "Loading image...") // TODO: strings.xml
       data.get(displaySize.max) onSuccessUi {
         case bitmap if bitmap != null ⇒
           progress.dismiss()
-          bld.setView(imageView).setOnDismissListener({ dialog: DialogInterface ⇒
-            bitmap.recycle()
-          }).create().show()
-          imageView.setImageBitmap(bitmap)
+          val view = w[ImageView] ~> lpOf[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER) ~> { x ⇒
+            x.setImageBitmap(bitmap)
+            x.setAdjustViewBounds(true)
+          }
+          val attacher = new PhotoViewAttacher(view)
+          attacher.update()
+          new Dialog(ctx, android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
+            setContentView(l[FrameLayout](view))
+            setOnDismissListener({ dialog: DialogInterface ⇒
+              bitmap.recycle()
+            })
+            show()
+          }
         case _ ⇒
           progress.dismiss()
       }
@@ -107,7 +113,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
     override def getIcon(scale: Boolean): Bitmap = if (!scale) {
       icon
     } else {
-      BitmapUtils.createScaledTransparentBitmap(icon, (icon.getWidth() * (0.9 + doi * 0.1)).toInt, 0.6 + doi * 0.4, false)
+      BitmapUtils.createScaledTransparentBitmap(icon, (icon.getWidth * (0.9 + doi * 0.1)).toInt, 0.6 + doi * 0.4, false)
     }
   }
 
@@ -134,13 +140,12 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story)(
   class VoiceMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.voice_note)
 
   // Text note marker
-  class TextMarkerItem(data: Story.TextData) extends IconMarkerItem(data, R.drawable.note) {
+  class TextMarkerItem(data: Story.TextData) extends IconMarkerItem(data, R.drawable.text_note) with LayoutDsl with ExtraTweaks {
     override def onClick() {
       val bld = new AlertDialog.Builder(ctx)
-      val textView = new TextView(ctx)
-      textView.setMaxWidth((displaySize(0) * 0.75).toInt)
-      textView.setText(data.text)
-      textView.setTextAppearance(ctx, android.R.style.TextAppearance_Medium)
+      val textView = w[TextView] ~>
+        text(data.text) ~> TextSize.medium ~> padding(all = (8 dip)) ~>
+        (_.setMaxWidth((displaySize(0) * 0.75).toInt))
       bld.setView(textView).create().show()
     }
   }

@@ -44,7 +44,8 @@ libraryDependencies ++= Seq(
 	aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),
 	aarlib("com.couchbase.cblite" % "CBLiteEktorp" % "1.0.0-beta"),
 	"com.android.support" % "support-v13" % "13.0.0",
-	aarlib("com.google.android.gms" % "play-services" % "3.1.36")
+	aarlib("com.google.android.gms" % "play-services" % "3.1.36"),
+	"com.github.chrisbanes.photoview" % "library" % "1.2.1"
 )
 
 proguardOptions ++= Seq(

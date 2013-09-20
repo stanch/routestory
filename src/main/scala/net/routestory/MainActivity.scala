@@ -9,7 +9,7 @@ import net.routestory.parts.HapticButton
 import net.routestory.recording.RecordActivity
 import android.preference.PreferenceManager
 import net.routestory.parts.StoryActivity
-import android.view.{ ViewGroup, Menu, MenuItem }
+import android.view.{ Gravity, ViewGroup, Menu, MenuItem }
 import com.google.android.apps.iosched.ui.widget.DashboardLayout
 import net.routestory.parts.Tweaks._
 import android.app.Activity
@@ -17,6 +17,8 @@ import org.macroid.Util.Thunk
 import android.view.ViewGroup.LayoutParams._
 import android.content.Intent
 import scala.reflect.ClassTag
+import android.support.v4.widget.DrawerLayout
+import android.widget.ListView
 
 class MainActivity extends StoryActivity {
 
@@ -37,7 +39,37 @@ class MainActivity extends StoryActivity {
     }
     // format: ON
 
-    setContentView(l[DashboardLayout]() ~> bg(R.drawable.startup_screen_gradient) ~> addViews(buttons))
+    /*
+    <android.support.v4.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/drawer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <!-- The main content view -->
+    <FrameLayout
+        android:id="@+id/content_frame"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+    <!-- The navigation drawer -->
+    <ListView android:id="@+id/left_drawer"
+        android:layout_width="240dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:choiceMode="singleChoice"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="0dp"
+        android:background="#111"/>
+     */
+
+    var things: ListView = null
+
+    setContentView(
+      l[DrawerLayout](
+        l[DashboardLayout]() ~> bg(R.drawable.startup_screen_gradient) ~> addViews(buttons) ~> lp(MATCH_PARENT, MATCH_PARENT),
+        w[ListView] ~> lp(240 dip, MATCH_PARENT, Gravity.START) ~> wire(things)
+      )
+    )
+    things.setAdapter(new SArrayAdapter(Array("FOO", "BAR")))
 
     // install Google Play Services if needed
     val result = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this)
