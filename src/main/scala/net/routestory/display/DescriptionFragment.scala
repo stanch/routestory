@@ -6,29 +6,45 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.{ ScrollView, LinearLayout, TextView, ImageView }
 import net.routestory.explore.ResultRow
 import android.graphics.Bitmap
-import android.widget.ImageView
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import net.routestory.parts.StoryFragment
 import net.routestory.parts.Implicits._
+import net.routestory.parts.Styles._
+import org.macroid.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import ViewGroup.LayoutParams._
+import org.scaloid.common._
 
 class DescriptionFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    inflater.inflate(R.layout.fragment_description, container, false)
-  }
+  var authorPicture: ImageView = _
+  var authorName: TextView = _
+  var description: TextView = _
+  var tagStuff: LinearLayout = _
+  var tagRows: LinearLayout = _
 
-  def setAvatar(imageView: ImageView, bitmap: Bitmap) {
-    if (bitmap != null) {
-      imageView.setImageBitmap(bitmap)
-    } else {
-      imageView.setImageResource(R.drawable.ic_launcher) // set default image
-    }
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
+    l[ScrollView](
+      l[VerticalLinearLayout](
+        w[TextView] ~> text("Author") ~> headerStyle(noPadding = true),
+        w[ImageView] ~> lp(100 dip, WRAP_CONTENT) ~> wire(authorPicture),
+        w[TextView] ~> lp(MATCH_PARENT, WRAP_CONTENT) ~> wire(authorName) ~> TextSize.medium,
+
+        w[TextView] ~> text(R.string.description) ~> headerStyle(),
+        w[TextView] ~> lp(MATCH_PARENT, WRAP_CONTENT) ~> wire(description) ~> TextSize.medium,
+
+        l[VerticalLinearLayout](
+          w[TextView] ~> text(R.string.tags) ~> headerStyle(),
+          l[HorizontalLinearLayout](
+            l[VerticalLinearLayout]() ~> wire(tagRows)
+          )
+        ) ~> wire(tagStuff)
+      ) ~> padding(left = (8 dip))
+    )
   }
 
   override def onStart() {
@@ -40,30 +56,25 @@ class DescriptionFragment extends StoryFragment {
         val display = getActivity.getWindowManager.getDefaultDisplay
         val width = display.getWidth()
 
-        if (story.author != null) {
-          val avatar = findView[ImageView](R.id.authorPicture)
-          avatar.setScaleType(ImageView.ScaleType.FIT_START)
-          avatar.setAdjustViewBounds(true)
-          findView[TextView](R.id.authorName).setText(story.author.name)
-          story.author.pictureCache.get onSuccessUi {
-            case picture ⇒
-              setAvatar(avatar, picture)
+        Option(story.author) map { a ⇒
+          authorPicture.setScaleType(ImageView.ScaleType.FIT_START)
+          authorPicture.setAdjustViewBounds(true)
+          authorName ~> text(a.name)
+          a.pictureCache.get onSuccessUi {
+            case picture ⇒ Option(picture).map(authorPicture.setImageBitmap(_)).getOrElse(authorPicture ~> hide)
           }
-        } else {
-          findView[TextView](R.id.authorName).setText("Me") // TODO: strings.xml!
+        } getOrElse {
+          authorName ~> text("Me")
+          authorPicture ~> hide
         }
 
-        if (story.description != null && story.description.length() > 0) {
-          findView[TextView](R.id.storyDescription).setText(story.description)
-        } else {
-          findView[TextView](R.id.storyDescription).setText("No description.") // TODO: strings.xml!
-        }
+        val d = Option(story.description).filter(_.length > 0).getOrElse("No description.")
+        description ~> text(d)
 
-        if (story.tags != null && story.tags.length > 0) {
-          ResultRow.fillTags(findView[LinearLayout](R.id.storyTagRows), width - 20, story.tags, getActivity)
-        } else {
-          findView[View](R.id.storyTagsHeader).setVisibility(View.GONE)
-          findView[View](R.id.storyTags).setVisibility(View.GONE)
+        Option(story.tags).filter(_.length > 0) map { t ⇒
+          ResultRow.fillTags(tagRows, width - 20, t, getActivity)
+        } getOrElse {
+          tagStuff ~> hide
         }
     }
   }

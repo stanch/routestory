@@ -6,22 +6,5 @@
     <style name="AppTheme" parent="@style/Theme.Story">
     	<item name="android:windowBackground">@drawable/startup_screen_gradient</item>
     </style>
-    
-    <style name="TitleAppearance" parent="@android:style/TextAppearance.Medium">
-        <item name="android:background">@color/aquadark</item>
-        <item name="android:textStyle">bold</item>
-        <item name="android:padding">3sp</item>
-    </style>
-    
-    <style name="TagAppearance" parent="@android:style/TextAppearance.Medium">
-        <item name="android:textStyle">italic</item>
-        <item name="android:typeface">serif</item>
-    </style>
-    
-    <style name="ExploreSectionAppearance" parent="@android:style/TextAppearance.Large">
-        <item name="android:textSize">25sp</item>
-        <item name="android:textColor">@color/orange</item>
-        <item name="android:textStyle">bold</item>
-    </style>
-    
+
 </resources>

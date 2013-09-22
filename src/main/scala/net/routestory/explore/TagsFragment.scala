@@ -12,7 +12,7 @@ import org.ektorp.ViewQuery
 import scala.util.Random
 import android.graphics.Point
 import scala.collection.JavaConversions._
-import net.routestory.parts.Tweaks._
+import net.routestory.parts.Styles._
 import org.macroid.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 
 class TagsFragment extends StoryFragment with WidgetFragment {
@@ -20,7 +20,7 @@ class TagsFragment extends StoryFragment with WidgetFragment {
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.explore_tags) ~> headerStyle,
+      w[TextView] ~> text(R.string.explore_tags) ~> headerStyle(),
       l[HorizontalLinearLayout](
         l[VerticalLinearLayout]() ~> wire(rows)
       )

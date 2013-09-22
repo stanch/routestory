@@ -9,7 +9,7 @@ import ExecutionContext.Implicits.global
 import net.routestory.parts.{ WidgetFragment, GotoDialogFragments, StoryActivity }
 import akka.dataflow._
 import android.support.v4.app.Fragment
-import net.routestory.parts.Tweaks._
+import net.routestory.parts.Styles._
 import org.macroid.Layouts.VerticalLinearLayout
 import ViewGroup.LayoutParams._
 

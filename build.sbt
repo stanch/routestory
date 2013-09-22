@@ -30,6 +30,8 @@ libraryDependencies <+= scalaVersion {
 
 scalacOptions += "-P:continuations:enable"
 
+//scalacOptions += "-Ymacro-debug-lite"
+
 resolvers ++= Seq(
 	"Couchbase" at "http://files.couchbase.com/maven2/",
 	Resolver.sonatypeRepo("snapshots")

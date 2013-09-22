@@ -11,7 +11,7 @@ import android.preference.PreferenceManager
 import net.routestory.parts.StoryActivity
 import android.view.{ Gravity, ViewGroup, Menu, MenuItem }
 import com.google.android.apps.iosched.ui.widget.DashboardLayout
-import net.routestory.parts.Tweaks._
+import net.routestory.parts.Styles._
 import android.app.Activity
 import org.macroid.Util.Thunk
 import android.view.ViewGroup.LayoutParams._

@@ -11,7 +11,7 @@ import org.ektorp.ViewQuery
 import net.routestory.model._
 import scala.concurrent.ExecutionContext.Implicits.global
 import android.graphics.Point
-import net.routestory.parts.Tweaks._
+import net.routestory.parts.Styles._
 import org.macroid.Layouts.VerticalLinearLayout
 
 class LatestFragment extends StoryFragment with WidgetFragment {
@@ -20,7 +20,7 @@ class LatestFragment extends StoryFragment with WidgetFragment {
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.explore_lateststories) ~> headerStyle,
+      w[TextView] ~> text(R.string.explore_lateststories) ~> headerStyle(),
       l[VerticalLinearLayout]() ~> wire(list)
     )
   }

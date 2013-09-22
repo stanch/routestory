@@ -30,7 +30,7 @@ import net.routestory.parts.HapticButton
 import net.routestory.parts.StoryActivity
 import akka.dataflow._
 import android.util.Log
-import net.routestory.parts.Tweaks._
+import net.routestory.parts.Styles._
 import org.macroid.Layouts.VerticalLinearLayout
 
 class AccountActivity extends StoryActivity {
@@ -62,12 +62,12 @@ class AccountActivity extends StoryActivity {
     // ask which one to use
     new AlertDialog.Builder(ctx) {
       setTitle(R.string.title_dialog_selectaccount)
-      setAdapter(new ArrayAdapter[Account](ctx, 0, R.id.textView1, accounts) {
+      setAdapter(new ArrayAdapter[Account](ctx, 0, accounts) {
         override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
           val view = Option(itemView).getOrElse(l[LinearLayout](
-            w[TextView] ~> id(Id.account) ~> (_.setTextAppearance(ctx, android.R.style.TextAppearance_Large))
+            w[TextView] ~> id(Id.account) ~> TextSize.large
           ))
-          view.findViewById(Id.account).asInstanceOf[TextView].setText(accounts(position).name)
+          findView[TextView](view, Id.account) ~> text(accounts(position).name)
           view
         }
       }, { (dialog: DialogInterface, which: Int) ⇒

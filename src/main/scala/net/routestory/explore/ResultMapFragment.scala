@@ -28,7 +28,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import scala.concurrent.Future
 import scala.util.Try
 import rx._
-import net.routestory.parts.Tweaks._
+import net.routestory.parts.Styles._
 
 class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
   lazy val mMap = findFrag[SupportMapFragment](Tag.resultsMap).getMap

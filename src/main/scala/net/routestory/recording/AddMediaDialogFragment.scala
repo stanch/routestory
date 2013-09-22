@@ -20,7 +20,7 @@ import akka.dataflow._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.parts.Implicits._
 import org.macroid._
-import net.routestory.parts.Tweaks._
+import net.routestory.parts.Styles._
 import java.net.{ HttpURLConnection, URLEncoder, URL }
 import org.apache.commons.io.IOUtils
 import scala.concurrent.future

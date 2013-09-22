@@ -32,13 +32,9 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val view = super.onCreateView(inflater, container, savedInstanceState)
-    view.findViewById(android.R.id.list).asInstanceOf[ListView].addFooterView(l[HorizontalLinearLayout](
-      w[Button] ~> text("Prev") ~> wire(prev) ~> (
-        _.setOnClickListener(storyteller.prev())
-      ),
-      w[Button] ~> text("Next") ~> wire(next) ~> (
-        _.setOnClickListener(storyteller.next())
-      )
+    findView[ListView](view, android.R.id.list).addFooterView(l[HorizontalLinearLayout](
+      w[Button] ~> text("Prev") ~> wire(prev) ~> On.click(storyteller.prev()),
+      w[Button] ~> text("Next") ~> wire(next) ~> On.click(storyteller.next())
     ) ~> (_.setGravity(Gravity.CENTER_HORIZONTAL)))
     view
   }
@@ -85,7 +81,7 @@ object ResultListFragment {
     frag
   }
 
-  class StoryListAdapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, R.layout.storylist_row, results) {
+  class StoryListAdapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, 0, results) {
     override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
       val view = ResultRow.getView(Option(itemView), parent.getMeasuredWidth, getItem(position), activity)
       view.setPaddingRelative(8 dip, view.getPaddingTop, 8 dip, view.getPaddingBottom)

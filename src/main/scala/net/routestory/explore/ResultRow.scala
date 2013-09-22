@@ -15,7 +15,7 @@ import net.routestory.display.DisplayActivity
 import net.routestory.model.StoryResult
 import android.view.ViewGroup.LayoutParams
 import org.macroid.{ Tweaks, LayoutDsl, BasicViewSearch }
-import net.routestory.parts.Tweaks._
+import net.routestory.parts.Styles._
 import org.macroid.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
 

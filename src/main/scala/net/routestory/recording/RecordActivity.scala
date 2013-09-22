@@ -36,7 +36,7 @@ import net.routestory.parts.StoryActivity
 import ViewGroup.LayoutParams._
 import scala.ref.WeakReference
 import android.util.Log
-import net.routestory.parts.Tweaks._
+import net.routestory.parts.Styles._
 import org.macroid.Layouts.VerticalLinearLayout
 
 object RecordActivity {
