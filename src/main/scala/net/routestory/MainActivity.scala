@@ -13,7 +13,7 @@ import android.view.{ Gravity, ViewGroup, Menu, MenuItem }
 import com.google.android.apps.iosched.ui.widget.DashboardLayout
 import net.routestory.parts.Styles._
 import android.app.Activity
-import org.macroid.Util.Thunk
+import org.macroid.util.Thunk
 import android.view.ViewGroup.LayoutParams._
 import android.content.Intent
 import scala.reflect.ClassTag
@@ -38,28 +38,6 @@ class MainActivity extends StoryActivity {
       w[HapticButton] ~> bg(b) ~> ThunkOn.click(c)
     }
     // format: ON
-
-    /*
-    <android.support.v4.widget.DrawerLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/drawer_layout"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <!-- The main content view -->
-    <FrameLayout
-        android:id="@+id/content_frame"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-    <!-- The navigation drawer -->
-    <ListView android:id="@+id/left_drawer"
-        android:layout_width="240dp"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"
-        android:choiceMode="singleChoice"
-        android:divider="@android:color/transparent"
-        android:dividerHeight="0dp"
-        android:background="#111"/>
-     */
 
     var things: ListView = null
 

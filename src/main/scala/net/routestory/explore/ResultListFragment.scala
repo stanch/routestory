@@ -14,7 +14,7 @@ import rx._
 import org.scaloid.common._
 import android.os.Bundle
 import android.content.Context
-import org.macroid.Layouts.HorizontalLinearLayout
+import org.macroid.contrib.Layouts.HorizontalLinearLayout
 
 class ResultListFragment extends ListFragment with StoryFragment with FragmentData[HazStories] {
   lazy val storyteller = getFragmentData

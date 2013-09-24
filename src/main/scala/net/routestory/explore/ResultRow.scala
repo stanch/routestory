@@ -16,7 +16,7 @@ import net.routestory.model.StoryResult
 import android.view.ViewGroup.LayoutParams
 import org.macroid.{ Tweaks, LayoutDsl, BasicViewSearch }
 import net.routestory.parts.Styles._
-import org.macroid.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
 
 object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {

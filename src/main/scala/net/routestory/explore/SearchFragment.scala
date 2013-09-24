@@ -12,7 +12,7 @@ import android.content.Intent
 import android.app.SearchManager
 import net.routestory.parts.Implicits._
 import net.routestory.parts.Styles._
-import org.macroid.Layouts.VerticalLinearLayout
+import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 class SearchFragment extends StoryFragment with WidgetFragment {
   loaded.success(true)

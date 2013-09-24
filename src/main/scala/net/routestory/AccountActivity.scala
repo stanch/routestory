@@ -31,7 +31,7 @@ import net.routestory.parts.StoryActivity
 import akka.dataflow._
 import android.util.Log
 import net.routestory.parts.Styles._
-import org.macroid.Layouts.VerticalLinearLayout
+import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 class AccountActivity extends StoryActivity {
   override def onCreate(savedInstanceState: Bundle) {

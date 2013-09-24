@@ -12,7 +12,7 @@ import akka.dataflow._
 import org.ektorp.ViewQuery
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
-import org.macroid.Layouts.VerticalLinearLayout
+import org.macroid.contrib.Layouts.VerticalLinearLayout
 import net.routestory.parts.Styles._
 import ViewGroup.LayoutParams._
 import android.text.InputType

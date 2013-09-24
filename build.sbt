@@ -1,12 +1,4 @@
-import scalariform.formatter.preferences._
-
 androidDefaults
-
-scalariformSettings
-
-ScalariformKeys.preferences := FormattingPreferences()
-.setPreference(RewriteArrowSymbols, true)
-.setPreference(PreserveDanglingCloseParenthesis, true)
 
 name := "RouteStory"
 
@@ -39,7 +31,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
 	"org.scaloid" % "scaloid" % "1.1_8_2.10",
-	"org.macroid" %% "macroid" % "1.0.0-20130923",
+	"org.macroid" %% "macroid" % "1.0.0-20130924",
 	"com.typesafe.akka" %% "akka-dataflow" % "2.2.0-RC1",
 	"com.scalarx" %% "scalarx" % "0.1",
 	"me.lessis" %% "retry-core" % "0.1.0",

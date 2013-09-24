@@ -37,7 +37,7 @@ import ViewGroup.LayoutParams._
 import scala.ref.WeakReference
 import android.util.Log
 import net.routestory.parts.Styles._
-import org.macroid.Layouts.VerticalLinearLayout
+import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0

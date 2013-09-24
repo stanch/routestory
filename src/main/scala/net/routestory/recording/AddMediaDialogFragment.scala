@@ -24,8 +24,8 @@ import net.routestory.parts.Styles._
 import java.net.{ HttpURLConnection, URLEncoder, URL }
 import org.apache.commons.io.IOUtils
 import scala.concurrent.future
-import org.macroid.Layouts.{ HorizontalLinearLayout, GravityGridLayout, VerticalLinearLayout }
-import org.macroid.Util.Thunk
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, GravityGridLayout, VerticalLinearLayout }
+import org.macroid.util.Thunk
 import scala.collection.JavaConversions._
 import org.macroid.contrib.ExtraTweaks
 import org.codehaus.jackson.map.ObjectMapper
@@ -234,7 +234,7 @@ class VoiceDialogFragment extends AddSomethingDialogFragment {
 }
 
 class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutDsl with Tweaks with FragmentContext {
-  var taps = Var(List[Long]())
+  val taps = Var(List[Long]())
   val beats = Rx {
     if (taps().length < 5) 0 else {
       val interval = taps().sliding(2).map { case List(a, b) ⇒ a - b }.sum.toInt / 4
@@ -242,7 +242,7 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
     }
   }
 
-  import org.macroid.Util.SyncFunctors._
+  import org.macroid.util.SyncFunctors._
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val layout = l[VerticalLinearLayout](

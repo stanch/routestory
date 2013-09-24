@@ -12,7 +12,7 @@ import net.routestory.model._
 import scala.concurrent.ExecutionContext.Implicits.global
 import android.graphics.Point
 import net.routestory.parts.Styles._
-import org.macroid.Layouts.VerticalLinearLayout
+import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 class LatestFragment extends StoryFragment with WidgetFragment {
   lazy val number = Option(getArguments).map(_.getInt("number")).getOrElse(3)

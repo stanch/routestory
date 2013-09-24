@@ -30,7 +30,7 @@ import org.macroid.{ Tweaks, LayoutDsl, Concurrency }
 import org.macroid.contrib.ExtraTweaks
 import ViewGroup.LayoutParams._
 import uk.co.senab.photoview.PhotoViewAttacher
-import org.macroid.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
+import org.macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
 
 class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, activity: Activity)(implicit ctx: Context) extends Concurrency {
   var hide_overlays = false

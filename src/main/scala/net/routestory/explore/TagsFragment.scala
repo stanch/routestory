@@ -13,7 +13,7 @@ import scala.util.Random
 import android.graphics.Point
 import scala.collection.JavaConversions._
 import net.routestory.parts.Styles._
-import org.macroid.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 
 class TagsFragment extends StoryFragment with WidgetFragment {
   var rows: LinearLayout = _

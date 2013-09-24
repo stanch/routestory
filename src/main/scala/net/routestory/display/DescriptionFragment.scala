@@ -14,7 +14,7 @@ import ExecutionContext.Implicits.global
 import net.routestory.parts.StoryFragment
 import net.routestory.parts.Implicits._
 import net.routestory.parts.Styles._
-import org.macroid.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
 import org.scaloid.common._
 

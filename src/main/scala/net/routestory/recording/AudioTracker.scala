@@ -6,7 +6,7 @@ import AudioFormat._
 import java.io.{ FileOutputStream, File }
 import scala.ref.WeakReference
 import android.content.Context
-import org.macroid.Util.map2bundle
+import org.macroid.util.map2bundle
 import android.util.Log
 import com.todoroo.aacenc.AACEncoder
 import net.routestory.StoryApplication
