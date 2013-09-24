@@ -30,6 +30,7 @@ import scala.collection.JavaConversions._
 import org.macroid.contrib.ExtraTweaks
 import org.codehaus.jackson.map.ObjectMapper
 import java.util.Locale
+import rx.{ Rx, Var }
 
 class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   import AddMediaDialogFragment._
@@ -233,21 +234,22 @@ class VoiceDialogFragment extends AddSomethingDialogFragment {
 }
 
 class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutDsl with Tweaks with FragmentContext {
-  var taps = List[Long]()
-  def beats = if (taps.length < 5) 0 else {
-    val interval = taps.sliding(2).map { case List(a, b) ⇒ a - b }.sum.toInt / 4
-    60000 / interval
+  var taps = Var(List[Long]())
+  val beats = Rx {
+    if (taps().length < 5) 0 else {
+      val interval = taps().sliding(2).map { case List(a, b) ⇒ a - b }.sum.toInt / 4
+      60000 / interval
+    }
   }
 
-  var bpm: TextView = _
+  import org.macroid.Util.SyncFunctors._
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val layout = l[VerticalLinearLayout](
       w[TextView] ~> text(R.string.message_pulsehowto) ~> TextSize.medium,
-      w[TextView] ~> text("BPM: 0") ~> wire(bpm),
+      w[TextView] ~> beats.map(b ⇒ text(s"BPM: $b")),
       w[Button] ~> text("TAP") ~> On.click {
-        taps = System.currentTimeMillis() :: taps.take(4)
-        bpm ~> text(s"BPM: $beats")
+        taps.update(System.currentTimeMillis() :: taps().take(4))
       } ~> { x ⇒
         x.setHeight(100 dip)
         x.setGravity(Gravity.CENTER)
@@ -257,8 +259,8 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
     new AlertDialog.Builder(ctx) {
       setView(layout)
       setPositiveButton(R.string.button_save, { (d: DialogInterface, w: Int) ⇒
-        if (beats > 0) {
-          activity.addHeartbeat(beats)
+        if (beats.now > 0) {
+          activity.addHeartbeat(beats.now)
         }
       })
       setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒ ; })
