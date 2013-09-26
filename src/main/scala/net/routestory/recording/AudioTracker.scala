@@ -6,7 +6,7 @@ import AudioFormat._
 import java.io.{ FileOutputStream, File }
 import scala.ref.WeakReference
 import android.content.Context
-import org.macroid.util.map2bundle
+import org.macroid.util.Map2Bundle
 import android.util.Log
 import com.todoroo.aacenc.AACEncoder
 import net.routestory.StoryApplication
@@ -53,7 +53,7 @@ class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone
         Log.d("AudioTracker", "Saving")
         dumpStream.close()
         val msg = new Message
-        msg.setData(map2bundle(Map("path" → dump.getAbsolutePath)))
+        msg.setData(Map2Bundle(Map("path" → dump.getAbsolutePath)))
         handler.sendMessage(msg)
         piecesDone += 1
 

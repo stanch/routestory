@@ -16,7 +16,6 @@ import net.routestory.parts.{ Animations, HapticImageButton, StoryFragment }
 import android.app.Activity
 import android.provider.MediaStore
 import android.net.Uri
-import akka.dataflow._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.parts.Implicits._
 import org.macroid._
@@ -31,6 +30,7 @@ import org.macroid.contrib.ExtraTweaks
 import org.codehaus.jackson.map.ObjectMapper
 import java.util.Locale
 import rx.{ Rx, Var }
+import scala.async.Async.{ async, await }
 
 class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   import AddMediaDialogFragment._
@@ -39,19 +39,21 @@ class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val activity = getActivity.asInstanceOf[RecordActivity]
 
-    def clicker(factory: Thunk[DialogFragment], tag: String) = flow {
+    def clicker(factory: Thunk[DialogFragment], tag: String) = async {
       await(activity.untrackAudio())
-      switchToUiThread()
-      dismiss()
-      factory().show(activity.getSupportFragmentManager, tag)
+      Ui {
+        dismiss()
+        factory().show(activity.getSupportFragmentManager, tag)
+      }
     }
 
-    def cameraClicker = flow {
+    def cameraClicker = async {
       await(activity.untrackAudio())
-      switchToUiThread()
-      val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
-      startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
+      Ui {
+        val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
+        startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
+      }
     }
 
     val buttons = List(
@@ -119,15 +121,14 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurren
     val list = w[ListView]
     val progress = w[ProgressBar](null, android.R.attr.progressBarStyleLarge)
     // format: OFF
-    flow {
+    async {
       val data = await(venues)
       val vs = (new ObjectMapper).readTree(data).get("response").get("venues").iterator.map { v ⇒
         val loc = v.get("location")
         (v.get("id").asText, v.get("name").asText, loc.get("lat").asDouble, loc.get("lng").asDouble)
       }
       await(fadeOut(progress))
-      switchToUiThread()
-      list.setAdapter(new ArrayAdapter(activity, 0, vs.toArray) {
+      Ui(list.setAdapter(new ArrayAdapter(activity, 0, vs.toArray) {
         override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
           val item = getItem(position)
           val v = Option(itemView).getOrElse(w[TextView] ~> TextSize.large ~> padding(all = (3 sp)) ~> id(Id.text))
@@ -137,7 +138,7 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurren
             dismiss()
           }
         }
-      })
+      }))
     }
     // format: ON
 
@@ -242,7 +243,7 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
     }
   }
 
-  import org.macroid.util.SyncFunctors._
+  import org.macroid.contrib.ScalaRxSupport._
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val layout = l[VerticalLinearLayout](

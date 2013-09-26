@@ -1,8 +1,6 @@
 package net.routestory
 
-import _root_.android.os.Looper
-import _root_.android.util.Log
-import _root_.android.widget.Toast
+import android.util.Log
 import android.app.Application
 import android.content.Context
 import android.content.Context._
@@ -19,6 +17,7 @@ import org.apache.http.protocol.HttpContext
 import org.ektorp.android.http.AndroidHttpClient
 import org.ektorp._
 import org.ektorp.impl.StdCouchDbInstance
+import scala.async.Async.{ async, await }
 
 import java.io.InputStream
 import scala.reflect.ClassTag
@@ -26,11 +25,9 @@ import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.map.ObjectMapper
-import akka.dataflow._
-import org.macroid.Concurrency._
-import net.routestory.parts.Concurrency._
-import java.util.Observable
+import java.util.{ Observer, Observable }
 import com.couchbase.cblite.replicator.CBLReplicator
+import scala.util.Success
 
 object StoryApplication {
   val storyPreviewDuration = 30
@@ -213,16 +210,29 @@ class StoryApplication extends Application {
   def isOnline = {
     val cm = getSystemService(Context.CONNECTIVITY_SERVICE).asInstanceOf[ConnectivityManager]
     val netInfo = cm.getActiveNetworkInfo
-    (netInfo != null && netInfo.isConnected)
+    netInfo != null && netInfo.isConnected
   }
 
-  def replicate(c: ReplicationCommand) = Future.firstCompletedOf(Seq(flow {
+  def observeUntil(observable: Observable)(pred: (Observable, Object) ⇒ Boolean) = {
+    val promise = Promise[Unit]()
+    observable.addObserver(new Observer {
+      override def update(o: Observable, data: Object) {
+        if (pred(o, data)) {
+          observable.deleteObserver(this)
+          promise.complete(Success(()))
+        }
+      }
+    })
+    promise.future
+  }
+
+  def replicate(c: ReplicationCommand) = Future.firstCompletedOf(Seq(async {
     val status = cblInstance.get.replicate(c)
     val replicator = cblServer.get.getDatabaseNamed("story").getReplicator(status.getSessionId)
-    observeUntil(replicator) { (o: Observable, d: Object) ⇒
+    await(observeUntil(replicator) { (o: Observable, d: Object) ⇒
       !o.asInstanceOf[CBLReplicator].isRunning
-    }
-  }, flow {
+    })
+  }, future {
     Thread.sleep(5000)
   }))
 
@@ -231,7 +241,7 @@ class StoryApplication extends Application {
     if (remoteCouch.isEmpty) initRemoteCouch()
     if (isSignedIn && isOnline) {
       Log.d("Sync", "Starting to sync")
-      flow {
+      async {
         val push = new ReplicationCommand.Builder().source("story").target("https://bag-routestory-net.herokuapp.com/story").build()
         await(replicate(push))
         Log.d("Sync", "Finished pushing")

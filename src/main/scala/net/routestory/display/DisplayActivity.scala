@@ -31,9 +31,9 @@ import net.routestory.StoryApplication
 import net.routestory.model._
 import net.routestory.parts._
 import scala.concurrent._
-import akka.dataflow._
 import retry.Defaults.timer
 import retry.Backoff
+import scala.async.Async.{ async, await }
 
 object DisplayActivity {
   object NfcIntent {
@@ -65,7 +65,7 @@ class DisplayActivity extends StoryActivity with HazStory {
 
   private var id: String = _
 
-  private lazy val mStory = flow {
+  private lazy val mStory = async {
     val story = await(app.getObject[Story](id))
     val author = await(app.getObject[Author](story.authorId))
     story.author = author

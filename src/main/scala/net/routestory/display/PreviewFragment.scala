@@ -27,21 +27,20 @@ import scala.concurrent.Future
 import scala.collection.JavaConversions._
 import android.app.ProgressDialog
 import net.routestory.parts.StoryFragment
-import akka.dataflow._
 import android.widget.FrameLayout.LayoutParams
 import scala.collection.mutable
 import android.view.animation.AlphaAnimation
 import net.routestory.parts.Animation._
 import ViewGroup.LayoutParams._
 import android.util.Log
+import scala.async.Async.{ async, await }
 
 class PreviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
   lazy val mMap = findFrag[SupportMapFragment](Tag.previewMap).getMap
-  lazy val mRouteManager = flow {
+  lazy val mRouteManager = async {
     val story = await(mStory)
-    switchToUiThread()
-    new RouteManager(mMap, story).init()
+    await(Ui(new RouteManager(mMap, story).init()))
   }
   lazy val mHandler = new Handler
 
@@ -60,14 +59,13 @@ class PreviewFragment extends StoryFragment {
         w[ImageView] ~> wire(mImageView)
       ),
       l[FrameLayout](
-        w[Button] ~> text(R.string.play) ~> wire(mPlayButton) ~> { x ⇒
-          x.setLayoutParams(new LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER))
-          x.setOnClickListener { v: View ⇒
+        w[Button] ~> text(R.string.play) ~> wire(mPlayButton) ~>
+          lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER) ~>
+          On.click {
             mStory zip mRouteManager onSuccessUi {
               case (x, y) ⇒ startPreview(x, y)
             }
           }
-        }
       )
     )
   }
@@ -76,40 +74,38 @@ class PreviewFragment extends StoryFragment {
     mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL)
 
     /* Display the man */
-    flow {
+    async {
       val rm = await(mRouteManager)
-      switchToUiThread()
-      mPositionMarker = mMap.addMarker(new MarkerOptions()
-        .position(rm.getStart)
-        .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
-      )
+      Ui {
+        mPositionMarker = mMap.addMarker(new MarkerOptions()
+          .position(rm.getStart)
+          .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
+        )
+      }
     }
 
     val display = getActivity.getWindowManager.getDefaultDisplay
     val maxSize = Math.min(display.getWidth(), display.getHeight()) / 4
 
-    flow {
+    async {
       val story = await(mStory)
-
-      switchToUiThread()
-      val progress = new ProgressDialog(ctx) {
+      val progress = await(Ui(new ProgressDialog(ctx) {
         setMessage("Loading data...")
         setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
         setMax(story.photos.length + Option(story.audioPreview).map(x ⇒ 1).getOrElse(0))
         show()
-      }
+      }))
 
-      val photos = Future.sequence(story.photos.map(i ⇒ flow {
+      val photos = Future.sequence(story.photos.map(i ⇒ async {
         val pic = await(i.get(maxSize))
-        switchToUiThread()
         Option(pic) foreach {
           bitmap ⇒
-            mMap.addMarker(new MarkerOptions()
+            Ui(mMap.addMarker(new MarkerOptions()
               .position(story.getLocation(i.timestamp))
               .icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
                 bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize), 0.8, false)
               ))
-            )
+            ))
         }
         progress.incrementProgressBy(1)
       }))
@@ -120,8 +116,7 @@ class PreviewFragment extends StoryFragment {
       }).getOrElse(Future.successful(()))
 
       await(photos zip audio)
-      switchToUiThread()
-      progress.dismiss()
+      Ui(progress.dismiss())
     }
   }
 

@@ -17,9 +17,9 @@ import android.widget.{ FrameLayout, SearchView }
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import org.scaloid.common._
-import akka.dataflow._
 import rx._
 import scala.util.Try
+import scala.async.Async.{ async, await }
 
 trait HazStories {
   def getStories: Var[Future[List[StoryResult]]]
@@ -122,7 +122,7 @@ class SearchResultsActivity extends StoryActivity with HazStories with FragmentD
     }
   }
 
-  private def fetchResults(queryFactory: QueryFactory, bookmark: Option[String]) = flow {
+  private def fetchResults(queryFactory: QueryFactory, bookmark: Option[String]) = async {
     val (results, total, mark) = await(app.getQueryResults[StoryResult](remote = true, queryFactory(), bookmark))
     bookmarks ::= mark
     totalStories = total

@@ -6,21 +6,13 @@ version := "1.0"
 
 versionCode := 0
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.3-RC2"
 
 scalaOrganization := "org.scala-lang"
 
 platformName := "android-17"
 
 compileOrder := CompileOrder.JavaThenScala
-
-autoCompilerPlugins := true
-
-libraryDependencies <+= scalaVersion {
-    v => compilerPlugin("org.scala-lang.plugins" % "continuations" % v)
-}
-
-scalacOptions += "-P:continuations:enable"
 
 //scalacOptions += "-Ymacro-debug-lite"
 
@@ -31,8 +23,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
 	"org.scaloid" % "scaloid" % "1.1_8_2.10",
-	"org.macroid" %% "macroid" % "1.0.0-20130924",
-	"com.typesafe.akka" %% "akka-dataflow" % "2.2.0-RC1",
+	"org.macroid" %% "macroid" % "1.0.0-20130926",
 	"com.scalarx" %% "scalarx" % "0.1",
 	"me.lessis" %% "retry-core" % "0.1.0",
 	aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),

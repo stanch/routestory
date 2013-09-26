@@ -28,10 +28,9 @@ import android.widget.TextView
 import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.HapticButton
 import net.routestory.parts.StoryActivity
-import akka.dataflow._
-import android.util.Log
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
+import scala.async.Async.{ async, await }
 
 class AccountActivity extends StoryActivity {
   override def onCreate(savedInstanceState: Bundle) {
@@ -52,7 +51,7 @@ class AccountActivity extends StoryActivity {
   def showSignedOut() {
     setContentView(l[VerticalLinearLayout](
       w[TextView] ~> text(R.string.account_policy) ~> TextSize.medium,
-      w[HapticButton] ~> text(R.string.signin) ~> (_.setOnClickListener(selectAccount))
+      w[HapticButton] ~> text(R.string.signin) ~> On.click(selectAccount())
     ))
   }
 
@@ -81,12 +80,11 @@ class AccountActivity extends StoryActivity {
 
   def showSignedIn() {
     val progress = spinnerDialog("", ctx.getResources.getString(R.string.message_preparingaccount))
-    flow {
+    async {
       await(future { while (!app.localContains(app.getAuthorId)) {} })
-      switchToUiThread()
-      progress.dismiss()
+      Ui(progress.dismiss())
       val author = app.getAuthor
-      setContentView(l[ScrollView](
+      Ui(setContentView(l[ScrollView](
         l[VerticalLinearLayout](
           w[ImageView] ~> { x ⇒
             x.setScaleType(ImageView.ScaleType.FIT_START)
@@ -97,14 +95,12 @@ class AccountActivity extends StoryActivity {
             }
           },
           w[TextView] ~> text(author.name) ~> TextSize.large,
-          w[HapticButton] ~> text(R.string.signout) ~> { x ⇒
-            x.setOnClickListener { v: View ⇒
-              app.signOut()
-              showSignedOut()
-            }
+          w[HapticButton] ~> text(R.string.signout) ~> On.click {
+            app.signOut()
+            showSignedOut()
           }
         )
-      ))
+      )))
     } onFailureUi {
       case e ⇒ e.printStackTrace()
     }
@@ -126,17 +122,16 @@ class AccountActivity extends StoryActivity {
           }
           val token = bundle.getString(AccountManager.KEY_AUTHTOKEN) // cool, we have a token
           val progress = spinnerDialog("", ctx.getResources.getString(R.string.toast_signingin))
-          flow {
+          async {
             val url = new URL("https://www-routestory-net.herokuapp.com/signin?mobiletoken=" + URLEncoder.encode(token, "UTF-8"))
-            val response = await(flow {
+            val response = await(async {
               val conn = url.openConnection().asInstanceOf[HttpURLConnection]
               IOUtils.toString(conn.getInputStream)
             })
-            switchToUiThread()
             // the response is: author_id;hashed_authentication_token
             app.setAuthData(response.split(";"))
-            progress.dismiss()
-            showSignedIn()
+            Ui(progress.dismiss())
+            Ui(showSignedIn())
           } onFailureUi {
             case t ⇒
               accountManager.invalidateAuthToken("com.google", token)

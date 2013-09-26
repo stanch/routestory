@@ -7,11 +7,11 @@ import android.widget._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import net.routestory.parts.{ WidgetFragment, GotoDialogFragments, StoryActivity }
-import akka.dataflow._
 import android.support.v4.app.Fragment
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import ViewGroup.LayoutParams._
+import scala.async.Async.{ async, await }
 
 class ExploreActivity extends StoryActivity {
   var progress: ProgressBar = _
@@ -54,7 +54,7 @@ class ExploreActivity extends StoryActivity {
   override def onFirstStart() {
     if (!GotoDialogFragments.ensureNetwork(this)) return
 
-    flow {
+    async {
       await(latest.loaded.future zip tags.loaded.future zip search.loaded.future)
       await(fadeOut(findView(Id.progress)))
       await(fadeIn(findView(Id.latest)))

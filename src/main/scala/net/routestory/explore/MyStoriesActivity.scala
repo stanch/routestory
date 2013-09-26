@@ -9,11 +9,10 @@ import org.scaloid.common._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
-import akka.dataflow._
 import net.routestory.R
 import rx._
 import android.app.ActionBar
-import android.util.Log
+import scala.async.Async.{ async, await }
 
 class MyStoriesActivity extends StoryActivity with HazStories with FragmentDataProvider[HazStories] {
   lazy val myStories: Var[Future[List[StoryResult]]] = Var(fetchStories)
@@ -40,7 +39,7 @@ class MyStoriesActivity extends StoryActivity with HazStories with FragmentDataP
 
   def fetchStories = {
     val query = new ViewQuery().designDocId("_design/Story").viewName("byme").descending(true).includeDocs(true)
-    flow {
+    async {
       val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = false, query, None))
       val authorIds = stories.map(_.authorId)
       val authors = await(app.getObjects[Author](authorIds))

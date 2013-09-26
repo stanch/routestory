@@ -8,7 +8,6 @@ import android.view.{ ViewGroup, KeyEvent, View }
 import android.widget._
 import net.routestory.R
 import net.routestory.parts.{ HapticButton, StoryActivity }
-import akka.dataflow._
 import org.ektorp.ViewQuery
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
@@ -16,6 +15,7 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 import net.routestory.parts.Styles._
 import ViewGroup.LayoutParams._
 import android.text.InputType
+import scala.async.Async.{ async, await }
 
 class DescriptionActivity extends StoryActivity {
   var title: EditText = _
@@ -62,14 +62,15 @@ class DescriptionActivity extends StoryActivity {
 
   override def onStart() {
     super.onStart()
-    flow {
+    async {
       val query = new ViewQuery().designDocId("_design/Story").viewName("tags").group(true)
       val tagz = await(app.getPlainQueryResults(remote = true, query))
       val tagArray = tagz.getRows.map(_.getKey).toArray
-      switchToUiThread()
-      val adapter = new ArrayAdapter[String](ctx, android.R.layout.simple_dropdown_item_1line, tagArray)
-      tags.setAdapter(adapter)
-      tags.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)
+      Ui {
+        val adapter = new ArrayAdapter[String](ctx, android.R.layout.simple_dropdown_item_1line, tagArray)
+        tags.setAdapter(adapter)
+        tags.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)
+      }
     }
   }
 
