@@ -45,7 +45,7 @@ trait Animations {
 trait StoryActivity extends FragmentActivity
   with FullDslActivity
   with FirstEveryStart
-  with Animations /*with SActivity*/ {
+  with Animations {
 
   lazy val app = getApplication.asInstanceOf[StoryApplication]
   lazy val bar = getActionBar

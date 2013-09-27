@@ -19,12 +19,8 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
-import android.view.{ MenuItem, View, ViewGroup }
-import android.widget.ArrayAdapter
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
+import android.view.{ View, ViewGroup }
+import android.widget._
 import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.HapticButton
 import net.routestory.parts.StoryActivity
@@ -36,7 +32,7 @@ class AccountActivity extends StoryActivity {
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
     bar.setDisplayHomeAsUpEnabled(true)
-    setContentView(new SFrameLayout())
+    setContentView(l[FrameLayout]())
   }
 
   override def onStart() {

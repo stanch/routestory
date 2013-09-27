@@ -109,14 +109,29 @@ class AddSomethingDialogFragment extends DialogFragment {
 
 class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurrency with BasicViewSearch with FragmentContext with Animations {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
+    //    import dispatch._
+    //    import com.ning.http.client._
+    //    new providers.netty.NettyAsyncHttpProvider(new AsyncHttpClientConfig.Builder().build)
+    //    val rq = url("https://api.foursquare.com/v2/venues/search").GET <<? Map(
+    //      "client_id" → "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05",
+    //      "client_secret" → "SIPSHLBOLADA2HW3RT44GE14OGBDNSM0VPBN4MSEWH2E4VLN",
+    //      "ll" → "%f,%f".formatLocal(Locale.US, coords.latitude, coords.longitude),
+    //      "v" → "20130920",
+    //      "intent" → "browse",
+    //      "radius" → "100"
+    //    )
     val client_id = "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05"
     val client_secret = "SIPSHLBOLADA2HW3RT44GE14OGBDNSM0VPBN4MSEWH2E4VLN"
     val ll = "%f,%f".formatLocal(Locale.US, coords.latitude, coords.longitude)
-    val url = new URL(s"https://api.foursquare.com/v2/venues/search?ll=$ll&client_id=$client_id&client_secret=$client_secret&v=20130920&intent=browse&radius=100")
+    val urll = new URL(s"https://api.foursquare.com/v2/venues/search?ll=$ll&client_id=$client_id&client_secret=$client_secret&v=20130920&intent=browse&radius=100")
     val venues = future {
-      val conn = url.openConnection().asInstanceOf[HttpURLConnection]
+      val conn = urll.openConnection().asInstanceOf[HttpURLConnection]
       conn.getInputStream
     }
+    //    val venues = Http(rq OK as.String) onFailureUi {
+    //      case t ⇒
+    //        t.printStackTrace()
+    //    }
 
     val list = w[ListView]
     val progress = w[ProgressBar](null, android.R.attr.progressBarStyleLarge)

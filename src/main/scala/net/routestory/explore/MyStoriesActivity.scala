@@ -13,6 +13,7 @@ import net.routestory.R
 import rx._
 import android.app.ActionBar
 import scala.async.Async.{ async, await }
+import android.util.Log
 
 class MyStoriesActivity extends StoryActivity with HazStories with FragmentDataProvider[HazStories] {
   lazy val myStories: Var[Future[List[StoryResult]]] = Var(fetchStories)
@@ -41,6 +42,7 @@ class MyStoriesActivity extends StoryActivity with HazStories with FragmentDataP
     val query = new ViewQuery().designDocId("_design/Story").viewName("byme").descending(true).includeDocs(true)
     async {
       val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = false, query, None))
+      Log.d("Story", "got stories " + System.currentTimeMillis.toString)
       val authorIds = stories.map(_.authorId)
       val authors = await(app.getObjects[Author](authorIds))
       stories.filter(_.authorId != null) foreach { r ⇒

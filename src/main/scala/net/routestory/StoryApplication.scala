@@ -154,11 +154,11 @@ class StoryApplication extends Application {
   }
 
   def localContains(id: String) = {
-    localCouch.map(_.contains(id)) getOrElse false
+    localCouch.exists(_.contains(id))
   }
 
   def remoteContains(id: String) = {
-    !localContains(id) || remoteCouch.map(_.contains(id)).getOrElse(false)
+    !localContains(id) || remoteCouch.exists(_.contains(id))
   }
 
   def localOrRemote[A](local: Boolean, f: CouchDbConnector ⇒ A): Future[A] = {
@@ -183,7 +183,7 @@ class StoryApplication extends Application {
   }
 
   def getObjects[A <: CouchDbObject: ClassTag](ids: List[String]): Future[Map[String, A]] = {
-    val (local, remote) = ids.filter(_ != null).partition(localContains(_))
+    val (local, remote) = ids.filter(_ != null).partition(localContains)
     val localObjects = local.map(id ⇒ (id, couchGet[A](localCouch.get, id))).toMap
     if (remote.isEmpty) Future.successful {
       localObjects

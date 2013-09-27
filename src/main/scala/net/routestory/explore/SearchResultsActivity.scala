@@ -22,7 +22,7 @@ import scala.util.Try
 import scala.async.Async.{ async, await }
 
 trait HazStories {
-  def getStories: Var[Future[List[StoryResult]]]
+  def getStories: Rx[Future[List[StoryResult]]]
   def next() {}
   def prev() {}
   def hasNext: Boolean = false
