@@ -27,12 +27,12 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
     getResources.getString(R.string.empty_search)
   }
 
-  var next: Button = _
-  var prev: Button = _
+  var next = slot[Button]
+  var prev = slot[Button]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val view = super.onCreateView(inflater, container, savedInstanceState)
-    findView[ListView](view, android.R.id.list).addFooterView(l[HorizontalLinearLayout](
+    findView[ListView](view, android.R.id.list).get.addFooterView(l[HorizontalLinearLayout](
       w[Button] ~> text("Prev") ~> wire(prev) ~> On.click(storyteller.prev()),
       w[Button] ~> text("Next") ~> wire(next) ~> On.click(storyteller.next())
     ) ~> (_.setGravity(Gravity.CENTER_HORIZONTAL)))
@@ -57,8 +57,8 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
     results.onSuccessUi {
       case res ⇒
         setListAdapter(new ResultListFragment.StoryListAdapter(res, getActivity))
-        prev.setEnabled(storyteller.hasPrev)
-        next.setEnabled(storyteller.hasNext)
+        prev ~> enable(storyteller.hasPrev)
+        next ~> enable(storyteller.hasNext)
         setListShown(true)
     }
   }

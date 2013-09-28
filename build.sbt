@@ -23,7 +23,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
 	"org.scaloid" % "scaloid" % "1.1_8_2.10",
-	"org.macroid" %% "macroid" % "1.0.0-20130926",
+	"org.macroid" %% "macroid" % "1.0.0-20130927",
 	"com.scalarx" %% "scalarx" % "0.1",
 	"me.lessis" %% "retry-core" % "0.1.0",
 	aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),

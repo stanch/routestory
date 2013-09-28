@@ -16,7 +16,7 @@ import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayou
 import scala.async.Async.{ async, await }
 
 class TagsFragment extends StoryFragment with WidgetFragment {
-  var rows: LinearLayout = _
+  var rows = slot[LinearLayout]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](

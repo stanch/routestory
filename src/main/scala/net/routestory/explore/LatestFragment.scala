@@ -16,7 +16,7 @@ import scala.async.Async.{ async, await }
 
 class LatestFragment extends StoryFragment with WidgetFragment {
   lazy val number = Option(getArguments).map(_.getInt("number")).getOrElse(3)
-  var list: LinearLayout = _
+  var list = slot[LinearLayout]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](

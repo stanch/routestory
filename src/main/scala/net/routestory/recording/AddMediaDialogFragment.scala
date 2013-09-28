@@ -258,8 +258,6 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
     }
   }
 
-  import org.macroid.contrib.ScalaRxSupport._
-
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val layout = l[VerticalLinearLayout](
       w[TextView] ~> text(R.string.message_pulsehowto) ~> TextSize.medium,

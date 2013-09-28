@@ -31,7 +31,7 @@ import rx._
 import net.routestory.parts.Styles._
 
 class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
-  lazy val mMap = findFrag[SupportMapFragment](Tag.resultsMap).getMap
+  lazy val mMap = findFrag[SupportMapFragment](Tag.resultsMap).get.getMap
   var mMarkers = Map[Marker, StoryResult]()
   var mRoutes = List[Polyline]()
 

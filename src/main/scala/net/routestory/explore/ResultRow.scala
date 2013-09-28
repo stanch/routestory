@@ -24,11 +24,9 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
     setSpan(new UnderlineSpan(), 0, length, 0)
   }
 
-  def fillTags(tagRowsView: LinearLayout, maxWidth: Int, tags: Array[String], activity: Activity)(implicit ctx: Context) {
-    tagRowsView.removeAllViews()
-
+  def fillTags(tagRowsView: Option[LinearLayout], maxWidth: Int, tags: Array[String], activity: Activity)(implicit ctx: Context) {
     // form rows by accumulating tags that fit in one line
-    val rows = tags.foldLeft[(Int, List[List[View]])]((0, Nil :: Nil)) {
+    val (_, rows) = tags.foldLeft[(Int, List[List[View]])]((0, Nil :: Nil)) {
       case ((width, row :: prevRows), tag) ⇒
 
         // create spacer if needed
@@ -58,10 +56,7 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
     }
 
     // add to layout
-    rows._2.foreach { row ⇒
-      val r = l[HorizontalLinearLayout]() ~> lpOf[LinearLayout](MATCH_PARENT, WRAP_CONTENT) ~> addViewsReverse(row)
-      tagRowsView.addView(r, 0)
-    }
+    tagRowsView ~> addViewsReverse(rows.map(row ⇒ l[HorizontalLinearLayout]() ~> addViewsReverse(row)), removeOld = true)
   }
 
   def getView(_view: Option[View], maxWidth: Int, story: StoryResult, activity: Activity)(implicit ctx: Context) = {
@@ -96,7 +91,7 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
     findView[View](view, Id.storyTags) ~> (Option(story.tags).filter(_.length > 0).filterNot(t ⇒ t.length == 1 && t(0) == "") map { tags ⇒
       val tagged = findView[TextView](view, Id.tagged) ~> (_.measure(0, 0))
       val tagRows = findView[LinearLayout](view, Id.storyTagRows)
-      fillTags(tagRows, maxWidth - tagged.getMeasuredWidth * 4 / 3, tags, activity)
+      fillTags(tagRows, maxWidth - tagged.get.getMeasuredWidth * 4 / 3, tags, activity)
       show
     } getOrElse {
       hide

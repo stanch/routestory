@@ -30,22 +30,21 @@ import net.routestory.parts.StoryFragment
 import android.widget.FrameLayout.LayoutParams
 import scala.collection.mutable
 import android.view.animation.AlphaAnimation
-import net.routestory.parts.Animation._
 import ViewGroup.LayoutParams._
 import android.util.Log
 import scala.async.Async.{ async, await }
 
 class PreviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
-  lazy val mMap = findFrag[SupportMapFragment](Tag.previewMap).getMap
+  lazy val mMap = findFrag[SupportMapFragment](Tag.previewMap).get.getMap
   lazy val mRouteManager = async {
     val story = await(mStory)
     await(Ui(new RouteManager(mMap, story).init()))
   }
   lazy val mHandler = new Handler
 
-  var mPlayButton: Button = _
-  var mImageView: ImageView = _
+  var mPlayButton = slot[Button]
+  var mImageView = slot[ImageView]
 
   var mMediaPlayer: MediaPlayer = _
   var mPositionMarker: Marker = _
@@ -136,7 +135,7 @@ class PreviewFragment extends StoryFragment {
   }
 
   def startPreview(story: Story, rm: RouteManager) {
-    mPlayButton.setVisibility(View.INVISIBLE)
+    mPlayButton ~> hide
     val start = SystemClock.uptimeMillis()
     val ratio = story.duration.toDouble / StoryApplication.storyPreviewDuration / 1000
     val lastLocation = story.locations.last.timestamp / ratio
@@ -159,8 +158,8 @@ class PreviewFragment extends StoryFragment {
         }, start + (beat.timestamp / ratio).toInt)
     }
 
-    def fadeIn(view: View) = new AlphaAnimation(0, 1).duration(300).runOn(view)
-    def fadeOut(view: View) = new AlphaAnimation(1, 0).duration(300).runOn(view, hideOnFinish = true)
+    val fadeIn = show +@ anim(new AlphaAnimation(0, 1), duration = 300)
+    val fadeOut = anim(new AlphaAnimation(1, 0), duration = 300) @+ hide
     val spans = story.photos.map(_.timestamp / ratio).sorted.sliding(2).map {
       case mutable.Buffer(a, b) ⇒ (b - a).toInt
       case _ ⇒ 1000
@@ -172,10 +171,9 @@ class PreviewFragment extends StoryFragment {
           mHandler.postAtTime({
             photo.get(400) foreach {
               bitmap ⇒
-                runOnUiThread(mImageView.setImageBitmap(bitmap))
-                fadeIn(mImageView)
+                mImageView ~> { x: ImageView ⇒ x.setImageBitmap(bitmap) } ~@> fadeIn
                 mHandler.postDelayed({
-                  fadeOut(mImageView)
+                  mImageView ~@> fadeOut
                 }, List(span - 600, 1500).min)
             }
           }, start + (photo.timestamp / ratio).toInt)
@@ -223,7 +221,7 @@ class PreviewFragment extends StoryFragment {
   }
 
   def rewind() {
-    mPlayButton.setVisibility(View.VISIBLE)
+    mPlayButton ~> show
     mRouteManager onSuccessUi {
       case rm ⇒
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()

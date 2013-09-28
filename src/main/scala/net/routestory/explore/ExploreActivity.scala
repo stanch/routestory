@@ -14,12 +14,12 @@ import ViewGroup.LayoutParams._
 import scala.async.Async.{ async, await }
 
 class ExploreActivity extends StoryActivity {
-  var progress: ProgressBar = _
-  var retry: Button = _
+  var progress = slot[ProgressBar]
+  var retry = slot[Button]
 
-  def latest = findFrag[Fragment with WidgetFragment](Tag.latest)
-  def tags = findFrag[Fragment with WidgetFragment](Tag.tags)
-  def search = findFrag[Fragment with WidgetFragment](Tag.search)
+  def latest = findFrag[Fragment with WidgetFragment](Tag.latest).get
+  def tags = findFrag[Fragment with WidgetFragment](Tag.tags).get
+  def search = findFrag[Fragment with WidgetFragment](Tag.search).get
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -33,13 +33,12 @@ class ExploreActivity extends StoryActivity {
       ),
       l[FrameLayout](
         w[ProgressBar](null, android.R.attr.progressBarStyleLarge) ~>
-          id(Id.progress) ~>
           lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER) ~>
           wire(progress),
         w[Button] ~>
           id(Id.retry) ~>
           lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER) ~>
-          hide ~> text("Retry") ~> wire(retry) ⇝
+          hide ~> text("Retry") ~> wire(retry) ~>
           On.click {
             retry ~> hide
             progress ~> hide
@@ -56,10 +55,10 @@ class ExploreActivity extends StoryActivity {
 
     async {
       await(latest.loaded.future zip tags.loaded.future zip search.loaded.future)
-      await(fadeOut(findView(Id.progress)))
-      await(fadeIn(findView(Id.latest)))
-      await(fadeIn(findView(Id.tags)))
-      await(fadeIn(findView(Id.search)))
+      await(progress ~@> fadeOut)
+      await(findView[View](Id.latest) ~@> fadeOut)
+      await(findView[View](Id.tags) ~@> fadeOut)
+      await(findView[View](Id.search) ~@> fadeOut)
     } onFailureUi {
       case t ⇒
         t.printStackTrace()

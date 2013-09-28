@@ -25,7 +25,7 @@ import scala.async.Async.{ async, await }
 class OverviewFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
   lazy val display = getActivity.getWindowManager.getDefaultDisplay
-  lazy val mMap = findFrag[SupportMapFragment](Tag.overviewMap).getMap
+  lazy val mMap = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap
   lazy val mRouteManager = async {
     val story = await(mStory)
     val rm = new RouteManager(mMap, story)

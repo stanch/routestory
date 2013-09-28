@@ -9,6 +9,7 @@ import scala.concurrent.Promise
 import android.view.{ MenuItem, View }
 import android.view.animation.AlphaAnimation
 import android.content.Intent
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait FirstEveryStart {
   var everStarted = false
@@ -35,11 +36,9 @@ trait FragmentData[A] { self: Fragment ⇒
   def getFragmentData = getActivity.asInstanceOf[FragmentDataProvider[A]].getFragmentData(getTag)
 }
 
-trait Animations {
-  import Animation._
-
-  def fadeIn(view: View) = new AlphaAnimation(0, 1).duration(400).runOn(view)
-  def fadeOut(view: View) = new AlphaAnimation(1, 0).duration(400).runOn(view, hideOnFinish = true)
+trait Animations extends Tweaks {
+  val fadeIn = show +@ anim(new AlphaAnimation(0, 1), duration = 400)
+  val fadeOut = anim(new AlphaAnimation(1, 0), duration = 400) @+ hide
 }
 
 trait StoryActivity extends FragmentActivity

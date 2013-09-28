@@ -59,7 +59,7 @@ class RecordActivity extends StoryActivity {
   var mProgressDialog: ProgressDialog = null
   var mLocationListener: LocationListener = null
 
-  lazy val mMap = findFrag[SupportMapFragment](Tag.recordingMap).getMap
+  lazy val mMap = findFrag[SupportMapFragment](Tag.recordingMap).get.getMap
   lazy val mRouteManager = new RouteManager(mMap, mStory)
 
   var mManMarker: Marker = null

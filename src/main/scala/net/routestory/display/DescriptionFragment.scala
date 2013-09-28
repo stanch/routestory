@@ -21,11 +21,11 @@ import org.scaloid.common._
 class DescriptionFragment extends StoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
 
-  var authorPicture: ImageView = _
-  var authorName: TextView = _
-  var description: TextView = _
-  var tagStuff: LinearLayout = _
-  var tagRows: LinearLayout = _
+  var authorPicture = slot[ImageView]
+  var authorName = slot[TextView]
+  var description = slot[TextView]
+  var tagStuff = slot[LinearLayout]
+  var tagRows = slot[LinearLayout]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[ScrollView](
@@ -57,11 +57,13 @@ class DescriptionFragment extends StoryFragment {
         val width = display.getWidth()
 
         Option(story.author) map { a ⇒
-          authorPicture.setScaleType(ImageView.ScaleType.FIT_START)
-          authorPicture.setAdjustViewBounds(true)
+          authorPicture ~> { x ⇒
+            x.setScaleType(ImageView.ScaleType.FIT_START)
+            x.setAdjustViewBounds(true)
+          }
           authorName ~> text(a.name)
           a.pictureCache.get onSuccessUi {
-            case picture ⇒ Option(picture).map(authorPicture.setImageBitmap(_)).getOrElse(authorPicture ~> hide)
+            case picture ⇒ Option(picture).map(b ⇒ authorPicture ~> (_.setImageBitmap(b))).getOrElse(authorPicture ~> hide)
           }
         } getOrElse {
           authorName ~> text("Me")
