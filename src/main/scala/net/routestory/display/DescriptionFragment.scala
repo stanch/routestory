@@ -1,18 +1,15 @@
 package net.routestory.display
 
 import net.routestory.R
-import android.graphics.Point
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.{ ScrollView, LinearLayout, TextView, ImageView }
 import net.routestory.explore.ResultRow
-import android.graphics.Bitmap
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import net.routestory.parts.StoryFragment
-import net.routestory.parts.Implicits._
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._

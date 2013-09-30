@@ -10,7 +10,6 @@ import android.text.InputType
 import android.view.inputmethod.EditorInfo
 import android.content.Intent
 import android.app.SearchManager
-import net.routestory.parts.Implicits._
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 

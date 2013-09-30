@@ -6,7 +6,7 @@ import net.routestory.MainActivity
 import net.routestory.R
 import net.routestory.model.Author
 import net.routestory.model.StoryResult
-import net.routestory.parts.{ FragmentDataProvider, GotoDialogFragments, StoryActivity }
+import net.routestory.parts.{ FragmentPaging, FragmentDataProvider, GotoDialogFragments, StoryActivity }
 import android.app.{ ActionBar, SearchManager }
 import android.content.Context
 import android.content.Intent
@@ -20,6 +20,7 @@ import org.scaloid.common._
 import rx._
 import scala.util.Try
 import scala.async.Async.{ async, await }
+import org.macroid.util.{ Thunk, Text }
 
 trait HazStories {
   def getStories: Rx[Future[List[StoryResult]]]
@@ -43,7 +44,10 @@ object SearchResultsActivity {
   }
 }
 
-class SearchResultsActivity extends StoryActivity with HazStories with FragmentDataProvider[HazStories] {
+class SearchResultsActivity extends StoryActivity
+  with HazStories
+  with FragmentDataProvider[HazStories]
+  with FragmentPaging {
   import SearchResultsActivity._
 
   // TODO: see if this can be made easier...
@@ -53,7 +57,7 @@ class SearchResultsActivity extends StoryActivity with HazStories with FragmentD
   // to add queryParams("bookmark", ...) or not
   // if we used a mutable object instead, the old queryParam would remain
   // and we would not be able to get back to the first page by setting bookmark=None
-  type QueryFactory = () ⇒ ViewQuery
+  type QueryFactory = Thunk[ViewQuery]
   val queryFactory: Var[Option[QueryFactory]] = Var(None)
 
   // this is failed at the beginning, so that observers don’t update (they update onSuccess)
@@ -84,20 +88,13 @@ class SearchResultsActivity extends StoryActivity with HazStories with FragmentD
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
-    setContentView(new FrameLayout(ctx))
 
-    bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
-
-    val sel = if (getIntent.hasExtra("showmap")) 1 else Option(savedInstanceState).map(_.getInt("tab")).getOrElse(0)
-    bar.addTab(R.string.title_tab_resultslist, new ResultListFragment, Tag.list, sel == 0)
-    bar.addTab(R.string.title_tab_resultsmap, new ResultMapFragment, Tag.map, sel == 1)
-  }
-
-  override def onSaveInstanceState(savedInstanceState: Bundle) {
-    super.onSaveInstanceState(savedInstanceState)
-    savedInstanceState.putInt("tab", bar.getSelectedTab.getPosition)
+    setContentView(drawer(getTabs(
+      Text(R.string.title_tab_resultslist) → ff[ResultListFragment](),
+      Text(R.string.title_tab_resultsmap) → ff[ResultMapFragment]()
+    )))
   }
 
   override def onStart() {
@@ -135,16 +132,18 @@ class SearchResultsActivity extends StoryActivity with HazStories with FragmentD
   }
 
   def textQuery(q: String) {
-    queryFactory() = Some(() ⇒
-      new ViewQuery().designDocId("_design/Story").viewName("textQuery")
-        .queryParam("q", q).limit(storiesByPage).queryParam("include_geometry", "true"))
+    queryFactory() = Some(Thunk {
+      (new ViewQuery).designDocId("_design/Story").viewName("textQuery")
+        .queryParam("q", q).limit(storiesByPage).queryParam("include_geometry", "true")
+    })
   }
 
   def geoQuery(bbox: String) {
     bar.setSubtitle(getResources.getString(R.string.search_results_area))
-    queryFactory() = Some(() ⇒
-      new ViewQuery().designDocId("_design/Story").viewName("geoQuery")
-        .queryParam("bbox", bbox))
+    queryFactory() = Some(Thunk {
+      (new ViewQuery).designDocId("_design/Story").viewName("geoQuery")
+        .queryParam("bbox", bbox)
+    })
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean = {

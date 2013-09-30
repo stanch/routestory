@@ -9,6 +9,7 @@ import ExecutionContext.Implicits.global
 import net.routestory.parts.{ WidgetFragment, GotoDialogFragments, StoryActivity }
 import android.support.v4.app.Fragment
 import net.routestory.parts.Styles._
+import net.routestory.parts.Effects
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import ViewGroup.LayoutParams._
 import scala.async.Async.{ async, await }
@@ -46,7 +47,7 @@ class ExploreActivity extends StoryActivity {
           }
       )
     )
-    setContentView(view)
+    setContentView(drawer(view))
     bar.setDisplayHomeAsUpEnabled(true)
   }
 
@@ -55,10 +56,10 @@ class ExploreActivity extends StoryActivity {
 
     async {
       await(latest.loaded.future zip tags.loaded.future zip search.loaded.future)
-      await(progress ~@> fadeOut)
-      await(findView[View](Id.latest) ~@> fadeOut)
-      await(findView[View](Id.tags) ~@> fadeOut)
-      await(findView[View](Id.search) ~@> fadeOut)
+      await(progress ~@> Effects.fadeOut)
+      await(findView[View](Id.latest) ~@> Effects.fadeOut)
+      await(findView[View](Id.tags) ~@> Effects.fadeOut)
+      await(findView[View](Id.search) ~@> Effects.fadeOut)
     } onFailureUi {
       case t ⇒
         t.printStackTrace()

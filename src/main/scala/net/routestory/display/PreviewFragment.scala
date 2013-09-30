@@ -21,15 +21,12 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import org.scaloid.common._
-import net.routestory.parts.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
 import android.app.ProgressDialog
 import net.routestory.parts.StoryFragment
-import android.widget.FrameLayout.LayoutParams
 import scala.collection.mutable
-import android.view.animation.AlphaAnimation
 import ViewGroup.LayoutParams._
 import android.util.Log
 import scala.async.Async.{ async, await }
@@ -158,8 +155,7 @@ class PreviewFragment extends StoryFragment {
         }, start + (beat.timestamp / ratio).toInt)
     }
 
-    val fadeIn = show +@ anim(new AlphaAnimation(0, 1), duration = 300)
-    val fadeOut = anim(new AlphaAnimation(1, 0), duration = 300) @+ hide
+    // TODO: why so many magic numbers?
     val spans = story.photos.map(_.timestamp / ratio).sorted.sliding(2).map {
       case mutable.Buffer(a, b) ⇒ (b - a).toInt
       case _ ⇒ 1000
@@ -169,12 +165,9 @@ class PreviewFragment extends StoryFragment {
         Log.d("PreviewFragment", "Scheduling a photo")
         if (span > 600) {
           mHandler.postAtTime({
-            photo.get(400) foreach {
-              bitmap ⇒
-                mImageView ~> { x: ImageView ⇒ x.setImageBitmap(bitmap) } ~@> fadeIn
-                mHandler.postDelayed({
-                  mImageView ~@> fadeOut
-                }, List(span - 600, 1500).min)
+            photo.get(400) foreach { bitmap ⇒
+              mImageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(300)
+              mHandler.postDelayed(mImageView ~@> fadeOut(300), List(span - 600, 1500).min)
             }
           }, start + (photo.timestamp / ratio).toInt)
         }

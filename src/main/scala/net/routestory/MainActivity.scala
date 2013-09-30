@@ -39,15 +39,9 @@ class MainActivity extends StoryActivity {
     }
     // format: ON
 
-    var things: ListView = null
-
-    setContentView(
-      l[DrawerLayout](
-        l[DashboardLayout]() ~> bg(R.drawable.startup_screen_gradient) ~> addViews(buttons) ~> lp(MATCH_PARENT, MATCH_PARENT),
-        w[ListView] ~> lp(240 dip, MATCH_PARENT, Gravity.START) ~> wire(things)
-      )
-    )
-    things.setAdapter(new SArrayAdapter(Array("FOO", "BAR")))
+    // set layout
+    val view = l[DashboardLayout]() ~> bg(R.drawable.startup_screen_gradient) ~> addViews(buttons)
+    setContentView(drawer(view))
 
     // install Google Play Services if needed
     val result = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this)

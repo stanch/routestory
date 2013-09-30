@@ -23,7 +23,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
 	"org.scaloid" % "scaloid" % "1.1_8_2.10",
-	"org.macroid" %% "macroid" % "1.0.0-20130927",
+	"org.macroid" %% "macroid" % "1.0.0-20130930",
 	"com.scalarx" %% "scalarx" % "0.1",
 	"me.lessis" %% "retry-core" % "0.1.0",
 	aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),
@@ -31,7 +31,7 @@ libraryDependencies ++= Seq(
 	"com.android.support" % "support-v13" % "13.0.0",
 	aarlib("com.google.android.gms" % "play-services" % "3.1.36"),
 	"com.github.chrisbanes.photoview" % "library" % "1.2.1",
-	"net.databinder.dispatch" %% "dispatch-core" % "0.11.0"
+	apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4")
 )
 
 proguardOptions ++= Seq(

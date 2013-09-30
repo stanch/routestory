@@ -31,12 +31,12 @@ import net.routestory.model.Story
 import net.routestory.parts.BitmapUtils
 import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.HapticButton
-import net.routestory.parts.Implicits.func2OnCancelListener
 import net.routestory.parts.StoryActivity
 import ViewGroup.LayoutParams._
 import scala.ref.WeakReference
 import android.util.Log
 import net.routestory.parts.Styles._
+import net.routestory.parts.Implicits._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 object RecordActivity {
@@ -107,9 +107,7 @@ class RecordActivity extends StoryActivity {
       setMessage(getResources.getString(R.string.message_waitingforlocation))
       setCancelable(true)
       setCanceledOnTouchOutside(false)
-      setOnCancelListener { d: DialogInterface ⇒
-        giveUp()
-      }
+      setOnCancelListener(giveUp)
       show()
     }
 
@@ -123,7 +121,7 @@ class RecordActivity extends StoryActivity {
     vibrator.vibrate(30) // vibrate for 30ms
 
     item.getItemId match {
-      case R.id.stopRecord ⇒ {
+      case R.id.stopRecord ⇒
         new AlertDialog.Builder(ctx) {
           setMessage(R.string.message_stoprecord)
           setPositiveButton(R.string.button_yes, {
@@ -133,18 +131,16 @@ class RecordActivity extends StoryActivity {
             val intent = SIntent[DescriptionActivity]
             startActivityForResult(intent, RecordActivity.REQUEST_CODE_TITLE_AND_TAG)
           })
-          setNegativeButton(R.string.button_no, {})
+          setNegativeButton(R.string.button_no, ())
           create()
         }.show()
         true
-      }
-      case R.id.toggleAudio ⇒ {
+      case R.id.toggleAudio ⇒
         mToggleAudio = !mToggleAudio
         if (mToggleAudio) trackAudio()
         else untrackAudio()
         invalidateOptionsMenu()
         true
-      }
       case _ ⇒ false
     }
   }

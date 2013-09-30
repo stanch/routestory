@@ -34,6 +34,7 @@ import scala.concurrent._
 import retry.Defaults.timer
 import retry.Backoff
 import scala.async.Async.{ async, await }
+import org.macroid.util.Text
 
 object DisplayActivity {
   object NfcIntent {
@@ -60,7 +61,7 @@ trait HazStory {
   def getStory: Future[Story]
 }
 
-class DisplayActivity extends StoryActivity with HazStory {
+class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
   import DisplayActivity._
 
   private var id: String = _
@@ -97,8 +98,7 @@ class DisplayActivity extends StoryActivity with HazStory {
     setProgressBarIndeterminateVisibility(true)
 
     mStory onSuccessUi {
-      case _ ⇒
-        setProgressBarIndeterminateVisibility(false)
+      case _ ⇒ setProgressBarIndeterminateVisibility(false)
     } onFailureUi {
       case e ⇒
         e.printStackTrace()
@@ -115,7 +115,7 @@ class DisplayActivity extends StoryActivity with HazStory {
         invalidateOptionsMenu()
     }
 
-    bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
+    //bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
 
@@ -125,10 +125,16 @@ class DisplayActivity extends StoryActivity with HazStory {
         bar.setSubtitle(if (story.author != null) "by " + story.author.name else "by me")
     }
 
-    val sel = Option(savedInstanceState).map(_.getInt("tab")).getOrElse(0)
-    bar.addTab(R.string.title_tab_storypreview, new PreviewFragment, Tag.preview, sel == 0)
-    bar.addTab(R.string.title_tab_storydescription, new DescriptionFragment, Tag.description, sel == 1)
-    bar.addTab(R.string.title_tab_storyoverview, new OverviewFragment, Tag.map, sel == 2)
+    setContentView(drawer(getTabs(
+      Text(R.string.title_tab_storypreview) → ff[PreviewFragment](),
+      Text(R.string.title_tab_storydescription) → ff[DescriptionFragment](),
+      Text(R.string.title_tab_storyoverview) → ff[OverviewFragment]()
+    )))
+
+    //    val sel = Option(savedInstanceState).map(_.getInt("tab")).getOrElse(0)
+    //    bar.addTab(R.string.title_tab_storypreview, new PreviewFragment, Tag.preview, sel == 0)
+    //    bar.addTab(R.string.title_tab_storydescription, new DescriptionFragment, Tag.description, sel == 1)
+    //    bar.addTab(R.string.title_tab_storyoverview, new OverviewFragment, Tag.map, sel == 2)
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean = {
@@ -136,7 +142,7 @@ class DisplayActivity extends StoryActivity with HazStory {
     if (mNfcAdapter.isEmpty) {
       menu.findItem(R.id.storeNfc).setEnabled(false)
     }
-    if (!getApplication.asInstanceOf[StoryApplication].localContains(id)) {
+    if (!app.localContains(id)) {
       menu.findItem(R.id.deleteStory).setVisible(false)
     }
     menu.findItem(R.id.followStory).setVisible(false) // TODO: fix the follow mode!
@@ -207,7 +213,7 @@ class DisplayActivity extends StoryActivity with HazStory {
 
   override def onSaveInstanceState(savedInstanceState: Bundle) {
     super.onSaveInstanceState(savedInstanceState)
-    savedInstanceState.putInt("tab", bar.getSelectedTab.getPosition)
+    //savedInstanceState.putInt("tab", bar.getSelectedTab.getPosition)
   }
 
   override def onNewIntent(intent: Intent) {

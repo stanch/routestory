@@ -11,14 +11,12 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model._
-import net.routestory.parts.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.scaloid.common._
 import net.routestory.parts.StoryFragment
 import net.routestory.parts.Implicits._
 import scala.concurrent.Future
 import android.widget.{ Button, FrameLayout }
-import android.widget.FrameLayout.LayoutParams
 import ViewGroup.LayoutParams._
 import scala.async.Async.{ async, await }
 

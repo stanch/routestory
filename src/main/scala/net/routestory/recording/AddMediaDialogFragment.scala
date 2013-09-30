@@ -1,5 +1,6 @@
 package net.routestory.recording
 
+import scala.language.dynamics
 import android.support.v4.app.DialogFragment
 import android.widget._
 import android.os.Bundle
@@ -12,7 +13,7 @@ import net.routestory.R
 import android.app.Dialog
 import org.scaloid.common._
 import android.content.{ Context, DialogInterface, Intent }
-import net.routestory.parts.{ Animations, HapticImageButton, StoryFragment }
+import net.routestory.parts.{ Effects, StoryFragment }
 import android.app.Activity
 import android.provider.MediaStore
 import android.net.Uri
@@ -20,8 +21,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.parts.Implicits._
 import org.macroid._
 import net.routestory.parts.Styles._
-import java.net.{ HttpURLConnection, URLEncoder, URL }
-import org.apache.commons.io.IOUtils
+import java.net.{ HttpURLConnection, URL }
 import scala.concurrent.future
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, GravityGridLayout, VerticalLinearLayout }
 import org.macroid.util.Thunk
@@ -31,6 +31,8 @@ import org.codehaus.jackson.map.ObjectMapper
 import java.util.Locale
 import rx.{ Rx, Var }
 import scala.async.Async.{ async, await }
+import scala.Dynamic
+import org.codehaus.jackson.JsonNode
 
 class AddMediaDialogFragment extends DialogFragment with StoryFragment {
   import AddMediaDialogFragment._
@@ -107,19 +109,8 @@ class AddSomethingDialogFragment extends DialogFragment {
   }
 }
 
-class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurrency with BasicViewSearch with FragmentContext with Animations {
+class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurrency with BasicViewSearch with FragmentContext {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    //    import dispatch._
-    //    import com.ning.http.client._
-    //    new providers.netty.NettyAsyncHttpProvider(new AsyncHttpClientConfig.Builder().build)
-    //    val rq = url("https://api.foursquare.com/v2/venues/search").GET <<? Map(
-    //      "client_id" → "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05",
-    //      "client_secret" → "SIPSHLBOLADA2HW3RT44GE14OGBDNSM0VPBN4MSEWH2E4VLN",
-    //      "ll" → "%f,%f".formatLocal(Locale.US, coords.latitude, coords.longitude),
-    //      "v" → "20130920",
-    //      "intent" → "browse",
-    //      "radius" → "100"
-    //    )
     val client_id = "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05"
     val client_secret = "SIPSHLBOLADA2HW3RT44GE14OGBDNSM0VPBN4MSEWH2E4VLN"
     val ll = "%f,%f".formatLocal(Locale.US, coords.latitude, coords.longitude)
@@ -128,10 +119,6 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurren
       val conn = urll.openConnection().asInstanceOf[HttpURLConnection]
       conn.getInputStream
     }
-    //    val venues = Http(rq OK as.String) onFailureUi {
-    //      case t ⇒
-    //        t.printStackTrace()
-    //    }
 
     val list = w[ListView]
     val progress = w[ProgressBar](null, android.R.attr.progressBarStyleLarge)
@@ -142,7 +129,7 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurren
         val loc = v.get("location")
         (v.get("id").asText, v.get("name").asText, loc.get("lat").asDouble, loc.get("lng").asDouble)
       }
-      await(fadeOut(progress))
+      await(progress ~@> Effects.fadeOut)
       Ui(list.setAdapter(new ArrayAdapter(activity, 0, vs.toArray) {
         override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
           val item = getItem(position)
@@ -159,7 +146,7 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurren
 
     new AlertDialog.Builder(activity) {
       setView(l[FrameLayout](list, progress))
-      setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒ ; })
+      setNegativeButton(R.string.button_cancel, ())
     }.create()
   }
 }
@@ -171,29 +158,23 @@ class NoteDialogFragment extends AddSomethingDialogFragment {
       setMinLines(5)
       setGravity(Gravity.TOP)
     }
-
     new AlertDialog.Builder(activity) {
       setView(input)
-      setPositiveButton(R.string.button_save, { (d: DialogInterface, w: Int) ⇒
-        val note = input.getText.toString
-        if (note.length() > 0) {
-          activity.addNote(note)
-        }
-      })
-      setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒ ; })
+      setPositiveButton(R.string.button_save, Some(input.getText.toString).filter(_.length > 0).foreach(activity.addNote))
+      setNegativeButton(R.string.button_cancel, ())
     }.create()
   }
 }
 
-class VoiceDialogFragment extends AddSomethingDialogFragment {
+class VoiceDialogFragment extends AddSomethingDialogFragment with LayoutDsl with Tweaks with FragmentContext {
   var mMediaRecorder: MediaRecorder = null
   var mRecording = false
   var mRecorded = false
-  var mStartStop: Button = null
+  var mStartStop = slot[Button]
   lazy val mOutputPath = File.createTempFile("voice", ".mp4", getActivity.getExternalCacheDir).getAbsolutePath
 
   def start() {
-    mMediaRecorder = new MediaRecorder() {
+    mMediaRecorder = new MediaRecorder {
       setAudioSource(AudioSource.MIC)
       setOutputFormat(OutputFormat.MPEG_4)
       setAudioEncoder(AudioEncoder.AAC)
@@ -204,7 +185,7 @@ class VoiceDialogFragment extends AddSomethingDialogFragment {
       mMediaRecorder.start()
       mRecording = true
       mRecorded = true
-      mStartStop.setText("Stop recording")
+      mStartStop ~> text("Stop recording")
     } catch {
       case e: Throwable ⇒ e.printStackTrace()
     }
@@ -215,24 +196,17 @@ class VoiceDialogFragment extends AddSomethingDialogFragment {
     mMediaRecorder.release()
     mMediaRecorder = null
     mRecording = false
-    mStartStop.setText("Click if you want to try again")
+    mStartStop ~> text("Click if you want to try again")
   }
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    mStartStop = new Button(activity) {
-      setText("Start recording")
-      setOnClickListener { v: View ⇒
-        if (!mRecording) {
-          start()
-        } else {
-          stop()
-        }
-      }
+    val view = w[Button] ~> text("Start recording") ~> wire(mStartStop) ~> On.click {
+      if (!mRecording) start() else stop()
     }
 
     new AlertDialog.Builder(activity) {
-      setView(mStartStop)
-      setPositiveButton(R.string.button_save, { (d: DialogInterface, w: Int) ⇒
+      setView(view)
+      setPositiveButton(R.string.button_save, {
         if (mRecording) {
           stop()
         }
@@ -240,7 +214,7 @@ class VoiceDialogFragment extends AddSomethingDialogFragment {
           activity.addVoice(mOutputPath)
         }
       })
-      setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒
+      setNegativeButton(R.string.button_cancel, {
         if (mRecording) {
           stop()
         }
@@ -272,12 +246,8 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
 
     new AlertDialog.Builder(ctx) {
       setView(layout)
-      setPositiveButton(R.string.button_save, { (d: DialogInterface, w: Int) ⇒
-        if (beats.now > 0) {
-          activity.addHeartbeat(beats.now)
-        }
-      })
-      setNegativeButton(R.string.button_cancel, { (d: DialogInterface, w: Int) ⇒ ; })
+      setPositiveButton(R.string.button_save, Some(beats.now).filter(_ > 0).foreach(activity.addHeartbeat))
+      setNegativeButton(R.string.button_cancel, ())
     }.create()
   }
 }
