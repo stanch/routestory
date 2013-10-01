@@ -2,7 +2,7 @@ package net.routestory.explore
 
 import android.view.{ View, ViewGroup, LayoutInflater }
 import android.os.Bundle
-import android.widget.{ TextView, LinearLayout }
+import android.widget.{ ScrollView, TextView, LinearLayout }
 import org.scaloid.common._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.R
@@ -15,16 +15,11 @@ import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import scala.async.Async.{ async, await }
 
-class TagsFragment extends StoryFragment with WidgetFragment {
+class TagsFragment extends StoryFragment {
   var rows = slot[LinearLayout]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.explore_tags) ~> headerStyle(),
-      l[HorizontalLinearLayout](
-        l[VerticalLinearLayout]() ~> wire(rows)
-      )
-    )
+    l[ScrollView](l[VerticalLinearLayout]() ~> wire(rows) ~> p8dding)
   }
 
   override def onStart() {
@@ -33,11 +28,14 @@ class TagsFragment extends StoryFragment with WidgetFragment {
     val displaySize = new Point
     getActivity.getWindowManager.getDefaultDisplay.getSize(displaySize)
 
-    loaded.tryCompleteWith(async {
+    async {
       val query = new ViewQuery().designDocId("_design/Story").viewName("tags").group(true)
-      val tags = await(app.getPlainQueryResults(remote = true, query))
-      val tagArray = Random.shuffle(tags.getRows.toList).take(10).map(_.getKey)
-      Ui(ResultRow.fillTags(rows, displaySize.x - 30, tagArray.toArray, getActivity))
-    })
+      val result = await(app.getPlainQueryResults(remote = true, query))
+      val tags = Random.shuffle(result.getRows.toList).take(50).map(x ⇒ (x.getKey, x.getValueAsInt))
+      val (max, min) = (tags.maxBy(_._2)._2, tags.minBy(_._2)._2)
+      def n(x: Int) = if (max == min) 1 else (x - min).toDouble / (max - min)
+      val norm = tags.map { case (t, q) ⇒ (t, Some(n(q))) }
+      Ui(ResultRow.fillTags(rows, displaySize.x - 30, norm.toArray, getActivity))
+    }
   }
 }

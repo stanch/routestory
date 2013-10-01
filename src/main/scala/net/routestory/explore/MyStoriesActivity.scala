@@ -9,7 +9,6 @@ import ExecutionContext.Implicits.global
 import net.routestory.R
 import rx._
 import scala.async.Async.{ async, await }
-import org.macroid.util.Text
 
 class MyStoriesActivity extends StoryActivity
   with HazStories
@@ -19,6 +18,7 @@ class MyStoriesActivity extends StoryActivity
   lazy val myStories: Var[Future[List[StoryResult]]] = Var(fetchStories)
   def getStories = myStories
   def getFragmentData(tag: String): HazStories = this
+  override val showControls = false
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -26,8 +26,9 @@ class MyStoriesActivity extends StoryActivity
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
-      Text(R.string.title_tab_resultslist) → ff[ResultListFragment](R.string.empty_mystories),
-      Text(R.string.title_tab_resultsmap) → ff[ResultMapFragment]()
+      "Stories" → ff[ResultListFragment](R.string.empty_mystories),
+      "Drafts" → ff[ResultListFragment](R.string.empty_mystories),
+      "Map" → ff[ResultMapFragment]()
     )))
   }
 

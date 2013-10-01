@@ -24,7 +24,7 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
     setSpan(new UnderlineSpan(), 0, length, 0)
   }
 
-  def fillTags(tagRowsView: Option[LinearLayout], maxWidth: Int, tags: Array[String], activity: Activity)(implicit ctx: Context) {
+  def fillTags(tagRowsView: Option[LinearLayout], maxWidth: Int, tags: Array[(String, Option[Double])], activity: Activity)(implicit ctx: Context) {
     // form rows by accumulating tags that fit in one line
     val (_, rows) = tags.foldLeft[(Int, List[List[View]])]((0, Nil :: Nil)) {
       case ((width, row :: prevRows), tag) ⇒
@@ -37,11 +37,13 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
 
         // create the piece
         val (piece, pieceWidth) = {
-          val p = w[TextView] ~> tagStyle ~> text(underlined(tag)) ~> measure ~> On.click {
-            val intent = new Intent(activity, classOf[SearchResultsActivity])
-            intent.putExtra("tag", tag)
-            activity.startActivityForResult(intent, 0)
-          }
+          val p = w[TextView] ~> tagStyle ~> text(underlined(tag._1)) ~>
+            tag._2.map(s ⇒ TextSize.sp(20 + (s * 20).toInt)) ~>
+            measure ~> On.click {
+              val intent = new Intent(activity, classOf[SearchResultsActivity])
+              intent.putExtra("tag", tag._1)
+              activity.startActivityForResult(intent, 0)
+            }
           (p :: Nil, p.getMeasuredWidth)
         }
 
@@ -69,9 +71,8 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
           w[TextView] ~> id(Id.storyAuthor) ~> TextSize.medium
         ),
         l[HorizontalLinearLayout](
-          w[TextView] ~> id(Id.tagged) ~> text(R.string.tagged) ~> captionStyle,
           l[VerticalLinearLayout]() ~> id(Id.storyTagRows)
-        ) ~> id(Id.storyTags)
+        ) ~> id(Id.storyTags) ~> padding(left = storyShift)
       ) ~> (_.setPadding(0, 8 dip, 0, 8 dip))
     }
 
@@ -89,9 +90,8 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
 
     // tags
     findView[View](view, Id.storyTags) ~> (Option(story.tags).filter(_.length > 0).filterNot(t ⇒ t.length == 1 && t(0) == "") map { tags ⇒
-      val tagged = findView[TextView](view, Id.tagged) ~> (_.measure(0, 0))
       val tagRows = findView[LinearLayout](view, Id.storyTagRows)
-      fillTags(tagRows, maxWidth - tagged.get.getMeasuredWidth * 4 / 3, tags, activity)
+      fillTags(tagRows, maxWidth, tags.map((_, None)), activity)
       show
     } getOrElse {
       hide

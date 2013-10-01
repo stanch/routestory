@@ -49,7 +49,7 @@ class PreviewFragment extends StoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[FrameLayout](
       l[FrameLayout](
-        fragment(SupportMapFragment.newInstance(), Id.map, Tag.previewMap)
+        f[SupportMapFragment](Id.map, Tag.previewMap)
       ),
       l[FrameLayout](
         w[ImageView] ~> wire(mImageView)

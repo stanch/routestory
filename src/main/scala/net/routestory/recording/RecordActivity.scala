@@ -4,7 +4,6 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
-import scala.collection.JavaConversions.asScalaBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ Future, future }
 
@@ -15,7 +14,7 @@ import com.google.android.gms.maps.model._
 
 import android.app.AlertDialog
 import android.app.ProgressDialog
-import android.content.{ Context, DialogInterface, Intent }
+import android.content.Intent
 import android.graphics.Bitmap
 import android.location.Location
 import android.location.LocationListener
@@ -38,6 +37,7 @@ import android.util.Log
 import net.routestory.parts.Styles._
 import net.routestory.parts.Implicits._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
+import scala.async.Async.{ async, await }
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -52,7 +52,7 @@ class AudioHandler(activity: WeakReference[RecordActivity]) extends Handler {
 }
 
 class RecordActivity extends StoryActivity {
-  lazy val mStory = new Story()
+  lazy val mStory = new Story
   var mMedia = Map[String, (String, String)]()
   var mAudioPieces = List[(Long, String)]()
 
@@ -248,7 +248,7 @@ class RecordActivity extends StoryActivity {
         mAudioTrackerThread = null
       }
     } getOrElse {
-      Future.successful[Unit](())
+      Future.successful(())
     }
   }
 
@@ -299,35 +299,32 @@ class RecordActivity extends StoryActivity {
   }
 
   /* adding photos */
-  def addPhoto(filename: String) {
-    future {
-      val downsized = BitmapUtils.decodeFile(new File(filename), 1000)
-      val output = new FileOutputStream(new File(filename))
-      downsized.compress(Bitmap.CompressFormat.JPEG, 100, output)
-      output.close()
-      val id = mStory.addPhoto(System.currentTimeMillis() / 1000L, "image/jpg", "jpg")
-      mMedia += id -> (filename, "image/jpg")
-      val bitmap = BitmapUtils.createScaledTransparentBitmap(downsized, 100, 0.8, false)
-      downsized.recycle()
-      bitmap
-    } onSuccessUi {
-      case bitmap ⇒
-        mMap.addMarker(new MarkerOptions()
-          .icon(BitmapDescriptorFactory.fromBitmap(bitmap))
-          .position(mStory.getLocation(System.currentTimeMillis() / 1000L)))
-    }
+  def addPhoto(filename: String) = future {
+    val downsized = BitmapUtils.decodeFile(new File(filename), 1000)
+    val output = new FileOutputStream(new File(filename))
+    downsized.compress(Bitmap.CompressFormat.JPEG, 100, output)
+    output.close()
+    val id = mStory.addPhoto(System.currentTimeMillis() / 1000L, "image/jpg", "jpg")
+    mMedia += id -> (filename, "image/jpg")
+    val bitmap = BitmapUtils.createScaledTransparentBitmap(downsized, 100, 0.8, false)
+    downsized.recycle()
+    Ui(mMap.addMarker(new MarkerOptions()
+      .icon(BitmapDescriptorFactory.fromBitmap(bitmap))
+      .position(mStory.getLocation(System.currentTimeMillis() / 1000L)
+      )))
   }
 
-  def createStory() {
-    app.createStory(mStory)
+  def createStory() = async {
+    await(app.createStory(mStory))
     var rev = mStory.getRevision
-    mMedia foreach {
-      case (id, (filename, contentType)) ⇒
-        val stream = new FileInputStream(new File(filename))
-        rev = app.updateStoryAttachment(id, stream, contentType, mStory.getId, rev)
-        new File(filename).delete()
+    val it = mMedia.iterator
+    while (it.hasNext) {
+      val (id, (filename, contentType)) = it.next()
+      val stream = new FileInputStream(new File(filename))
+      rev = await(app.updateStoryAttachment(id, stream, contentType, mStory.getId, rev))
+      new File(filename).delete()
     }
-    app.compactLocal()
+    await(app.compactLocal())
   }
 
   override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
@@ -338,13 +335,13 @@ class RecordActivity extends StoryActivity {
         mStory.description = data.getStringExtra("description")
         mStory.setTags(data.getStringExtra("tags"))
         mStory.isPrivate = data.getBooleanExtra("private", false)
-        mStory.authorId = app.getAuthorId
+        mStory.authorId = app.authorId.now.getOrElse(null)
         mProgressDialog.setMessage(getResources.getString(R.string.message_finishing))
         mProgressDialog.show()
         mAudioProcessingTask recover {
           case t ⇒
             t.printStackTrace()
-        } map { _ ⇒
+        } flatMap { _ ⇒
           createStory()
         } onSuccessUi {
           case _ ⇒

@@ -26,8 +26,9 @@ trait HazStories {
   def getStories: Rx[Future[List[StoryResult]]]
   def next() {}
   def prev() {}
-  def hasNext: Boolean = false
-  def hasPrev: Boolean = false
+  def hasNext = false
+  def hasPrev = false
+  val showControls = true
 }
 
 object SearchResultsActivity {

@@ -64,7 +64,7 @@ class ResultMapFragment extends StoryFragment with FragmentData[HazStories] {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[FrameLayout](
       l[FrameLayout](
-        fragment(SupportMapFragment.newInstance(), Id.map, Tag.resultsMap)
+        f[SupportMapFragment](Id.map, Tag.resultsMap)
       )
     )
     //      this += new FrameLayout(ctx) {

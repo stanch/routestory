@@ -21,9 +21,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.view.{ View, ViewGroup }
 import android.widget._
-import net.routestory.parts.GotoDialogFragments
-import net.routestory.parts.HapticButton
-import net.routestory.parts.StoryActivity
+import net.routestory.parts.{ Retry, GotoDialogFragments, HapticButton, StoryActivity }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import scala.async.Async.{ async, await }
@@ -76,10 +74,11 @@ class AccountActivity extends StoryActivity {
 
   def showSignedIn() {
     val progress = spinnerDialog("", ctx.getResources.getString(R.string.message_preparingaccount))
+
     async {
-      await(future { while (!app.localContains(app.getAuthorId)) {} })
+      await(Retry.backoff(max = 100)(app.localContains(app.authorId.now.get)))
       Ui(progress.dismiss())
-      val author = app.getAuthor
+      val author = await(app.getAuthor).get
       Ui(setContentView(l[ScrollView](
         l[VerticalLinearLayout](
           w[ImageView] ~> { x ⇒
@@ -125,7 +124,7 @@ class AccountActivity extends StoryActivity {
               IOUtils.toString(conn.getInputStream)
             })
             // the response is: author_id;hashed_authentication_token
-            app.setAuthData(response.split(";"))
+            app.setAuthData(Some(response.split(";")))
             Ui(progress.dismiss())
             Ui(showSignedIn())
           } onFailureUi {

@@ -35,7 +35,9 @@ trait FragmentPaging extends LayoutDsl with Tweaks { self: ViewSearch ⇒
       (_.setAdapter(PagingAdapter(fragmentManager, frags)))
     val indicator = w[TitlePageIndicator] ~>
       lpOf[ViewGroup](MATCH_PARENT, WRAP_CONTENT) ~>
-      (_.setViewPager(pager))
+      (_.setViewPager(pager)) ~>
+      (_.setBackgroundColor(0xff101010)) ~>
+      (_.setFooterColor(0xff358482))
     l[VerticalLinearLayout](indicator, pager)
   }
 }

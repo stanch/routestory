@@ -4,8 +4,6 @@ import java.io.IOException
 import java.nio.charset.Charset
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.future
-import scala.concurrent.duration._
 
 import org.scaloid.common._
 
@@ -31,20 +29,17 @@ import net.routestory.StoryApplication
 import net.routestory.model._
 import net.routestory.parts._
 import scala.concurrent._
-import retry.Defaults.timer
-import retry.Backoff
 import scala.async.Async.{ async, await }
 import org.macroid.util.Text
 
 object DisplayActivity {
   object NfcIntent {
     def unapply(i: Intent): Option[Uri] = if (i.getAction == NfcAdapter.ACTION_NDEF_DISCOVERED) {
-      val rawMsgs = i.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
-      if (rawMsgs != null) {
+      Option(i.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)) map { rawMsgs ⇒
         val msg = rawMsgs(0).asInstanceOf[NdefMessage]
         val rec = msg.getRecords()(0)
-        Some(new String(rec.getPayload))
-      } else None
+        new String(rec.getPayload)
+      }
     } else None
   }
   object ViewIntent {
@@ -106,10 +101,7 @@ class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
         finish()
     }
 
-    implicit val success = new retry.Success[Boolean](x ⇒ x)
-    Backoff(max = 4, delay = 5 seconds)(() ⇒ future {
-      app.remoteContains(id)
-    }) onSuccessUi {
+    Retry.backoff(max = 10)(app.remoteContains(id)) onSuccessUi {
       case _ ⇒
         mShareable = true
         invalidateOptionsMenu()
@@ -142,8 +134,10 @@ class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
     if (mNfcAdapter.isEmpty) {
       menu.findItem(R.id.storeNfc).setEnabled(false)
     }
-    if (!app.localContains(id)) {
-      menu.findItem(R.id.deleteStory).setVisible(false)
+    async {
+      if (!await(app.localContains(id))) {
+        Ui(menu.findItem(R.id.deleteStory).setVisible(false))
+      }
     }
     menu.findItem(R.id.followStory).setVisible(false) // TODO: fix the follow mode!
     true

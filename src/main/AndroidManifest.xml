@@ -42,10 +42,6 @@
         <activity
             android:name="net.routestory.MainActivity"
             android:label="@string/title_activity_main" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
         <activity
             android:name="net.routestory.recording.RecordActivity"
@@ -91,6 +87,10 @@
         <activity
             android:name="net.routestory.explore.ExploreActivity"
             android:label="@string/title_activity_explore" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
         <activity
             android:name="net.routestory.SettingsActivity"

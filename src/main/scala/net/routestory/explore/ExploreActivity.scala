@@ -1,113 +1,30 @@
 package net.routestory.explore
 
-import org.scaloid.common._
 import android.os.Bundle
-import android.view._
-import android.widget._
-import scala.concurrent._
-import ExecutionContext.Implicits.global
-import net.routestory.parts.{ WidgetFragment, GotoDialogFragments, StoryActivity }
-import android.support.v4.app.Fragment
-import net.routestory.parts.Styles._
-import net.routestory.parts.Effects
-import org.macroid.contrib.Layouts.VerticalLinearLayout
-import ViewGroup.LayoutParams._
-import scala.async.Async.{ async, await }
+import net.routestory.parts.{ FragmentPaging, StoryActivity }
+import com.google.android.gms.common.{ ConnectionResult, GooglePlayServicesUtil }
+import android.preference.PreferenceManager
+import net.routestory.R
 
-class ExploreActivity extends StoryActivity {
-  var progress = slot[ProgressBar]
-  var retry = slot[Button]
-
-  def latest = findFrag[Fragment with WidgetFragment](Tag.latest).get
-  def tags = findFrag[Fragment with WidgetFragment](Tag.tags).get
-  def search = findFrag[Fragment with WidgetFragment](Tag.search).get
-
+class ExploreActivity extends StoryActivity with FragmentPaging {
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
-    val view = l[FrameLayout](
-      l[ScrollView](
-        l[VerticalLinearLayout](
-          f[LatestFragment](Id.latest, Tag.latest, "number" → 4) ~> hide,
-          f[TagsFragment](Id.tags, Tag.tags) ~> hide,
-          f[SearchFragment](Id.search, Tag.search) ~> hide
-        ) ~> p8dding
-      ),
-      l[FrameLayout](
-        w[ProgressBar](null, android.R.attr.progressBarStyleLarge) ~>
-          lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER) ~>
-          wire(progress),
-        w[Button] ~>
-          id(Id.retry) ~>
-          lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER) ~>
-          hide ~> text("Retry") ~> wire(retry) ~>
-          On.click {
-            retry ~> hide
-            progress ~> hide
-            onFirstStart()
-          }
-      )
-    )
-    setContentView(drawer(view))
-    bar.setDisplayHomeAsUpEnabled(true)
-  }
 
-  override def onFirstStart() {
-    if (!GotoDialogFragments.ensureNetwork(this)) return
-
-    async {
-      await(latest.loaded.future zip tags.loaded.future zip search.loaded.future)
-      await(progress ~@> Effects.fadeOut)
-      await(findView[View](Id.latest) ~@> Effects.fadeOut)
-      await(findView[View](Id.tags) ~@> Effects.fadeOut)
-      await(findView[View](Id.search) ~@> Effects.fadeOut)
-    } onFailureUi {
-      case t ⇒
-        t.printStackTrace()
-        progress ~> hide
-        retry ~> show
+    // install Google Play Services if needed
+    val result = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this)
+    if (result != ConnectionResult.SUCCESS) {
+      GooglePlayServicesUtil.getErrorDialog(result, this, 0).show()
     }
 
-    // Stories nearby
-    //      val nearby = flow {
-    //        val location = await(getLocation)
-    //        val result = location match {
-    //          case Some(loc) ⇒
-    //            val bbox = getBbox(loc)
-    //            //val query = new ViewQuery().designDocId("_design/Story").viewName("geoQuery").queryParam("bbox", bbox).limit(3)
-    //            //val stories = app.getQueryResults[StoryResult](remote = true, query).apply()
-    //            val stories = List[StoryResult]()
-    //            if (stories.isEmpty) {
-    //              None
-    //            } else {
-    //              val story = stories(Random.nextInt(stories.size))
-    //              story.author = await(app.getObject[Author](story.authorId))
-    //              Some((bbox, story))
-    //            }
-    //          case None ⇒ None
-    //        }
-    //        switchToUiThread()
-    //        result match {
-    //          case Some((bbox, story)) ⇒ {
-    //            // something found
-    //            find[TextView](R.id.nothingNearby).setVisibility(View.GONE)
-    //            val nearbyStories = find[LinearLayout](R.id.nearbyStories)
-    //            nearbyStories.removeAllViews()
-    //            val showMap = find[TextView](R.id.showNearbyMap)
-    //            showMap.setVisibility(View.VISIBLE)
-    //            showMap.setOnClickListener { v: View ⇒
-    //              val intent = SIntent[SearchResultsActivity]
-    //              intent.putExtra("showmap", true)
-    //              intent.putExtra("bbox", bbox)
-    //              startActivityForResult(intent, 0)
-    //            }
-    //            nearbyStories.addView(ResultRow.getView(null, display.getWidth, story, ExploreActivity.this))
-    //          }
-    //          case None ⇒ {
-    //            find[LinearLayout](R.id.nearbyStories).removeAllViews()
-    //            find[TextView](R.id.showNearbyMap).setVisibility(View.GONE)
-    //            find[TextView](R.id.nothingNearby).setVisibility(View.VISIBLE)
-    //          }
-    //        }
-    //      }
+    // set default preferences
+    PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
+
+    // show UI
+    bar.setDisplayShowHomeEnabled(true)
+    bar.setDisplayHomeAsUpEnabled(true)
+    setContentView(drawer(getTabs(
+      "Latest" → ff[LatestFragment]("number" → 10),
+      "Popular tags" → ff[TagsFragment]()
+    )))
   }
 }

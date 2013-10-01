@@ -27,15 +27,18 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
     getResources.getString(R.string.empty_search)
   }
 
-  var next = slot[Button]
-  var prev = slot[Button]
+  var nextButton = slot[Button]
+  var prevButton = slot[Button]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val view = super.onCreateView(inflater, container, savedInstanceState)
-    findView[ListView](view, android.R.id.list).get.addFooterView(l[HorizontalLinearLayout](
-      w[Button] ~> text("Prev") ~> wire(prev) ~> On.click(storyteller.prev()),
-      w[Button] ~> text("Next") ~> wire(next) ~> On.click(storyteller.next())
-    ) ~> (_.setGravity(Gravity.CENTER_HORIZONTAL)))
+    val list = findView[ListView](view, android.R.id.list) ~> (_.setDivider(null))
+    if (storyteller.showControls) {
+      list.get.addFooterView(l[HorizontalLinearLayout](
+        w[Button] ~> text("Prev") ~> wire(prevButton) ~> On.click(storyteller.prev()),
+        w[Button] ~> text("Next") ~> wire(nextButton) ~> On.click(storyteller.next())
+      ) ~> (_.setGravity(Gravity.CENTER_HORIZONTAL)))
+    }
     view
   }
 
@@ -57,8 +60,8 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
     results.onSuccessUi {
       case res ⇒
         setListAdapter(new ResultListFragment.StoryListAdapter(res, getActivity))
-        prev ~> enable(storyteller.hasPrev)
-        next ~> enable(storyteller.hasNext)
+        prevButton ~> enable(storyteller.hasPrev)
+        nextButton ~> enable(storyteller.hasNext)
         setListShown(true)
     }
   }
@@ -84,7 +87,7 @@ object ResultListFragment {
   class StoryListAdapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, 0, results) {
     override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
       val view = ResultRow.getView(Option(itemView), parent.getMeasuredWidth, getItem(position), activity)
-      view.setPaddingRelative(8 dip, view.getPaddingTop, 8 dip, view.getPaddingBottom)
+      view.setPaddingRelative(0, view.getPaddingTop, 8 dip, view.getPaddingBottom)
       view
     }
     override def isEnabled(position: Int): Boolean = false

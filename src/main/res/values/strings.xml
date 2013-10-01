@@ -6,9 +6,7 @@
     <string name="title_activity_mystories">My stories</string>
     <string name="title_activity_description">Adding descriptions</string>
     <string name="title_activity_account">My Profile</string>
-    <string name="title_activity_explore">Explore RouteStory</string>
-    <string name="title_activity_tutorial">Tutorial</string>
-    <string name="title_activity_follow">Following the story</string>
+    <string name="title_activity_explore">RouteStory</string>
     
     <string name="title_dialog_selectaccount">Please select an account</string>
     <string name="title_tab_storypreview">Dive</string>

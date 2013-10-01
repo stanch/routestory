@@ -38,7 +38,7 @@ class OverviewFragment extends StoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[FrameLayout](
       l[FrameLayout](
-        fragment(SupportMapFragment.newInstance(), Id.map, Tag.overviewMap)
+        f[SupportMapFragment](Id.map, Tag.overviewMap)
       ),
       l[FrameLayout](
         w[Button] ~>

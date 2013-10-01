@@ -71,7 +71,7 @@ class DescriptionFragment extends StoryFragment {
         description ~> text(d)
 
         Option(story.tags).filter(_.length > 0) map { t ⇒
-          ResultRow.fillTags(tagRows, width - 20, t, getActivity)
+          ResultRow.fillTags(tagRows, width - 20, t.map((_, None)), getActivity)
         } getOrElse {
           tagStuff ~> hide
         }
