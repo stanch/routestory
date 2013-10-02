@@ -1,16 +1,10 @@
 package net.routestory.display
 
-import java.util.LinkedList
-import java.util.List
-
 import net.routestory.model.Story
 import android.graphics.Color
 
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.Polyline
-import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.gms.maps.model._
 
 import scala.collection.JavaConversions._
 

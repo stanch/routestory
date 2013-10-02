@@ -2,7 +2,7 @@ package net.routestory.parts
 
 import org.scaloid.common._
 import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivity }
-import net.routestory.{ R, AccountActivity, StoryApplication }
+import net.routestory.{ R, AccountActivity, RouteStoryApp }
 import org.macroid._
 import android.view.{ Gravity, View, MenuItem }
 import android.content.Intent
@@ -30,8 +30,8 @@ trait FirstEveryStart {
   }
 }
 
-trait StoryActivity extends FragmentActivity with FullDslActivity with FirstEveryStart {
-  lazy val app = getApplication.asInstanceOf[StoryApplication]
+trait RouteStoryActivity extends FragmentActivity with FullDslActivity with FirstEveryStart {
+  lazy val app = getApplication.asInstanceOf[RouteStoryApp]
   lazy val bar = getActionBar
   var drawerToggle: ActionBarDrawerToggle = _
 
@@ -68,8 +68,8 @@ trait StoryActivity extends FragmentActivity with FullDslActivity with FirstEver
   }
 }
 
-trait StoryFragment extends Fragment with FullDslFragment with FirstEveryStart {
-  lazy val app = getActivity.getApplication.asInstanceOf[StoryApplication]
+trait RouteStoryFragment extends Fragment with FullDslFragment with FirstEveryStart {
+  lazy val app = getActivity.getApplication.asInstanceOf[RouteStoryApp]
 
   override def onStart() {
     super.onStart()

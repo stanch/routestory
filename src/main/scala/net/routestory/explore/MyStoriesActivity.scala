@@ -3,7 +3,7 @@ package net.routestory.explore
 import org.ektorp.ViewQuery
 import net.routestory.model._
 import android.os.Bundle
-import net.routestory.parts.{ FragmentPaging, FragmentDataProvider, StoryActivity }
+import net.routestory.parts.{ FragmentPaging, FragmentDataProvider, RouteStoryActivity }
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import net.routestory.R
@@ -11,7 +11,7 @@ import rx._
 import scala.async.Async.{ async, await }
 import android.util.Log
 
-class MyStoriesActivity extends StoryActivity
+class MyStoriesActivity extends RouteStoryActivity
   with HazStories
   with FragmentDataProvider[HazStories]
   with FragmentPaging {
@@ -27,8 +27,8 @@ class MyStoriesActivity extends StoryActivity
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
-      "Stories" → ff[ResultListFragment](R.string.empty_mystories),
-      "Drafts" → ff[ResultListFragment](R.string.empty_mystories),
+      "Stories" → ff[StoryListFragment]("emptyText" → R.string.empty_mystories),
+      "Drafts" → ff[StoryListFragment]("emptyText" → R.string.empty_mystories),
       "Map" → ff[ResultMapFragment]()
     )))
   }
@@ -50,8 +50,6 @@ class MyStoriesActivity extends StoryActivity
         r.author = authors(r.authorId)
       }
       stories
-    } onFailureUi {
-      case e ⇒ e.printStackTrace()
-    }
+    } recoverUi { case t ⇒ t.printStackTrace(); List() }
   }
 }

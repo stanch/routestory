@@ -9,7 +9,7 @@ import android.content.Context
 import org.macroid.util.Map2Bundle
 import android.util.Log
 import com.todoroo.aacenc.AACEncoder
-import net.routestory.StoryApplication
+import net.routestory.RouteStoryApp
 import org.apache.commons.io.FileUtils
 import java.nio.{ ByteOrder, ByteBuffer }
 
@@ -96,7 +96,7 @@ object AudioTracker {
 
     //
     val encoder = new AACEncoder
-    val dur = ms(StoryApplication.storyPreviewDuration * 1000)
+    val dur = ms(RouteStoryApp.storyPreviewDuration * 1000)
     val preview = new Array[Short](dur)
     val previewBytes = new Array[Byte](dur * 2)
     val offset = if (sparse.length > 1) {

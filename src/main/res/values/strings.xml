@@ -31,11 +31,6 @@
     <string name="empty_search">Unfortunately, nothing was found.</string>
     
     <string name="search">Search</string>
-    <string name="button_ok">OK</string>
-    <string name="button_cancel">Cancel</string>
-    <string name="button_save">Save</string>
-    <string name="button_yes">Yes</string>
-    <string name="button_no">No</string>
     
     <string name="signin">Sign In</string>
     <string name="signout">Sign Out</string>
@@ -73,6 +68,7 @@
     <string name="menu_display_follow">Follow</string>
     <string name="menu_display_share">Share</string>
     <string name="menu_display_delete">Delete</string>
+    <string name="menu_create">New story</string>
     <string name="menu_main_settings">Settings</string>
     <string name="message_needgps">We absolutely need to know, where you are! Could you please turn GPS on?</string>
     <string name="settings">Go to settings</string>

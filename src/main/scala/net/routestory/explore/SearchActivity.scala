@@ -5,7 +5,7 @@ import org.ektorp.ViewQuery
 import net.routestory.R
 import net.routestory.model.Author
 import net.routestory.model.StoryResult
-import net.routestory.parts.{ FragmentPaging, FragmentDataProvider, GotoDialogFragments, StoryActivity }
+import net.routestory.parts.{ FragmentPaging, FragmentDataProvider, GotoDialogFragments, RouteStoryActivity }
 import android.app.{ ActionBar, SearchManager }
 import android.content.Context
 import android.content.Intent
@@ -31,7 +31,7 @@ trait HazStories {
   val showReloadProgress = true
 }
 
-object SearchResultsActivity {
+object SearchActivity {
   object SearchIntent {
     def unapply(i: Intent): Option[String] = if (i.getAction == Intent.ACTION_SEARCH) {
       Some(i.getStringExtra(SearchManager.QUERY))
@@ -45,11 +45,11 @@ object SearchResultsActivity {
   }
 }
 
-class SearchResultsActivity extends StoryActivity
+class SearchActivity extends RouteStoryActivity
   with HazStories
   with FragmentDataProvider[HazStories]
   with FragmentPaging {
-  import SearchResultsActivity._
+  import SearchActivity._
 
   // TODO: see if this can be made easier...
 
@@ -93,7 +93,7 @@ class SearchResultsActivity extends StoryActivity
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
-      "Results" → ff[ResultListFragment](),
+      "Results" → ff[StoryListFragment](),
       "Map" → ff[ResultMapFragment]()
     )))
   }

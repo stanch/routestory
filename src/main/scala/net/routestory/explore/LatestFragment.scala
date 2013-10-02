@@ -1,6 +1,6 @@
 package net.routestory.explore
 
-import net.routestory.parts.{ WidgetFragment, StoryFragment }
+import net.routestory.parts.{ WidgetFragment, RouteStoryFragment }
 import android.view.{ View, ViewGroup, LayoutInflater }
 import android.os.{ Looper, Bundle }
 import android.widget.{ ListView, ScrollView, TextView, LinearLayout }
@@ -17,7 +17,7 @@ import rx.{ Var, Rx }
 import scala.concurrent.Future
 import android.util.Log
 
-class LatestFragment extends ResultListFragment with HazStories {
+class LatestFragment extends StoryListFragment with HazStories {
   lazy val latestStories = Var {
     Log.d("Latest", "init")
     fetchStories

@@ -13,14 +13,14 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model._
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.scaloid.common._
-import net.routestory.parts.StoryFragment
+import net.routestory.parts.RouteStoryFragment
 import net.routestory.parts.Implicits._
 import scala.concurrent.Future
 import android.widget.{ Button, FrameLayout }
 import ViewGroup.LayoutParams._
 import scala.async.Async.{ async, await }
 
-class OverviewFragment extends StoryFragment {
+class OverviewFragment extends RouteStoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
   lazy val display = getActivity.getWindowManager.getDefaultDisplay
   lazy val mMap = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap

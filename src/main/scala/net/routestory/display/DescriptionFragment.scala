@@ -9,13 +9,13 @@ import android.widget.{ ScrollView, LinearLayout, TextView, ImageView }
 import net.routestory.explore.ResultRow
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import net.routestory.parts.StoryFragment
+import net.routestory.parts.RouteStoryFragment
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
 import org.scaloid.common._
 
-class DescriptionFragment extends StoryFragment {
+class DescriptionFragment extends RouteStoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
 
   var authorPicture = slot[ImageView]

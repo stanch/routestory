@@ -21,13 +21,13 @@ import android.os.Bundle
 import android.os.Handler
 import android.view.{ View, ViewGroup }
 import android.widget._
-import net.routestory.parts.{ Retry, GotoDialogFragments, HapticButton, StoryActivity }
+import net.routestory.parts.{ Retry, GotoDialogFragments, HapticButton, RouteStoryActivity }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import scala.async.Async.{ async, await }
 import android.util.Log
 
-class AccountActivity extends StoryActivity {
+class AccountActivity extends RouteStoryActivity {
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
     bar.setDisplayHomeAsUpEnabled(true)

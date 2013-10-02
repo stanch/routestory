@@ -11,11 +11,11 @@ import net.routestory.lounge.Lounge
 import rx.{ Obs, Var }
 import android.util.Log
 
-object StoryApplication {
+object RouteStoryApp {
   val storyPreviewDuration = 30
 }
 
-class StoryApplication extends Application with Lounge {
+class RouteStoryApp extends Application with Lounge {
   implicit val ctx = this
   lazy val authToken = Var(readPrefs("authToken"))
   lazy val authTokenSaver = authToken.foreach(writePrefs("authToken", _), skipInitial = true)

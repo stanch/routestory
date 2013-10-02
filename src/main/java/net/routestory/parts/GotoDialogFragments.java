@@ -35,7 +35,7 @@ public class GotoDialogFragments {
 	    				startActivityForResult(intent, 0);
 	    			}
 	    		})
-	    		.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+	    		.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
 			      	public void onClick(DialogInterface dialog, int id) {
 			      		getActivity().finish();
 			      	}
@@ -64,7 +64,7 @@ public class GotoDialogFragments {
             			startActivityForResult(intent, 0);
             		}
             	})
-            	.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+            	.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
             		public void onClick(DialogInterface dialog, int id) {
             			getActivity().finish();
             		}

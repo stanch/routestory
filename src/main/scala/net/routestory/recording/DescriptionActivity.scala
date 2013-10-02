@@ -7,7 +7,7 @@ import android.preference.PreferenceManager
 import android.view.{ ViewGroup, KeyEvent, View }
 import android.widget._
 import net.routestory.R
-import net.routestory.parts.{ HapticButton, StoryActivity }
+import net.routestory.parts.{ HapticButton, RouteStoryActivity }
 import org.ektorp.ViewQuery
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
@@ -17,7 +17,7 @@ import ViewGroup.LayoutParams._
 import android.text.InputType
 import scala.async.Async.{ async, await }
 
-class DescriptionActivity extends StoryActivity {
+class DescriptionActivity extends RouteStoryActivity {
   var title: EditText = _
   var description: EditText = _
   var tags: MultiAutoCompleteTextView = _

@@ -1,7 +1,7 @@
 package net.routestory.display
 
 import net.routestory.R
-import net.routestory.StoryApplication
+import net.routestory.RouteStoryApp
 import net.routestory.model.Story
 import net.routestory.parts.BitmapUtils
 import android.media.MediaPlayer
@@ -25,13 +25,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
 import android.app.ProgressDialog
-import net.routestory.parts.StoryFragment
+import net.routestory.parts.RouteStoryFragment
 import scala.collection.mutable
 import ViewGroup.LayoutParams._
 import android.util.Log
 import scala.async.Async.{ async, await }
 
-class PreviewFragment extends StoryFragment {
+class PreviewFragment extends RouteStoryFragment {
   lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
   lazy val mMap = findFrag[SupportMapFragment](Tag.previewMap).get.getMap
   lazy val mRouteManager = async {
@@ -93,23 +93,18 @@ class PreviewFragment extends StoryFragment {
       }))
 
       val photos = Future.sequence(story.photos.map(i ⇒ async {
-        val pic = await(i.get(maxSize))
-        Option(pic) foreach {
-          bitmap ⇒
-            Ui(mMap.addMarker(new MarkerOptions()
-              .position(story.getLocation(i.timestamp))
-              .icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
-                bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize), 0.8, false)
-              ))
+        Option(await(i.get(maxSize))) foreach { bitmap ⇒
+          Ui(mMap.addMarker(new MarkerOptions()
+            .position(story.getLocation(i.timestamp))
+            .icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
+              bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxSize), 0.8, false)
             ))
+          ))
         }
         progress.incrementProgressBy(1)
       }))
 
-      val audio = Option(story.audioPreview).map(_.get.onSuccessUi {
-        case _ ⇒
-          progress.incrementProgressBy(1)
-      }).getOrElse(Future.successful(()))
+      val audio = Option(story.audioPreview).map(_.get.mapUi(_ ⇒ progress.incrementProgressBy(1))).getOrElse(Future.successful(()))
 
       await(photos zip audio)
       Ui(progress.dismiss())
@@ -134,7 +129,7 @@ class PreviewFragment extends StoryFragment {
   def startPreview(story: Story, rm: RouteManager) {
     mPlayButton ~> hide
     val start = SystemClock.uptimeMillis()
-    val ratio = story.duration.toDouble / StoryApplication.storyPreviewDuration / 1000
+    val ratio = story.duration.toDouble / RouteStoryApp.storyPreviewDuration / 1000
     val lastLocation = story.locations.last.timestamp / ratio
 
     Log.d("PreviewFragment", "Preparing preview")
@@ -208,7 +203,7 @@ class PreviewFragment extends StoryFragment {
 
     mHandler.postDelayed({
       rewind()
-    }, (StoryApplication.storyPreviewDuration + 3) * 1000)
+    }, (RouteStoryApp.storyPreviewDuration + 3) * 1000)
 
     playAudio(story)
   }

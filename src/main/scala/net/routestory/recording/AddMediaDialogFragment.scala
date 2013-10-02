@@ -13,7 +13,7 @@ import net.routestory.R
 import android.app.Dialog
 import org.scaloid.common._
 import android.content.{ Context, DialogInterface, Intent }
-import net.routestory.parts.{ Effects, StoryFragment }
+import net.routestory.parts.{ Effects, RouteStoryFragment }
 import android.app.Activity
 import android.provider.MediaStore
 import android.net.Uri
@@ -34,7 +34,7 @@ import scala.async.Async.{ async, await }
 import scala.Dynamic
 import org.codehaus.jackson.JsonNode
 
-class AddMediaDialogFragment extends DialogFragment with StoryFragment {
+class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
   import AddMediaDialogFragment._
   lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
 
@@ -146,7 +146,7 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurren
 
     new AlertDialog.Builder(activity) {
       setView(l[FrameLayout](list, progress))
-      setNegativeButton(R.string.button_cancel, ())
+      setNegativeButton(android.R.string.cancel, ())
     }.create()
   }
 }
@@ -160,8 +160,8 @@ class NoteDialogFragment extends AddSomethingDialogFragment {
     }
     new AlertDialog.Builder(activity) {
       setView(input)
-      setPositiveButton(R.string.button_save, Some(input.getText.toString).filter(_.length > 0).foreach(activity.addNote))
-      setNegativeButton(R.string.button_cancel, ())
+      setPositiveButton(android.R.string.ok, Some(input.getText.toString).filter(_.length > 0).foreach(activity.addNote))
+      setNegativeButton(android.R.string.cancel, ())
     }.create()
   }
 }
@@ -206,7 +206,7 @@ class VoiceDialogFragment extends AddSomethingDialogFragment with LayoutDsl with
 
     new AlertDialog.Builder(activity) {
       setView(view)
-      setPositiveButton(R.string.button_save, {
+      setPositiveButton(android.R.string.ok, {
         if (mRecording) {
           stop()
         }
@@ -214,7 +214,7 @@ class VoiceDialogFragment extends AddSomethingDialogFragment with LayoutDsl with
           activity.addVoice(mOutputPath)
         }
       })
-      setNegativeButton(R.string.button_cancel, {
+      setNegativeButton(android.R.string.cancel, {
         if (mRecording) {
           stop()
         }
@@ -246,8 +246,8 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
 
     new AlertDialog.Builder(ctx) {
       setView(layout)
-      setPositiveButton(R.string.button_save, Some(beats.now).filter(_ > 0).foreach(activity.addHeartbeat))
-      setNegativeButton(R.string.button_cancel, ())
+      setPositiveButton(android.R.string.ok, Some(beats.now).filter(_ > 0).foreach(activity.addHeartbeat))
+      setNegativeButton(android.R.string.cancel, ())
     }.create()
   }
 }

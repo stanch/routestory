@@ -24,7 +24,7 @@ import android.view.{ Menu, MenuItem, Window }
 import android.widget.FrameLayout
 import android.widget.Toast
 import net.routestory.R
-import net.routestory.StoryApplication
+import net.routestory.RouteStoryApp
 import net.routestory.model._
 import net.routestory.parts._
 import scala.concurrent._
@@ -56,7 +56,7 @@ trait HazStory {
   def getStory: Future[Story]
 }
 
-class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
+class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPaging {
   import DisplayActivity._
 
   private var id: String = _
@@ -94,7 +94,8 @@ class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
 
     mStory onSuccessUi {
       case _ ⇒ setProgressBarIndeterminateVisibility(false)
-    } onFailureUi {
+    }
+    mStory onFailureUi {
       case e ⇒
         e.printStackTrace()
         toast("Failed to load the story")
@@ -113,8 +114,8 @@ class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
 
     mStory onSuccessUi {
       case story ⇒
-        bar.setTitle(if (story.title != null && story.title.length() > 0) story.title else getResources.getString(R.string.untitled))
-        bar.setSubtitle(if (story.author != null) "by " + story.author.name else "by me")
+        bar.setTitle(Option(story.title).filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))
+        bar.setSubtitle("by " + Option(story.author).map(_.name).getOrElse("me"))
     }
 
     setContentView(drawer(getTabs(
@@ -122,11 +123,6 @@ class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
       Text(R.string.title_tab_storydescription) → ff[DescriptionFragment](),
       Text(R.string.title_tab_storyoverview) → ff[OverviewFragment]()
     )))
-
-    //    val sel = Option(savedInstanceState).map(_.getInt("tab")).getOrElse(0)
-    //    bar.addTab(R.string.title_tab_storypreview, new PreviewFragment, Tag.preview, sel == 0)
-    //    bar.addTab(R.string.title_tab_storydescription, new DescriptionFragment, Tag.description, sel == 1)
-    //    bar.addTab(R.string.title_tab_storyoverview, new OverviewFragment, Tag.map, sel == 2)
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean = {
@@ -178,7 +174,7 @@ class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
       case R.id.deleteStory ⇒ {
         new AlertDialog.Builder(this) {
           setMessage(R.string.message_deletestory)
-          setPositiveButton(R.string.button_yes, { (dialog: DialogInterface, which: Int) ⇒
+          setPositiveButton(android.R.string.yes, { (dialog: DialogInterface, which: Int) ⇒
             mStory onSuccessUi {
               case story ⇒
                 app.deleteStory(story)
@@ -189,13 +185,13 @@ class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
                 startActivity(intent)
             }
           })
-          setNegativeButton(R.string.button_no, { (dialog: DialogInterface, which: Int) ⇒
+          setNegativeButton(android.R.string.no, { (dialog: DialogInterface, which: Int) ⇒
             // pass
           })
         }.create().show()
         true
       }
-      case android.R.id.home ⇒ super[StoryActivity].onOptionsItemSelected(item)
+      case android.R.id.home ⇒ super[RouteStoryActivity].onOptionsItemSelected(item)
       case _ ⇒ false
     }
   }

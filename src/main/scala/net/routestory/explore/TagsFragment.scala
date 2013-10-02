@@ -6,7 +6,7 @@ import android.widget.{ ScrollView, TextView, LinearLayout }
 import org.scaloid.common._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.R
-import net.routestory.parts.{ WidgetFragment, StoryFragment }
+import net.routestory.parts.{ WidgetFragment, RouteStoryFragment }
 import org.ektorp.ViewQuery
 import scala.util.Random
 import android.graphics.Point
@@ -15,7 +15,7 @@ import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import scala.async.Async.{ async, await }
 
-class TagsFragment extends StoryFragment {
+class TagsFragment extends RouteStoryFragment {
   var rows = slot[LinearLayout]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {

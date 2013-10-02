@@ -3,18 +3,20 @@ package net.routestory.model
 import org.codehaus.jackson.annotate.JsonIgnore
 import org.codehaus.jackson.annotate.JsonIgnoreProperties
 import org.codehaus.jackson.annotate.JsonProperty
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
+import com.google.android.gms.maps.model.LatLng
 
 object StoryResult {
   class Geometry {
+    @JsonIgnore
+    lazy val asLatLngs = coordinates.map(x ⇒ new LatLng(x(0), x(1))).toList
+
     @JsonProperty("type") val `type`: String = "MultiPoint"
-    @JsonProperty("coordinates") var coordinates: java.util.List[java.util.List[Double]] = null
+    @JsonProperty("coordinates") var coordinates: java.util.List[Array[Double]] = _
   }
   object Geometry {
-    def apply(locationss: java.util.List[Story.LocationData]) = {
-      val geom = new Geometry
-      geom.coordinates = locationss.asScala.map(_.coordinates.toList.asJava).asJava
-      geom
+    def apply(locations: java.util.List[Story.LocationData]) = new Geometry {
+      coordinates = locations.map(_.coordinates)
     }
   }
 }

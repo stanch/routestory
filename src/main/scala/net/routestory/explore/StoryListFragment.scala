@@ -4,8 +4,8 @@ import net.routestory.R
 import net.routestory.model.StoryResult
 import android.view.{ LayoutInflater, Gravity, View, ViewGroup }
 import android.widget._
-import net.routestory.parts.{ FragmentData, StoryFragment }
-import android.support.v4.app.ListFragment
+import net.routestory.parts.{ FragmentData, RouteStoryFragment }
+import android.support.v4.app.{ Fragment, ListFragment }
 import android.app.Activity
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -18,11 +18,29 @@ import org.macroid.contrib.Layouts.HorizontalLinearLayout
 import android.util.Log
 import scala.async.Async.{ async, await }
 
-class ResultListFragment extends ListFragment with StoryFragment with FragmentData[HazStories] {
+trait StoryListObserverFragment extends FragmentData[HazStories] { self: Fragment ⇒
   lazy val storyteller = getFragmentData
   lazy val stories = storyteller.getStories
   var observer: Option[Obs] = None
 
+  def update(data: Future[List[StoryResult]])
+
+  def observe() {
+    if (observer.isEmpty) {
+      // create a new observer
+      observer = Some(Obs(stories)(update(stories())))
+    }
+    // start observing
+    observer.foreach(_.active = true)
+  }
+
+  def neglect() {
+    // stop observing, since we go out of screen
+    observer.foreach(_.active = false)
+  }
+}
+
+class StoryListFragment extends ListFragment with RouteStoryFragment with StoryListObserverFragment {
   lazy val emptyText = Option(getArguments) map {
     _.getString("emptyText")
   } getOrElse {
@@ -49,26 +67,20 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
   override def onStart() {
     super.onStart()
     setEmptyText(emptyText)
-    if (observer.isEmpty) {
-      // create a new observer
-      observer = Some(Obs(stories)(update(stories())))
-    }
-    // start observing
-    observer.foreach(_.active = true)
+    observe()
   }
 
   override def onStop() {
     super.onStop()
-    // stop observing, since we go out of screen
-    observer.foreach(_.active = false)
+    neglect()
   }
 
-  def update(results: Future[List[StoryResult]]) = async {
+  def update(data: Future[List[StoryResult]]) = async {
     if (storyteller.showReloadProgress || Option(getListAdapter).exists(_.getCount == 0)) await(Ui(setListShown(false)))
-    Log.d("StoryList", s"Received future $results from $observer")
-    val res = await(results)
+    Log.d("StoryList", s"Received future $data from $observer")
+    val res = await(data)
     await(Ui {
-      setListAdapter(new ResultListFragment.StoryListAdapter(res, getActivity))
+      setListAdapter(StoryListFragment.Adapter(res, getActivity))
       Log.d("StoryList", "Adapter set")
       prevButton ~> enable(storyteller.hasPrev)
       nextButton ~> enable(storyteller.hasNext)
@@ -77,24 +89,8 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
   }
 }
 
-object ResultListFragment {
-  def newInstance(emptyText: String) = {
-    val frag = new ResultListFragment
-    val bundle = new Bundle
-    bundle.putString("emptyText", emptyText)
-    frag.setArguments(bundle)
-    frag
-  }
-
-  def newInstance(emptyText: Int)(implicit ctx: Context) = {
-    val frag = new ResultListFragment
-    val bundle = new Bundle
-    bundle.putString("emptyText", ctx.getResources.getString(emptyText))
-    frag.setArguments(bundle)
-    frag
-  }
-
-  class StoryListAdapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, 0, results) {
+object StoryListFragment {
+  case class Adapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, 0, results) {
     override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
       val view = ResultRow.getView(Option(itemView), parent.getMeasuredWidth, getItem(position), activity)
       view.setPaddingRelative(0, view.getPaddingTop, 8 dip, view.getPaddingBottom)

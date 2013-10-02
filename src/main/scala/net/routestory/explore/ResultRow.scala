@@ -40,7 +40,7 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
           val p = w[TextView] ~> tagStyle ~> text(underlined(tag._1)) ~>
             tag._2.map(s ⇒ TextSize.sp(20 + (s * 20).toInt)) ~>
             measure ~> On.click {
-              val intent = new Intent(activity, classOf[SearchResultsActivity])
+              val intent = new Intent(activity, classOf[SearchActivity])
               intent.putExtra("tag", tag._1)
               activity.startActivityForResult(intent, 0)
             }

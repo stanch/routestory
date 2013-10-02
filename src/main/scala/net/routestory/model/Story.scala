@@ -37,7 +37,7 @@ object Story {
 
   class LocationData {
     @JsonIgnore
-    def asLatLng: LatLng = new LatLng(coordinates(0), coordinates(1))
+    lazy val asLatLng = new LatLng(coordinates(0), coordinates(1))
 
     @JsonProperty("type") protected val `type` = "Point"
     @JsonProperty("timestamp") var timestamp: Int = _
