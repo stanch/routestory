@@ -10,6 +10,7 @@ import net.routestory.R
 import rx._
 import scala.async.Async.{ async, await }
 import android.util.Log
+import org.macroid.util.Text
 
 class MyStoriesActivity extends RouteStoryActivity
   with HazStories
@@ -27,8 +28,10 @@ class MyStoriesActivity extends RouteStoryActivity
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
-      "Stories" → ff[StoryListFragment]("emptyText" → R.string.empty_mystories),
-      "Drafts" → ff[StoryListFragment]("emptyText" → R.string.empty_mystories),
+      "Stories" → ff[StoryListFragment](
+        "emptyText" → Text(R.string.empty_mystories),
+        "errorText" → "Error occured :("
+      ),
       "Map" → ff[ResultMapFragment]()
     )))
   }
@@ -50,6 +53,6 @@ class MyStoriesActivity extends RouteStoryActivity
         r.author = authors(r.authorId)
       }
       stories
-    } recoverUi { case t ⇒ t.printStackTrace(); List() }
+    }
   }
 }

@@ -155,11 +155,6 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
         mNfcAdapter.foreach(_.enableForegroundDispatch(this, intent, Array(filter), techs))
         toast("Waiting for the tag...") // TODO: strings.xml
         true
-        //			} case R.id.followStory => {
-        //				val intent = SIntent[FollowActivity]
-        //				intent.putExtra("id", id)
-        //	            startActivityForResult(intent, 0)
-        //	            true
       }
       case R.id.shareStory ⇒ {
         val intent = new Intent(Intent.ACTION_SEND)

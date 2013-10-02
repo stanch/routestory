@@ -93,16 +93,16 @@ class SearchActivity extends RouteStoryActivity
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
-      "Results" → ff[StoryListFragment](),
+      "Results" → ff[StoryListFragment](
+        "emptyText" → "Couldn’t find anything :(",
+        "errorText" → "Error occured :("
+      ),
       "Map" → ff[ResultMapFragment]()
     )))
   }
 
   override def onStart() {
     super.onStart()
-    if (!GotoDialogFragments.ensureNetwork(this)) {
-      return
-    }
 
     getIntent match {
       case SearchIntent(q) ⇒

@@ -91,8 +91,6 @@ trait Lounge extends LocalCouch with RemoteCouch {
       (results.getRows.toList.map { row ⇒
         objectMapper.readValue(if (remote) row.getValue else row.getDoc, implicitly[ClassTag[A]].runtimeClass).asInstanceOf[A]
       }, results.getTotalRows, results.getUpdateSeqAsString)
-    } recover {
-      case t ⇒ t.printStackTrace(); (Nil, 0, "")
     }
   }
 

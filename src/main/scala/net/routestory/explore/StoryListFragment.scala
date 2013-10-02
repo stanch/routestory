@@ -46,6 +46,9 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
   } getOrElse {
     getResources.getString(R.string.empty_search)
   }
+  lazy val errorText = Option(getArguments) map {
+    _.getString("errorText")
+  } getOrElse emptyText
 
   var nextButton = slot[Button]
   var prevButton = slot[Button]
@@ -66,7 +69,6 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
 
   override def onStart() {
     super.onStart()
-    setEmptyText(emptyText)
     observe()
   }
 
@@ -78,14 +80,20 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
   def update(data: Future[List[StoryResult]]) = async {
     if (storyteller.showReloadProgress || Option(getListAdapter).exists(_.getCount == 0)) await(Ui(setListShown(false)))
     Log.d("StoryList", s"Received future $data from $observer")
-    val res = await(data)
-    await(Ui {
-      setListAdapter(StoryListFragment.Adapter(res, getActivity))
-      Log.d("StoryList", "Adapter set")
-      prevButton ~> enable(storyteller.hasPrev)
-      nextButton ~> enable(storyteller.hasNext)
-      setListShown(true)
+    val s = await(data mapUi {
+      x ⇒ setEmptyText(emptyText); Log.d("StoryList", "In mapUi"); x
+    } recoverUi {
+      case t ⇒ t.printStackTrace(); setEmptyText(errorText); Log.d("StoryList", "In recoverUi"); Nil
     })
+    Log.d("StoryList", s"Finally a list $s")
+    Ui {
+      setListAdapter(StoryListFragment.Adapter(s, getActivity))
+      setListShown(true)
+    }
+    prevButton ~> enable(storyteller.hasPrev)
+    nextButton ~> enable(storyteller.hasNext)
+  } recover {
+    case t ⇒ t.printStackTrace(); Log.d("StoryList", "having a problem")
   }
 }
 
