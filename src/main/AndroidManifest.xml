@@ -40,10 +40,6 @@
             android:value="AIzaSyBUmeF_sZDVdds70AZDNM9l5LllGvkDB6Q" />
 
         <activity
-            android:name="net.routestory.MainActivity"
-            android:label="@string/title_activity_main" >
-        </activity>
-        <activity
             android:name="net.routestory.recording.RecordActivity"
             android:label="@string/title_activity_record"
             android:screenOrientation="nosensor"
@@ -96,7 +92,6 @@
             android:name="net.routestory.SettingsActivity"
             android:label="@string/title_activity_settings" >
         </activity>
-        <service android:name="net.routestory.SyncService" />
     </application>
 
 </manifest>

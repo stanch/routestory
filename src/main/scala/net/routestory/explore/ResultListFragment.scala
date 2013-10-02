@@ -15,11 +15,13 @@ import org.scaloid.common._
 import android.os.Bundle
 import android.content.Context
 import org.macroid.contrib.Layouts.HorizontalLinearLayout
+import android.util.Log
+import scala.async.Async.{ async, await }
 
 class ResultListFragment extends ListFragment with StoryFragment with FragmentData[HazStories] {
   lazy val storyteller = getFragmentData
   lazy val stories = storyteller.getStories
-  var observer: Obs = _
+  var observer: Option[Obs] = None
 
   lazy val emptyText = Option(getArguments) map {
     _.getString("emptyText")
@@ -38,6 +40,8 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
         w[Button] ~> text("Prev") ~> wire(prevButton) ~> On.click(storyteller.prev()),
         w[Button] ~> text("Next") ~> wire(nextButton) ~> On.click(storyteller.next())
       ) ~> (_.setGravity(Gravity.CENTER_HORIZONTAL)))
+      prevButton ~> enable(storyteller.hasPrev)
+      nextButton ~> enable(storyteller.hasNext)
     }
     view
   }
@@ -45,25 +49,31 @@ class ResultListFragment extends ListFragment with StoryFragment with FragmentDa
   override def onStart() {
     super.onStart()
     setEmptyText(emptyText)
-    observer = Obs(stories) {
-      update(stories())
+    if (observer.isEmpty) {
+      // create a new observer
+      observer = Some(Obs(stories)(update(stories())))
     }
+    // start observing
+    observer.foreach(_.active = true)
   }
 
-  override def onDestroyView() {
-    super.onDestroyView()
-    observer.active = false
+  override def onStop() {
+    super.onStop()
+    // stop observing, since we go out of screen
+    observer.foreach(_.active = false)
   }
 
-  def update(results: Future[List[StoryResult]]) {
-    runOnUiThread(setListShown(false))
-    results.onSuccessUi {
-      case res ⇒
-        setListAdapter(new ResultListFragment.StoryListAdapter(res, getActivity))
-        prevButton ~> enable(storyteller.hasPrev)
-        nextButton ~> enable(storyteller.hasNext)
-        setListShown(true)
-    }
+  def update(results: Future[List[StoryResult]]) = async {
+    if (storyteller.showReloadProgress || Option(getListAdapter).exists(_.getCount == 0)) await(Ui(setListShown(false)))
+    Log.d("StoryList", s"Received future $results from $observer")
+    val res = await(results)
+    await(Ui {
+      setListAdapter(new ResultListFragment.StoryListAdapter(res, getActivity))
+      Log.d("StoryList", "Adapter set")
+      prevButton ~> enable(storyteller.hasPrev)
+      nextButton ~> enable(storyteller.hasNext)
+      setListShown(true)
+    })
   }
 }
 

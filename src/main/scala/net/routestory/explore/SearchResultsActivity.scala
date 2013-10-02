@@ -2,7 +2,6 @@ package net.routestory.explore
 
 import org.ektorp.ViewQuery
 
-import net.routestory.MainActivity
 import net.routestory.R
 import net.routestory.model.Author
 import net.routestory.model.StoryResult
@@ -29,6 +28,7 @@ trait HazStories {
   def hasNext = false
   def hasPrev = false
   val showControls = true
+  val showReloadProgress = true
 }
 
 object SearchResultsActivity {
@@ -93,8 +93,8 @@ class SearchResultsActivity extends StoryActivity
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
-      Text(R.string.title_tab_resultslist) → ff[ResultListFragment](),
-      Text(R.string.title_tab_resultsmap) → ff[ResultMapFragment]()
+      "Results" → ff[ResultListFragment](),
+      "Map" → ff[ResultMapFragment]()
     )))
   }
 

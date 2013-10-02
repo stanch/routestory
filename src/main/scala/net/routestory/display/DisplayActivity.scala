@@ -23,7 +23,6 @@ import android.os.Bundle
 import android.view.{ Menu, MenuItem, Window }
 import android.widget.FrameLayout
 import android.widget.Toast
-import net.routestory.MainActivity
 import net.routestory.R
 import net.routestory.StoryApplication
 import net.routestory.model._
@@ -31,6 +30,7 @@ import net.routestory.parts._
 import scala.concurrent._
 import scala.async.Async.{ async, await }
 import org.macroid.util.Text
+import net.routestory.explore.ExploreActivity
 
 object DisplayActivity {
   object NfcIntent {
@@ -182,9 +182,9 @@ class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
             mStory onSuccessUi {
               case story ⇒
                 app.deleteStory(story)
-                app.sync()
+                app.requestSync
                 finish()
-                val intent = SIntent[MainActivity]
+                val intent = SIntent[ExploreActivity]
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 startActivity(intent)
             }
@@ -195,12 +195,7 @@ class DisplayActivity extends StoryActivity with HazStory with FragmentPaging {
         }.create().show()
         true
       }
-      case android.R.id.home ⇒ {
-        val intent = SIntent[MainActivity]
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        startActivity(intent)
-        true
-      }
+      case android.R.id.home ⇒ super[StoryActivity].onOptionsItemSelected(item)
       case _ ⇒ false
     }
   }

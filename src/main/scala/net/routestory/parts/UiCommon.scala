@@ -1,9 +1,8 @@
 package net.routestory.parts
 
 import org.scaloid.common._
-import android.support.v4.app.Fragment
-import net.routestory.{ AccountActivity, MainActivity, StoryApplication }
-import android.support.v4.app.FragmentActivity
+import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivity }
+import net.routestory.{ R, AccountActivity, StoryApplication }
 import org.macroid._
 import android.view.{ Gravity, View, MenuItem }
 import android.content.Intent
@@ -16,6 +15,7 @@ import org.macroid.util.Thunk
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import net.routestory.recording.RecordActivity
 import net.routestory.explore.MyStoriesActivity
+import android.os.Bundle
 
 trait FirstEveryStart {
   var everStarted = false
@@ -33,26 +33,26 @@ trait FirstEveryStart {
 trait StoryActivity extends FragmentActivity with FullDslActivity with FirstEveryStart {
   lazy val app = getApplication.asInstanceOf[StoryApplication]
   lazy val bar = getActionBar
+  var drawerToggle: ActionBarDrawerToggle = _
 
   override def onStart() {
     super.onStart()
     firstOrEvery()
   }
 
-  override def onOptionsItemSelected(item: MenuItem): Boolean = item.getItemId match {
-    case android.R.id.home ⇒
-      val intent = SIntent[MainActivity]
-      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-      startActivity(intent)
-      true
-    case _ ⇒ super.onOptionsItemSelected(item)
+  override def onOptionsItemSelected(item: MenuItem) =
+    Option(drawerToggle).map(_.onOptionsItemSelected(item)).filter(x ⇒ x).getOrElse(super.onOptionsItemSelected(item))
+
+  override def onPostCreate(savedInstanceState: Bundle) {
+    super.onPostCreate(savedInstanceState)
+    Option(drawerToggle).map(_.syncState())
   }
 
   def drawer(view: View) = {
     def clicker[A <: Activity: ClassTag] = On.click {
       startActivityForResult(new Intent(this, implicitly[ClassTag[A]].runtimeClass), 0)
     }
-    l[DrawerLayout](
+    val layout = l[DrawerLayout](
       view ~> lp(MATCH_PARENT, MATCH_PARENT),
       l[VerticalLinearLayout](
         w[TextView] ~> text("Record") ~> clicker[RecordActivity],
@@ -60,6 +60,11 @@ trait StoryActivity extends FragmentActivity with FullDslActivity with FirstEver
         w[TextView] ~> text("Profile") ~> clicker[AccountActivity]
       ) ~> lp(240 dip, MATCH_PARENT, Gravity.START)
     )
+    drawerToggle = new ActionBarDrawerToggle(
+      this, layout, R.drawable.ic_navigation_drawer,
+      R.string.app_name, R.string.app_name
+    )
+    layout.setDrawerListener(drawerToggle); layout
   }
 }
 

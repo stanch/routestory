@@ -12,10 +12,43 @@ import java.util.{ Observer, Observable }
 import com.couchbase.cblite.replicator.CBLReplicator
 import scala.util.Success
 import android.util.Log
+import rx.Var
+import java.util.concurrent.{ ScheduledExecutorService, TimeUnit, Executors }
 
 trait Lounge extends LocalCouch with RemoteCouch {
+  val authToken: Var[Option[String]]
+  val authorId: Var[Option[String]]
+  def isSignedIn = authToken.now.isDefined
+
+  private var syncService: Option[ScheduledExecutorService] = None
+
+  /** Setup http client and views */
+  def init = async {
+    await(setHttpFactory(Local.server, authToken.now))
+    await(setViews(Local.server, authorId.now))
+    import org.scaloid.common._
+    // syncService is only instantiated at this point
+    // to make sure we can’t replicate before authToken and authorId are defined
+    syncService = Some(Executors.newScheduledThreadPool(1))
+    syncService.foreach(_.scheduleAtFixedRate(sync, 5, 5 * 60, TimeUnit.SECONDS))
+  }
+
+  /** Set up http client to use authentication */
+  def signIn(token: Option[String], id: Option[String]) = async {
+    await(setHttpFactory(Local.server, token))
+    await(setViews(Local.server, id))
+    authToken.update(token)
+    authorId.update(id)
+    await(requestSync)
+  }
+
+  /** Clear authentication token */
+  def signOut = signIn(None, None)
+
   /** Check if local couch contains a document */
-  def localContains(id: String) = Local.couch.map(_.contains(id))
+  def localContains(id: String) = {
+    Local.couch.map(_.contains(id))
+  }
 
   /** Check if remote couch contains a document */
   def remoteContains(id: String) = async {
@@ -29,8 +62,7 @@ trait Lounge extends LocalCouch with RemoteCouch {
   /** Get document by id */
   private def couchGet[A <: CouchDbObject: ClassTag](couch: CouchDbConnector, id: String) = {
     val obj = couch.get(implicitly[ClassTag[A]].runtimeClass, id).asInstanceOf[A]
-    obj.bind(couch)
-    obj
+    obj.bind(couch); obj
   }
 
   /** Get document by id */
@@ -57,8 +89,10 @@ trait Lounge extends LocalCouch with RemoteCouch {
     bookmark.foreach(query.queryParam("bookmark", _))
     getPlainQueryResults(remote, query) map { results ⇒
       (results.getRows.toList.map { row ⇒
-        objectMapper.readValue(row.getValue, implicitly[ClassTag[A]].runtimeClass).asInstanceOf[A]
+        objectMapper.readValue(if (remote) row.getValue else row.getDoc, implicitly[ClassTag[A]].runtimeClass).asInstanceOf[A]
       }, results.getTotalRows, results.getUpdateSeqAsString)
+    } recover {
+      case t ⇒ t.printStackTrace(); (Nil, 0, "")
     }
   }
 
@@ -77,7 +111,7 @@ trait Lounge extends LocalCouch with RemoteCouch {
   }
 
   /** Replicate */
-  def replicate(c: ReplicationCommand) = Future.firstCompletedOf(Seq(async {
+  private def replicate(c: ReplicationCommand) = Future.firstCompletedOf(Seq(async {
     val status = await(Local.instance.map(_.replicate(c)))
     val replicator = await(Local.server.map(_.getDatabaseNamed("story").getReplicator(status.getSessionId)))
     await(observeUntil(replicator) { (o, d) ⇒ !o.asInstanceOf[CBLReplicator].isRunning })
@@ -87,7 +121,7 @@ trait Lounge extends LocalCouch with RemoteCouch {
   }))
 
   /** Synchronize with the cloud */
-  def sync() = async {
+  private def sync = if (isSignedIn) async {
     Log.d("Sync", "Replicating")
     val push = new ReplicationCommand.Builder().source("story").target("https://bag-routestory-net.herokuapp.com/story").build()
     await(replicate(push))
@@ -95,5 +129,18 @@ trait Lounge extends LocalCouch with RemoteCouch {
     val pull = new ReplicationCommand.Builder().target("story").source("https://bag-routestory-net.herokuapp.com/story").build()
     await(replicate(pull))
     Log.d("Sync", "Finished pulling")
-  } onFailure { case t ⇒ t.printStackTrace() }
+  } recover {
+    case t ⇒ t.printStackTrace()
+  }
+  else Future.successful(())
+
+  /** This should be the only entry point for replication (for thread safety) */
+  def requestSync = {
+    import org.scaloid.common._
+    val syncPromise = Promise[Any]()
+    syncService.map(_.schedule({
+      syncPromise.completeWith(sync)
+    }, 0, TimeUnit.SECONDS)).getOrElse(syncPromise.complete(Success(())))
+    syncPromise.future
+  }
 }

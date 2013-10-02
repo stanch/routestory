@@ -314,7 +314,7 @@ class RecordActivity extends StoryActivity {
       )))
   }
 
-  def createStory() = async {
+  def createStory = async {
     await(app.createStory(mStory))
     var rev = mStory.getRevision
     val it = mMedia.iterator
@@ -324,7 +324,7 @@ class RecordActivity extends StoryActivity {
       rev = await(app.updateStoryAttachment(id, stream, contentType, mStory.getId, rev))
       new File(filename).delete()
     }
-    await(app.compactLocal())
+    await(app.compactLocal)
   }
 
   override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
@@ -338,20 +338,15 @@ class RecordActivity extends StoryActivity {
         mStory.authorId = app.authorId.now.getOrElse(null)
         mProgressDialog.setMessage(getResources.getString(R.string.message_finishing))
         mProgressDialog.show()
-        mAudioProcessingTask recover {
-          case t ⇒
-            t.printStackTrace()
-        } flatMap { _ ⇒
-          createStory()
-        } onSuccessUi {
-          case _ ⇒
-            mProgressDialog.dismiss()
-            app.sync()
-            finish()
-            val intent = SIntent[DisplayActivity]
-            intent.putExtra("id", mStory.getId)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            startActivity(intent)
+        async {
+          await(mAudioProcessingTask.recover { case t ⇒ t.printStackTrace() })
+          await(createStory)
+          Ui(mProgressDialog.dismiss())
+          app.requestSync
+          val intent = SIntent[DisplayActivity]
+          intent.putExtra("id", mStory.getId)
+          intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+          startActivity(intent)
         } onFailureUi {
           case t ⇒
             t.printStackTrace()

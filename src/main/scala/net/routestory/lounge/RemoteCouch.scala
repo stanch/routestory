@@ -8,7 +8,7 @@ import org.ektorp.impl.StdCouchDbInstance
 trait RemoteCouch {
   object Remote {
     val couch = future {
-      val client = (new AndroidHttpClient.Builder).connectionTimeout(10000).url("https://bag-routestory-net.herokuapp.com:443/").build()
+      val client = (new AndroidHttpClient.Builder).connectionTimeout(30000).url("https://bag-routestory-net.herokuapp.com:443/").build()
       new StdCouchDbInstance(client).createConnector("story", false)
     }
   }

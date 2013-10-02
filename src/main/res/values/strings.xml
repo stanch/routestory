@@ -2,7 +2,6 @@
 <resources>
 
     <string name="app_name">RouteStory</string>
-    <string name="title_activity_main">RouteStory</string>
     <string name="title_activity_mystories">My stories</string>
     <string name="title_activity_description">Adding descriptions</string>
     <string name="title_activity_account">My Profile</string>

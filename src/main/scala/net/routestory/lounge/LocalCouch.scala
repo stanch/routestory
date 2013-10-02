@@ -9,34 +9,21 @@ import org.apache.http.{ HttpRequest, HttpRequestInterceptor }
 import org.apache.http.protocol.HttpContext
 import com.couchbase.cblite.ektorp.CBLiteHttpClient
 import org.ektorp.impl.StdCouchDbInstance
-import org.ektorp.ComplexKey
 import android.content.Context
 import scala.concurrent.{ Future, future }
 import scala.concurrent.ExecutionContext.Implicits.global
-import rx._
 import java.io.InputStream
-import scala.collection.JavaConverters._
+import android.util.Log
 
 trait LocalCouch {
   CBLURLStreamHandlerFactory.registerSelfIgnoreError()
   implicit val ctx: Context
-
-  val authToken: Var[Option[String]]
-  val authorId: Var[Option[String]]
 
   object Local {
     val server = future(new CBLServer(ctx.getFilesDir.getAbsolutePath))
     val client = server.map(new CBLiteHttpClient(_))
     val instance = client.map(new StdCouchDbInstance(_))
     val couch = instance.map(_.createConnector("story", true))
-
-    Obs(authToken) {
-      setHttpFactory(server, authToken())
-    }
-
-    Obs(authorId) {
-      setViews(server, authorId())
-    }
 
     def updateAttachment(attachmentId: String, contentStream: InputStream, contentType: String, id: String, rev: String) = {
       server.map(_.getDatabaseNamed("story").updateAttachment(attachmentId, contentStream, contentType, id, rev, new CBLStatus).getRevId)
@@ -47,8 +34,8 @@ trait LocalCouch {
     }
   }
 
-  private def setHttpFactory(server: Future[CBLServer], token: Option[String]) {
-    server.foreach { s ⇒
+  protected def setHttpFactory(server: Future[CBLServer], token: Option[String]) = {
+    server.map { s ⇒
       s.setDefaultHttpClientFactory(new HttpClientFactory {
         override def getHttpClient = new DefaultHttpClient {
           addRequestInterceptor(new HttpRequestInterceptor {
@@ -58,32 +45,23 @@ trait LocalCouch {
           })
         }
       })
+      Log.d("Sync", s"Http factory set to $token")
     }
   }
 
-  private def setViews(server: Future[CBLServer], author: Option[String]) {
+  protected def setViews(server: Future[CBLServer], author: Option[String]) = {
     server.map(_.getDatabaseNamed("story", true)).map { db ⇒
-      implicit class Document(doc: java.util.Map[String, Object]) extends scala.Dynamic {
-        def selectDynamic(sel: String) = doc.get(sel)
-      }
-      def setView(name: String)(map: (Document, CBLViewMapEmitBlock) ⇒ Unit) = {
-        db.getViewNamed(s"Story/$name").setMapReduceBlocks(new CBLViewMapBlock {
-          override def map(d: java.util.Map[String, Object], e: CBLViewMapEmitBlock) { map(d, e) }
-        }, null, "1.0")
-      }
-      def emitDoc(doc: Document, emitter: CBLViewMapEmitBlock) = emitter.emit(doc.starttime, Map(
-        "_id" → doc._id,
-        "title" → doc.title,
-        "tags" → doc.tags,
-        "author" → doc.author,
-        "locations" → doc.locations
-      ).asJava)
-      setView("byme") { (doc, emitter) ⇒
-        if (doc.`type` == "story" && (doc.author == null || doc.author == author)) emitDoc(doc, emitter)
-      }
-      setView("saved") { (doc, emitter) ⇒
-        if (doc.`type` == "story" && doc.author != null && doc.author != author) emitDoc(doc, emitter)
-      }
+      // setMapReduceBlocks doesn’t work with closures!
+      // perhaps some weird reflection stuff
+      db.getViewNamed("Story/byme").setMapReduceBlocks(new CBLViewMapBlock {
+        override def map(document: java.util.Map[String, Object], emitter: CBLViewMapEmitBlock) {
+          if (document.get("type") == "story" &&
+            (document.get("author") == null || document.get("author") == author.getOrElse(""))) {
+            emitter.emit(document.get("starttime"), document.get("_id"))
+          }
+        }
+      }, null, "1.0")
+      Log.d("Sync", s"Views set for author $author")
     }
   }
 }

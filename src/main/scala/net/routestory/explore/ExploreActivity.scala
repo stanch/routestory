@@ -20,7 +20,7 @@ class ExploreActivity extends StoryActivity with FragmentPaging {
     PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
 
     // show UI
-    bar.setDisplayShowHomeEnabled(true)
+    bar.setHomeButtonEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
       "Latest" → ff[LatestFragment]("number" → 10),

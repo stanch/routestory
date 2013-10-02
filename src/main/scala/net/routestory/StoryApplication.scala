@@ -9,6 +9,7 @@ import java.io.InputStream
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.lounge.Lounge
 import rx.{ Obs, Var }
+import android.util.Log
 
 object StoryApplication {
   val storyPreviewDuration = 30
@@ -16,29 +17,28 @@ object StoryApplication {
 
 class StoryApplication extends Application with Lounge {
   implicit val ctx = this
-  lazy val authToken = Var {
-    Option(getSharedPreferences("default", MODE_PRIVATE)).map(_.getString("authToken", "")).filter(!_.isEmpty)
-  }
-  lazy val authorId = Var {
-    Option(getSharedPreferences("default", MODE_PRIVATE)).map(_.getString("authorId", "")).filter(!_.isEmpty)
+  lazy val authToken = Var(readPrefs("authToken"))
+  lazy val authTokenSaver = authToken.foreach(writePrefs("authToken", _), skipInitial = true)
+  lazy val authorId = Var(readPrefs("authorId"))
+  lazy val authorIdSaver = authorId.foreach(writePrefs("authorId", _), skipInitial = true)
+
+  override def onCreate() {
+    super.onCreate()
+    authTokenSaver; authorIdSaver // touch observers
+    init
   }
 
-  def setAuthData(s: Option[Array[String]]) {
-    authorId.update(s.map(_(0)))
-    authToken.update(s.map(_(1)))
+  def readPrefs(key: String) = {
+    val value = Option(getSharedPreferences("default", MODE_PRIVATE)).map(_.getString(key, "")).filter(!_.isEmpty)
+    Log.d("Prefs", s"reading $key: $value from prefs"); value
+  }
+  def writePrefs(key: String, value: Option[String]) {
+    Log.d("Prefs", s"writing $key: $value to prefs")
     val prefs = getSharedPreferences("default", MODE_PRIVATE)
-    val editor = prefs.edit()
-    editor.putString("authToken", authToken.now.getOrElse(""))
-    editor.putString("authorId", authorId.now.getOrElse(""))
-    editor.commit()
-    sync()
+    prefs.edit().putString(key, value.getOrElse("")).commit()
   }
 
-  def signOut() {
-    setAuthData(None)
-  }
-
-  def isSignedIn = authToken.now.isDefined
+  def setAuthData(s: Option[Array[String]]) = signIn(s.map(_(1)), s.map(_(0)))
 
   def getAuthor = Local.couch.map(c ⇒ authorId.now.map(c.get(classOf[Author], _)))
 
@@ -48,7 +48,7 @@ class StoryApplication extends Application with Lounge {
     Local.updateAttachment(attachmentId, contentStream, contentType, id, rev)
   }
 
-  def compactLocal() = Local.server.map(_.getDatabaseNamed("story").compact())
+  def compactLocal = Local.server.map(_.getDatabaseNamed("story").compact())
 
   def deleteStory(story: Story) = Local.couch.map(_.delete(story))
 

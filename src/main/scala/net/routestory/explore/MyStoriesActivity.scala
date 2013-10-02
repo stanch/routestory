@@ -9,6 +9,7 @@ import ExecutionContext.Implicits.global
 import net.routestory.R
 import rx._
 import scala.async.Async.{ async, await }
+import android.util.Log
 
 class MyStoriesActivity extends StoryActivity
   with HazStories
@@ -32,10 +33,17 @@ class MyStoriesActivity extends StoryActivity
     )))
   }
 
+  override def onStart() {
+    super.onStart()
+    if (myStories.now.isCompleted) myStories.update(fetchStories)
+  }
+
   def fetchStories = {
     val query = new ViewQuery().designDocId("_design/Story").viewName("byme").descending(true).includeDocs(true)
     async {
+      Log.d("MyStories", "Fetching my stories")
       val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = false, query, None))
+      Log.d("MyStories", "Got stories")
       val authorIds = stories.map(_.authorId)
       val authors = await(app.getObjects[Author](authorIds))
       stories.filter(_.authorId != null) foreach { r ⇒
