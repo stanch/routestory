@@ -33,7 +33,7 @@ import uk.co.senab.photoview.PhotoViewAttacher
 import org.macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
 
 class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, activity: Activity)(implicit ctx: Context) extends Concurrency {
-  var hide_overlays = false
+  var hideOverlays = false
 
   val maxIconSize = ((800 dip) :: displaySize).min / 4
 
@@ -76,7 +76,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
     override def onClick() {
       // show the image in a pop-up window
       val progress = spinnerDialog("", "Loading image...") // TODO: strings.xml
-      data.get(displaySize.max) onSuccessUi {
+      data.get(displaySize.max) foreachUi {
         case bitmap if bitmap != null ⇒
           progress.dismiss()
           val view = w[ImageView] ~> lpOf[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER) ~> { x ⇒
@@ -124,7 +124,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
 
     override def onClick() {
       mediaPlayer = new MediaPlayer()
-      data.get onSuccessUi {
+      data.get foreachUi {
         case file if file != null ⇒
           try {
             mediaPlayer.setDataSource(file.getAbsolutePath)
@@ -133,6 +133,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
           } catch {
             case e: Throwable ⇒ e.printStackTrace()
           }
+        case _ ⇒
       }
     }
   }
@@ -388,7 +389,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
   def update() {
     if (!readyFuture.isCompleted) return
     if (rootMarkerItem.isEmpty) return
-    if (hide_overlays) {
+    if (hideOverlays) {
       remove()
       return
     }
@@ -416,10 +417,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
     markerDispatch foreach { case (m, i) ⇒ m.remove() }
   }
 
-  def onMarkerClick(marker: Marker): Boolean = markerDispatch.get(marker) match {
-    case Some(m) ⇒ m.onClick(); true
-    case None ⇒ false
-  }
+  def onMarkerClick(marker: Marker): Boolean = markerDispatch.get(marker).exists { x ⇒ x.onClick(); true }
 }
 
 object MarkerManager {

@@ -41,21 +41,15 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val activity = getActivity.asInstanceOf[RecordActivity]
 
-    def clicker(factory: Thunk[DialogFragment], tag: String) = async {
-      await(activity.untrackAudio())
-      Ui {
-        dismiss()
-        factory().show(activity.getSupportFragmentManager, tag)
-      }
+    def clicker(factory: Thunk[DialogFragment], tag: String) = activity.untrackAudio() foreachUi { _ ⇒
+      dismiss()
+      factory().show(activity.getSupportFragmentManager, tag)
     }
 
-    def cameraClicker = async {
-      await(activity.untrackAudio())
-      Ui {
-        val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
-        startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
-      }
+    def cameraClicker = activity.untrackAudio() foreachUi { _ ⇒
+      val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
+      startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
     }
 
     val buttons = List(

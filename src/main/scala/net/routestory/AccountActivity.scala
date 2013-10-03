@@ -84,7 +84,7 @@ class AccountActivity extends RouteStoryActivity {
           w[ImageView] ~> { x ⇒
             x.setScaleType(ImageView.ScaleType.FIT_START)
             x.setAdjustViewBounds(true)
-            author.pictureCache.get onSuccessUi {
+            author.pictureCache.get foreachUi {
               case bitmap if bitmap != null ⇒ x.setImageBitmap(bitmap)
               case _ ⇒ x.setImageResource(R.drawable.ic_launcher)
             }

@@ -16,7 +16,7 @@ import ViewGroup.LayoutParams._
 import org.scaloid.common._
 
 class DescriptionFragment extends RouteStoryFragment {
-  lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
+  lazy val story = getActivity.asInstanceOf[HazStory].story
 
   var authorPicture = slot[ImageView]
   var authorName = slot[TextView]
@@ -47,34 +47,33 @@ class DescriptionFragment extends RouteStoryFragment {
   override def onStart() {
     super.onStart()
 
-    mStory onSuccessUi {
-      case story ⇒
-        // get screen width
-        val display = getActivity.getWindowManager.getDefaultDisplay
-        val width = display.getWidth()
+    story foreachUi { s ⇒
+      // get screen width
+      val display = getActivity.getWindowManager.getDefaultDisplay
+      val width = display.getWidth()
 
-        Option(story.author) map { a ⇒
-          authorPicture ~> { x ⇒
-            x.setScaleType(ImageView.ScaleType.FIT_START)
-            x.setAdjustViewBounds(true)
-          }
-          authorName ~> text(a.name)
-          a.pictureCache.get onSuccessUi {
-            case picture ⇒ Option(picture).map(b ⇒ authorPicture ~> (_.setImageBitmap(b))).getOrElse(authorPicture ~> hide)
-          }
-        } getOrElse {
-          authorName ~> text("Me")
-          authorPicture ~> hide
+      Option(s.author) map { a ⇒
+        authorPicture ~> { x ⇒
+          x.setScaleType(ImageView.ScaleType.FIT_START)
+          x.setAdjustViewBounds(true)
         }
-
-        val d = Option(story.description).filter(_.length > 0).getOrElse("No description.")
-        description ~> text(d)
-
-        Option(story.tags).filter(_.length > 0) map { t ⇒
-          ResultRow.fillTags(tagRows, width - 20, t.map((_, None)), getActivity)
-        } getOrElse {
-          tagStuff ~> hide
+        authorName ~> text(a.name)
+        a.pictureCache.get foreach {
+          picture ⇒ Option(picture).map(b ⇒ authorPicture ~> (_.setImageBitmap(b))).getOrElse(authorPicture ~> hide)
         }
+      } getOrElse {
+        authorName ~> text("Me")
+        authorPicture ~> hide
+      }
+
+      val d = Option(s.description).filter(_.length > 0).getOrElse("No description.")
+      description ~> text(d)
+
+      Option(s.tags).filter(_.length > 0) map { t ⇒
+        ResultRow.fillTags(tagRows, width - 20, t.map((_, None)), getActivity)
+      } getOrElse {
+        tagStuff ~> hide
+      }
     }
   }
 }

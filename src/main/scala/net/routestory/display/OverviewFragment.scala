@@ -21,19 +21,14 @@ import ViewGroup.LayoutParams._
 import scala.async.Async.{ async, await }
 
 class OverviewFragment extends RouteStoryFragment {
-  lazy val mStory = getActivity.asInstanceOf[HazStory].getStory
+  lazy val story = getActivity.asInstanceOf[HazStory].story
+  lazy val media = getActivity.asInstanceOf[HazStory].media
   lazy val display = getActivity.getWindowManager.getDefaultDisplay
-  lazy val mMap = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap
-  lazy val mRouteManager = async {
-    val story = await(mStory)
-    val rm = new RouteManager(mMap, story)
-    Ui(rm.init())
-    rm
-  }
-  lazy val mMarkerManager = async {
-    val story = await(mStory)
-    new MarkerManager(mMap, List(display.getWidth(), display.getHeight()), story, getActivity)
-  }
+  lazy val map = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap
+  lazy val routeManager = story.mapUi(new RouteManager(map, _).init())
+  lazy val markerManager = story.map(new MarkerManager(map, List(display.getWidth(), display.getHeight()), _, getActivity))
+
+  var toggleOverlays = slot[Button]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[FrameLayout](
@@ -43,65 +38,54 @@ class OverviewFragment extends RouteStoryFragment {
       l[FrameLayout](
         w[Button] ~>
           text(R.string.hide_overlays) ~>
+          wire(toggleOverlays) ~>
           lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL) ~>
-          FuncOn.click { x: View ⇒
-            mMarkerManager onSuccessUi {
-              case mm ⇒
-                mm.hide_overlays = !mm.hide_overlays
-                x.asInstanceOf[Button] ~> text(if (mm.hide_overlays) R.string.show_overlays else R.string.hide_overlays)
-                mm.update()
-            }
-          }
+          On.click(markerManager foreachUi { mm ⇒
+            mm.hideOverlays = !mm.hideOverlays
+            toggleOverlays ~> text(if (mm.hideOverlays) R.string.show_overlays else R.string.hide_overlays)
+            mm.update()
+          })
       )
     )
   }
 
   override def onFirstStart() {
-    mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID)
+    map.setMapType(GoogleMap.MAP_TYPE_HYBRID)
 
     /* Initialize marker manager */
     async {
-      val mm = await(mMarkerManager)
-      val progress = await(Ui(new ProgressDialog(ctx) {
-        setMessage("Loading data...")
-        setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
-        setMax(mm.loadingItems.length)
-        show()
-      }))
-      mm.loadingItems.foreach(_.onSuccessUi {
-        case _ ⇒
-          progress.incrementProgressBy(1)
-      })
-      Future.sequence(mm.loadingItems).onSuccessUi {
-        case _ ⇒
-          progress.dismiss()
-      }
+      val mm = await(markerManager)
+      val m = await(media)
+      await(Future.sequence(m)) // preload not to cache twice
+      await(Future.sequence(mm.loadingItems))
       Ui {
         mm.update()
-        mMap.setOnMarkerClickListener(mm.onMarkerClick _)
+        map.setOnMarkerClickListener(mm.onMarkerClick _)
       }
     }
 
     /* Put start and end markers */
-    async {
-      val rm = await(mRouteManager)
-      List(rm.getStart → R.drawable.flag_start, rm.getEnd → R.drawable.flag_end) map {
-        case (l, d) ⇒
-          Ui(mMap.addMarker(new MarkerOptions()
-            .position(l)
-            .icon(BitmapDescriptorFactory.fromResource(d))
-            .anchor(0.3f, 1)))
+    // format: OFF
+    routeManager foreachUi { rm ⇒
+      List(
+        rm.getStart → R.drawable.flag_start,
+        rm.getEnd → R.drawable.flag_end
+      ) map { case (l, d) ⇒
+        map.addMarker(new MarkerOptions()
+          .position(l).anchor(0.3f, 1)
+          .icon(BitmapDescriptorFactory.fromResource(d)))
       }
     }
+    // format: ON
 
     /* Move map to bounds */
-    mMap.setOnCameraChangeListener { p: CameraPosition ⇒
+    map.setOnCameraChangeListener { p: CameraPosition ⇒
       async {
-        val mm = await(mMarkerManager)
-        val rm = await(mRouteManager)
+        val mm = await(markerManager)
+        val rm = await(routeManager)
         Ui {
-          mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(rm.getBounds, 30 dip))
-          mMap.setOnCameraChangeListener { p: CameraPosition ⇒ mm.update() }
+          map.moveCamera(CameraUpdateFactory.newLatLngBounds(rm.getBounds, 30 dip))
+          map.setOnCameraChangeListener { p: CameraPosition ⇒ mm.update() }
         }
       }
     }

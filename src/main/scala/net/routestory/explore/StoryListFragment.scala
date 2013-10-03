@@ -81,19 +81,13 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
     if (storyteller.showReloadProgress || Option(getListAdapter).exists(_.getCount == 0)) await(Ui(setListShown(false)))
     Log.d("StoryList", s"Received future $data from $observer")
     val s = await(data mapUi {
-      x ⇒ setEmptyText(emptyText); Log.d("StoryList", "In mapUi"); x
+      x ⇒ setEmptyText(emptyText); x
     } recoverUi {
-      case t ⇒ t.printStackTrace(); setEmptyText(errorText); Log.d("StoryList", "In recoverUi"); Nil
+      case t ⇒ t.printStackTrace(); setEmptyText(errorText); Nil
     })
-    Log.d("StoryList", s"Finally a list $s")
-    Ui {
-      setListAdapter(StoryListFragment.Adapter(s, getActivity))
-      setListShown(true)
-    }
+    Ui { setListAdapter(StoryListFragment.Adapter(s, getActivity)); setListShown(true) }
     prevButton ~> enable(storyteller.hasPrev)
     nextButton ~> enable(storyteller.hasNext)
-  } recover {
-    case t ⇒ t.printStackTrace(); Log.d("StoryList", "having a problem")
   }
 }
 

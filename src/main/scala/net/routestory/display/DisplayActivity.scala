@@ -7,8 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import org.scaloid.common._
 
-import android.app.{ ActionBar, AlertDialog, PendingIntent }
-import android.content.DialogInterface
+import android.app.{ AlertDialog, PendingIntent }
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
@@ -20,17 +19,20 @@ import android.nfc.Tag
 import android.nfc.tech.Ndef
 import android.nfc.tech.NdefFormatable
 import android.os.Bundle
-import android.view.{ Menu, MenuItem, Window }
-import android.widget.FrameLayout
-import android.widget.Toast
+import android.view.{ Menu, MenuItem }
+import android.widget.{ ProgressBar, Toast }
 import net.routestory.R
-import net.routestory.RouteStoryApp
 import net.routestory.model._
 import net.routestory.parts._
 import scala.concurrent._
 import scala.async.Async.{ async, await }
 import org.macroid.util.Text
 import net.routestory.explore.ExploreActivity
+import net.routestory.lounge.Patterns
+import org.macroid.contrib.Layouts.VerticalLinearLayout
+import scala.collection.JavaConversions._
+import io.dylemma.frp.Observer
+import java.util.concurrent.Executors
 
 object DisplayActivity {
   object NfcIntent {
@@ -53,95 +55,85 @@ object DisplayActivity {
 }
 
 trait HazStory {
-  def getStory: Future[Story]
+  val story: Future[Story]
+  val media: Future[List[Future[Boolean]]]
 }
 
-class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPaging {
+class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPaging with Observer {
   import DisplayActivity._
 
-  private var id: String = _
-
-  private lazy val mStory = async {
-    val story = await(app.getObject[Story](id))
-    val author = await(app.getObject[Author](story.authorId))
-    story.author = author
-    story
+  private lazy val id = getIntent match {
+    case NfcIntent(uri) ⇒
+      "story-" + uri.getLastPathSegment
+    case ViewIntent(uri) ⇒
+      "story-" + uri.getLastPathSegment
+    case PlainIntent(i) ⇒
+      i
+    case _ ⇒
+      finish(); ""
   }
-  def getStory = mStory
 
-  var mShareable = false
+  lazy val story = Patterns.getStory(app)(id)
 
-  lazy val mNfcAdapter: Option[NfcAdapter] = Option(NfcAdapter.getDefaultAdapter(getApplicationContext))
+  lazy val media = {
+    // avoid clogging ForkJoinPool with blocking IO
+    implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
+    story map { s ⇒ s.photos.map(_.preload).toList ::: Option(s.audioPreview).map(_.preload :: Nil).getOrElse(Nil) }
+  }
+
+  var progress = slot[ProgressBar]
+  var shareable = false
+  lazy val nfcAdapter: Option[NfcAdapter] = Option(NfcAdapter.getDefaultAdapter(getApplicationContext))
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
-    requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS)
-    setContentView(new FrameLayout(this))
 
-    id = getIntent match {
-      case NfcIntent(uri) ⇒
-        "story-" + uri.getLastPathSegment
-      case ViewIntent(uri) ⇒
-        "story-" + uri.getLastPathSegment
-      case PlainIntent(i) ⇒
-        i
-      case _ ⇒
-        finish()
-        return
+    setContentView(drawer(
+      l[VerticalLinearLayout](
+        w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) ~> wire(progress),
+        getTabs(
+          Text(R.string.title_tab_storypreview) → ff[PreviewFragment](),
+          Text(R.string.title_tab_storydescription) → ff[DescriptionFragment](),
+          Text(R.string.title_tab_storyoverview) → ff[OverviewFragment]()
+        )
+      )
+    ))
+
+    Retry.backoff(max = 10)(app.remoteContains(id)) foreachUi { _ ⇒
+      shareable = true
+      invalidateOptionsMenu()
     }
 
-    setProgressBarIndeterminateVisibility(true)
+    bar.setDisplayShowHomeEnabled(true)
+    bar.setDisplayHomeAsUpEnabled(true)
+    progress ~@> waitProgress(story) ~@> media.map(waitProgress)
 
-    mStory onSuccessUi {
-      case _ ⇒ setProgressBarIndeterminateVisibility(false)
-    }
-    mStory onFailureUi {
-      case e ⇒
-        e.printStackTrace()
+    story mapUi { s ⇒
+      bar.setTitle(Option(s.title).filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))
+      bar.setSubtitle("by " + Option(s.author).map(_.name).getOrElse("me"))
+    } onFailureUi {
+      case t ⇒
+        t.printStackTrace()
         toast("Failed to load the story")
         finish()
     }
-
-    Retry.backoff(max = 10)(app.remoteContains(id)) onSuccessUi {
-      case _ ⇒
-        mShareable = true
-        invalidateOptionsMenu()
-    }
-
-    //bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS)
-    bar.setDisplayShowHomeEnabled(true)
-    bar.setDisplayHomeAsUpEnabled(true)
-
-    mStory onSuccessUi {
-      case story ⇒
-        bar.setTitle(Option(story.title).filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))
-        bar.setSubtitle("by " + Option(story.author).map(_.name).getOrElse("me"))
-    }
-
-    setContentView(drawer(getTabs(
-      Text(R.string.title_tab_storypreview) → ff[PreviewFragment](),
-      Text(R.string.title_tab_storydescription) → ff[DescriptionFragment](),
-      Text(R.string.title_tab_storyoverview) → ff[OverviewFragment]()
-    )))
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean = {
     getMenuInflater.inflate(R.menu.activity_display, menu)
-    if (mNfcAdapter.isEmpty) {
+    if (nfcAdapter.isEmpty) {
       menu.findItem(R.id.storeNfc).setEnabled(false)
     }
-    async {
-      if (!await(app.localContains(id))) {
-        Ui(menu.findItem(R.id.deleteStory).setVisible(false))
-      }
+    app.localContains(id) foreachUi {
+      case false ⇒ menu.findItem(R.id.deleteStory).setVisible(false)
+      case true ⇒
     }
-    menu.findItem(R.id.followStory).setVisible(false) // TODO: fix the follow mode!
     true
   }
 
   override def onPrepareOptionsMenu(menu: Menu): Boolean = {
-    menu.findItem(R.id.shareStory).setEnabled(mShareable)
-    menu.findItem(R.id.storeNfc).setEnabled(mNfcAdapter.isDefined && mShareable)
+    menu.findItem(R.id.shareStory).setEnabled(shareable)
+    menu.findItem(R.id.storeNfc).setEnabled(nfcAdapter.isDefined && shareable)
     true
   }
 
@@ -152,37 +144,33 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
         val intent = PendingIntent.getActivity(this, 0, new Intent(this, classOf[DisplayActivity]).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0)
         val filter = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED)
         val techs = Array(Array(classOf[NdefFormatable].getName, classOf[Ndef].getName))
-        mNfcAdapter.foreach(_.enableForegroundDispatch(this, intent, Array(filter), techs))
+        nfcAdapter.foreach(_.enableForegroundDispatch(this, intent, Array(filter), techs))
         toast("Waiting for the tag...") // TODO: strings.xml
         true
       }
       case R.id.shareStory ⇒ {
         val intent = new Intent(Intent.ACTION_SEND)
-        intent.setType("text/plain")
-        intent.putExtra(Intent.EXTRA_SUBJECT, getResources.getString(R.string.share_subject))
-        intent.putExtra(
-          Intent.EXTRA_TEXT,
-          getResources.getString(R.string.share_body) + " http://www.routestory.net/" + id.replace("-", "/"))
+          .setType("text/plain")
+          .putExtra(Intent.EXTRA_SUBJECT, getResources.getString(R.string.share_subject))
+          .putExtra(
+            Intent.EXTRA_TEXT,
+            Text(R.string.share_body) + " http://www.routestory.net/" + id.replace("-", "/")
+          )
         startActivity(Intent.createChooser(intent, getResources.getString(R.string.share_chooser)))
         true
       }
       case R.id.deleteStory ⇒ {
         new AlertDialog.Builder(this) {
           setMessage(R.string.message_deletestory)
-          setPositiveButton(android.R.string.yes, { (dialog: DialogInterface, which: Int) ⇒
-            mStory onSuccessUi {
-              case story ⇒
-                app.deleteStory(story)
-                app.requestSync
-                finish()
-                val intent = SIntent[ExploreActivity]
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(intent)
-            }
+          setPositiveButton(android.R.string.yes, async {
+            val s = await(story)
+            await(app.deleteStory(s))
+            app.requestSync
+            finish()
+            val intent = SIntent[ExploreActivity].addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            startActivity(intent)
           })
-          setNegativeButton(android.R.string.no, { (dialog: DialogInterface, which: Int) ⇒
-            // pass
-          })
+          setNegativeButton(android.R.string.no, ())
         }.create().show()
         true
       }
@@ -219,6 +207,6 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
 
   override def onPause() {
     super.onPause()
-    mNfcAdapter.foreach(_.disableForegroundDispatch(this))
+    nfcAdapter.foreach(_.disableForegroundDispatch(this))
   }
 }
