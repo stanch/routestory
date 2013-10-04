@@ -8,7 +8,7 @@ import net.routestory.R
 import ViewGroup.LayoutParams._
 
 object Styles extends org.macroid.contrib.ExtraTweaks {
-  def p8dding(implicit ctx: Context) = padding(all = (8 dip))
+  def p8dding(implicit ctx: Context) = padding(all = 8 dip)
 
   def bg(resourceId: Int)(implicit ctx: Context): Tweak[View] =
     _.setBackgroundResource(resourceId)

@@ -1,9 +1,8 @@
 package net.routestory.display
 
 import net.routestory.R
-import net.routestory.RouteStoryApp
 import net.routestory.model.Story
-import net.routestory.parts.BitmapUtils
+import net.routestory.parts.{ Styles, BitmapUtils, RouteStoryFragment }
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
@@ -12,23 +11,21 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.ImageView
+import android.widget.{ SeekBar, Button, FrameLayout, ImageView }
 import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model._
 import org.scaloid.common._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
-import android.app.ProgressDialog
-import net.routestory.parts.RouteStoryFragment
 import scala.collection.mutable
 import ViewGroup.LayoutParams._
 import android.util.Log
 import scala.async.Async.{ async, await }
 import android.graphics.Bitmap
-import scala.Some
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import android.widget.SeekBar.OnSeekBarChangeListener
+import rx.Var
 
 class PreviewFragment extends RouteStoryFragment {
   lazy val story = getActivity.asInstanceOf[HazStory].story
@@ -37,27 +34,45 @@ class PreviewFragment extends RouteStoryFragment {
   lazy val routeManager = story.mapUi(new RouteManager(map, _).init())
   lazy val handler = new Handler
 
-  var playButton = slot[Button]
+  val ratio = Var(10.5 / 1000) // account for s → ms
+  val cue = Var(0.0)
+  val playing = Var(false)
+
+  var playBig = slot[Button]
   var imageView = slot[ImageView]
+  var play = slot[Button]
+  var pause = slot[Button]
+  var seekBar = slot[SeekBar]
 
   var mediaPlayer: Option[MediaPlayer] = None
   var manMarker: Option[Marker] = None
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    l[FrameLayout](
+    l[VerticalLinearLayout](
       l[FrameLayout](
-        f[SupportMapFragment](Id.map, Tag.previewMap)
-      ),
-      l[FrameLayout](
-        w[ImageView] ~> wire(imageView)
-      ),
-      l[FrameLayout](
-        w[Button] ~> text(R.string.play) ~> wire(playButton) ~>
-          lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER) ~>
-          On.click {
-            story.foreachUi(startPreview)
-          }
-      )
+        l[FrameLayout](
+          f[SupportMapFragment](Id.map, Tag.previewMap)
+        ),
+        l[FrameLayout](
+          w[ImageView] ~> wire(imageView)
+        ),
+        l[FrameLayout](
+          w[Button] ~> wire(playBig) ~>
+            lp(80 dip, 80 dip, Gravity.CENTER) ~>
+            Styles.bg(R.drawable.play_big) ~>
+            story.map(s ⇒ On.click {
+              playing.update(true)
+              start(s)
+            })
+        )
+      ) ~> lp(WRAP_CONTENT, WRAP_CONTENT, 1.0f),
+      l[HorizontalLinearLayout](
+        w[Button] ~> Styles.bg(R.drawable.play) ~> lp(32 dip, 32 dip) ~>
+          wire(play) ~> story.map(s ⇒ On.click { playing.update(true); start(s) }),
+        w[Button] ~> Styles.bg(R.drawable.pause) ~> lp(32 dip, 32 dip) ~>
+          wire(pause) ~> story.map(s ⇒ On.click { playing.update(false); stop(); }) ~> hide,
+        w[SeekBar] ~> wire(seekBar) ~> lp(MATCH_PARENT, WRAP_CONTENT)
+      ) ~> Styles.p8dding ~> (_.setBackgroundColor(0xff101010))
     )
   }
 
@@ -82,6 +97,23 @@ class PreviewFragment extends RouteStoryFragment {
 
     async {
       val s = await(story)
+      seekBar ~> (_.setOnSeekBarChangeListener(new OnSeekBarChangeListener {
+        def onProgressChanged(bar: SeekBar, position: Int, fromUser: Boolean) {
+          cue.update(position / 100.0)
+          if (fromUser) {
+            val ts = (cue.now * s.duration / ratio.now).toInt
+            positionMap(s, ts, animate = false)
+            positionMan(s, ts)
+          }
+        }
+        def onStopTrackingTouch(bar: SeekBar) {
+          if (playing.now) start(s)
+        }
+        def onStartTrackingTouch(bar: SeekBar) {
+          stop()
+        }
+      }))
+      Ui(positionMap(s, 0, tiltZoom = true))
       val m = await(media)
       await(Future.sequence(m))
       s.photos.foreach(photo ⇒ photo.get(maxSize) foreachUi {
@@ -90,122 +122,106 @@ class PreviewFragment extends RouteStoryFragment {
     }
   }
 
-  override def onEveryStart() {
-    routeManager foreachUi { rm ⇒
-      map.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()
-        .target(rm.getStart.get).tilt(90).zoom(19)
-        .bearing(rm.getStartBearing.get).build()))
-    }
-  }
-
   override def onStop() {
     super.onStop()
     handler.removeCallbacksAndMessages(null)
   }
 
-  def startPreview(s: Story) {
-    playButton ~> hide
-    val start = SystemClock.uptimeMillis()
-    val ratio = s.duration.toDouble / RouteStoryApp.storyPreviewDuration / 1000
-    val lastLocation = s.locations.last.timestamp / ratio
+  def positionMap(s: Story, ts: Long, animate: Boolean = true, tiltZoom: Boolean = false) {
+    val now = s.getLocation(ts * ratio.now)
+    val bearing = List(3800, 4200).map(t ⇒ RouteManager.getBearing(now, s.getLocation((ts + t) * ratio.now))).sum / 2
+    val position = CameraUpdateFactory.newCameraPosition(if (tiltZoom) {
+      CameraPosition.builder().target(now).tilt(90).zoom(19).bearing(bearing).build()
+    } else {
+      CameraPosition.builder(map.getCameraPosition).target(now).bearing(bearing).build()
+    })
+    if (animate) map.animateCamera(position) else map.moveCamera(position)
+  }
+
+  def positionMan(s: Story, ts: Long) {
+    val now = s.getLocation(ts * ratio.now)
+    manMarker.map(_.setPosition(now))
+  }
+
+  def stop() {
+    pause ~> hide
+    play ~> show
+    imageView ~> hide
+    handler.removeCallbacksAndMessages(null)
+  }
+
+  def start(s: Story) {
+    playBig ~> hide
+    play ~> hide
+    pause ~> show
+    val duration = (s.duration / ratio.now).toInt
+    val from = cue.now * duration
+    val start = SystemClock.uptimeMillis
 
     Log.d("PreviewFragment", "Preparing preview")
 
-    s.notes foreach {
-      note ⇒
-        Log.d("PreviewFragment", s"Scheduling note with text “${note.text}”")
-        handler.postAtTime({
-          toast(note.text)
-        }, start + (note.timestamp / ratio).toInt)
+    s.notes foreach { note ⇒
+      val at = note.timestamp / ratio.now - from
+      if (at > 0) handler.postAtTime(toast(note.text), start + at.toInt)
     }
 
-    s.heartbeat foreach {
-      beat ⇒
-        Log.d("PreviewFragment", s"Scheduling beat with bpm “${beat.bpm}”")
-        handler.postAtTime({
-          vibrator.vibrate(beat.getVibrationPattern(4), -1)
-        }, start + (beat.timestamp / ratio).toInt)
+    s.heartbeat foreach { beat ⇒
+      val at = beat.timestamp / ratio.now - from
+      if (at > 0) handler.postAtTime(vibrator.vibrate(beat.getVibrationPattern(4), -1), start + at.toInt)
     }
 
     // TODO: why so many magic numbers?
-    val spans = s.photos.map(_.timestamp / ratio).sorted.sliding(2).map {
+    val spans = s.photos.map(_.timestamp / ratio.now).sliding(2).map {
       case mutable.Buffer(a, b) ⇒ (b - a).toInt
       case _ ⇒ 1000
     }.toList ::: List(1000)
     (s.photos zip spans) foreach {
-      case (photo, span) ⇒
-        Log.d("PreviewFragment", "Scheduling a photo")
-        if (span > 600) {
-          handler.postAtTime({
-            photo.get(400) foreach { bitmap ⇒
-              imageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(300)
-              handler.postDelayed(imageView ~@> fadeOut(300), List(span - 600, 1500).min)
-            }
-          }, start + (photo.timestamp / ratio).toInt)
-        }
+      case (photo, span) if span > 600 && (photo.timestamp / ratio.now > from) ⇒
+        handler.postAtTime({
+          photo.get(400) foreach { bitmap ⇒
+            imageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(300)
+            handler.postDelayed(imageView ~@> fadeOut(300), List(span - 600, 1500).min)
+          }
+        }, start + (photo.timestamp / ratio.now - from).toInt)
+      case _ ⇒
     }
 
     def move() {
-      val elapsed = SystemClock.uptimeMillis() - start
-      val now = s.getLocation(elapsed * ratio)
-
-      val bearing = (List(100, 300, 500) map {
-        t ⇒ RouteManager.getBearing(now, s.getLocation((elapsed + t) * ratio))
-      } zip List(0.3f, 0.4f, 0.3f) map {
-        case (b, w) ⇒ b * w
-      }).sum
-
-      Log.d("PreviewFragment", "Walking")
-      map.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder(map.getCameraPosition).target(now).bearing(bearing).build()))
-      if (elapsed < lastLocation) {
-        handler.postDelayed(move, 300)
-      }
+      positionMap(s, SystemClock.uptimeMillis - start + from.toInt)
+      handler.postDelayed(move, 500)
     }
-    handler.postDelayed(move, 300)
+    handler.postAtTime(move, start)
 
     def walk() {
-      val elapsed = SystemClock.uptimeMillis() - start
-      val now = s.getLocation(elapsed * ratio)
-      manMarker.map(_.remove())
-      manMarker = Some(map.addMarker(new MarkerOptions()
-        .position(now)
-        .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))))
-      if (elapsed < lastLocation) {
-        handler.postDelayed(walk, 100)
-      }
+      val ts = SystemClock.uptimeMillis - start + from.toInt
+      seekBar ~> (_.setProgress((ts * 100 / duration).toInt))
+      positionMan(s, ts)
+      if (ts <= duration) handler.postDelayed(walk, 100) else handler.postDelayed(rewind(s), 1000)
     }
-    handler.postDelayed(walk, 100)
-
-    handler.postDelayed({
-      rewind()
-    }, (RouteStoryApp.storyPreviewDuration + 3) * 1000)
-
-    playAudio(s)
+    handler.postAtTime(walk, start)
   }
 
-  def rewind() {
-    playButton ~> show
-    routeManager foreachUi { rm ⇒
-      map.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()
-        .target(rm.getStart.get).tilt(90).zoom(19)
-        .bearing(rm.getStartBearing.get).build()))
-      manMarker.map(_.remove())
-      manMarker = Some(map.addMarker(new MarkerOptions()
-        .position(rm.getStart.get)
-        .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))))
-    }
+  def rewind(s: Story) {
+    playBig ~> show
+    play ~> show
+    pause ~> hide
+    playing.update(false)
+    seekBar ~> (_.setProgress(0))
+    stop()
+    positionMap(s, 0, tiltZoom = true)
+    positionMan(s, 0)
   }
 
-  def playAudio(s: Story) {
-    mediaPlayer = Some(new MediaPlayer)
-    Option(s.audioPreview).map(_.get.foreachUi { file ⇒
-      try {
-        mediaPlayer.foreach(_.setDataSource(file.getAbsolutePath))
-        mediaPlayer.foreach(_.prepare())
-        mediaPlayer.foreach(_.start())
-      } catch {
-        case e: Throwable ⇒ e.printStackTrace()
-      }
-    })
-  }
+  //  def playAudio(a: Story) {
+  //    mediaPlayer = Some(new MediaPlayer)
+  //    Option(s.audioPreview).map(_.get.foreachUi { file ⇒
+  //      try {
+  //        mediaPlayer.foreach(_.setDataSource(file.getAbsolutePath))
+  //        mediaPlayer.foreach(_.prepare())
+  //        mediaPlayer.foreach(_.start())
+  //      } catch {
+  //        case e: Throwable ⇒ e.printStackTrace()
+  //      }
+  //    })
+  //  }
 }

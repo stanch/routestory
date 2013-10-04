@@ -11,10 +11,6 @@ import net.routestory.lounge.Lounge
 import rx.{ Obs, Var }
 import android.util.Log
 
-object RouteStoryApp {
-  val storyPreviewDuration = 30
-}
-
 class RouteStoryApp extends Application with Lounge {
   implicit val ctx = this
   lazy val authToken = Var(readPrefs("authToken"))

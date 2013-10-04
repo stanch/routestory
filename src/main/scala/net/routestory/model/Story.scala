@@ -167,9 +167,6 @@ class Story extends CouchDbDocument with CouchDbObject {
   def bind(couch: CouchDbConnector) {
     couchRef = WeakReference(couch)
     List(audio, photos, notes, voice, heartbeat).foreach(_.foreach(_.bind(this)))
-    if (audioPreview != null) {
-      audioPreview.bind(this)
-    }
   }
 
   @JsonIgnore
@@ -207,13 +204,6 @@ class Story extends CouchDbDocument with CouchDbObject {
   def addAudio(time: Long, contentType: String, ext: String): String = {
     val id = s"audio/${audio.size + 1}.$ext"
     audio.add(getMedia(time, id, contentType, AudioData.apply))
-    id
-  }
-
-  @JsonIgnore
-  def addAudioPreview(contentType: String, ext: String): String = {
-    val id = "audio/preview." + ext
-    audioPreview = getMedia(0, id, contentType, AudioData.apply)
     id
   }
 
@@ -278,7 +268,6 @@ class Story extends CouchDbDocument with CouchDbObject {
 
   @JsonProperty("locations") var locations = new java.util.LinkedList[Story.LocationData]()
   @JsonProperty("audio") var audio = new java.util.LinkedList[Story.AudioData]()
-  @JsonProperty("audio_preview") var audioPreview: Story.AudioData = null
   @JsonProperty("photos") var photos = new java.util.LinkedList[Story.ImageData]()
   @JsonProperty("notes") var notes = new java.util.LinkedList[Story.TextData]()
   @JsonProperty("voice") var voice = new java.util.LinkedList[Story.AudioData]()

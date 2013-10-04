@@ -79,7 +79,7 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
   lazy val media = {
     // avoid clogging ForkJoinPool with blocking IO
     implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
-    story map { s ⇒ s.photos.map(_.preload).toList ::: Option(s.audioPreview).map(_.preload :: Nil).getOrElse(Nil) }
+    story map { s ⇒ s.photos.map(_.preload).toList ::: s.audio.map(_.preload).toList }
   }
 
   var progress = slot[ProgressBar]

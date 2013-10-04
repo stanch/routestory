@@ -10,9 +10,10 @@ import scala.collection.JavaConversions._
 
 object RouteManager {
   def getBearing(p1: LatLng, p2: LatLng) = {
-    val y = Math.sin(p2.longitude - p1.longitude) * Math.cos(p2.latitude)
-    val x = Math.cos(p1.latitude) * Math.sin(p2.latitude) - Math.sin(p2.latitude) * Math.cos(p2.latitude) * Math.cos(p2.longitude - p1.longitude)
-    (Math.atan2(y, x) * 180 / Math.PI).toFloat
+    val (lat1, lat2, dlng) = (p1.latitude.toRadians, p2.latitude.toRadians, (p2.longitude - p1.longitude).toRadians)
+    val y = Math.sin(dlng) * Math.cos(lat2)
+    val x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dlng)
+    Math.atan2(y, x).toDegrees.toFloat
   }
 }
 

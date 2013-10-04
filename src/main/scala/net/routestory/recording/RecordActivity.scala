@@ -47,7 +47,8 @@ object RecordActivity {
 class AudioHandler(activity: WeakReference[RecordActivity]) extends Handler {
   override def handleMessage(msg: Message) {
     val path = msg.getData.getString("path")
-    activity.get.get.audioPieces ::= (System.currentTimeMillis / 1000L, path)
+    val time = msg.getData.getLong("time")
+    activity.get.get.audioPieces ::= (time, path)
   }
 }
 
@@ -103,7 +104,6 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
 
   var audioTrackerThread: Option[Thread] = None
   var toogleAudio: Boolean = false
-  var audioProcessingTask = Future.successful(())
 
   var progress = slot[ProgressBar]
 
@@ -279,15 +279,11 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
     }
   }
 
-  def addAudio() = future {
-    val (preview, pieces) = AudioTracker.process(ctx, audioPieces)
-    pieces.foreach { p ⇒
-      val id = story.addAudio(p._1, "audio/aac", "aac")
-      media += id → (p._2, "audio/aac")
-    }
-    preview.foreach { p ⇒
-      val id = story.addAudioPreview("audio/aac", "aac")
-      media += id → (p, "audio/aac")
+  def addAudio() {
+    AudioTracker.sift(audioPieces).foreach {
+      case (time, path) ⇒
+        val id = story.addAudio(time, "audio/aac", "aac")
+        media += id → (path, "audio/aac")
     }
     audioPieces = List()
   }
@@ -372,7 +368,6 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
           data.getStringExtra("tags"), data.getBooleanExtra("private", false)
         )
         progress ~> showProgress(async {
-          await(audioProcessingTask.recover { case t ⇒ t.printStackTrace() })
           await(createStory)
           app.requestSync
           val intent = SIntent[DisplayActivity]
