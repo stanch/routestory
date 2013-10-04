@@ -53,6 +53,8 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
   var nextButton = slot[Button]
   var prevButton = slot[Button]
 
+  var adapter: Option[StoryListFragment.Adapter] = None
+
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val view = super.onCreateView(inflater, container, savedInstanceState)
     val list = findView[ListView](view, android.R.id.list) ~> (_.setDivider(null))
@@ -83,9 +85,18 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
     val s = await(data mapUi {
       x ⇒ setEmptyText(emptyText); x
     } recoverUi {
-      case t ⇒ t.printStackTrace(); setEmptyText(errorText); Nil
+      case t if !t.isInstanceOf[UninitializedError] ⇒ t.printStackTrace(); setEmptyText(errorText); Nil
     })
-    Ui { setListAdapter(StoryListFragment.Adapter(s, getActivity)); setListShown(true) }
+    Ui {
+      adapter map { a ⇒
+        a.clear()
+        a.addAll(s)
+      } getOrElse {
+        adapter = Some(StoryListFragment.Adapter(s, getActivity))
+        setListAdapter(adapter.get)
+      }
+      setListShown(true)
+    }
     prevButton ~> enable(storyteller.hasPrev)
     nextButton ~> enable(storyteller.hasNext)
   }

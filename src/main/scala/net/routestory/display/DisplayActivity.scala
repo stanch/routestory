@@ -33,6 +33,7 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 import scala.collection.JavaConversions._
 import io.dylemma.frp.Observer
 import java.util.concurrent.Executors
+import Styles._
 
 object DisplayActivity {
   object NfcIntent {
@@ -90,7 +91,7 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
 
     setContentView(drawer(
       l[VerticalLinearLayout](
-        w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) ~> wire(progress),
+        activityProgress ~> wire(progress),
         getTabs(
           Text(R.string.title_tab_storypreview) → ff[PreviewFragment](),
           Text(R.string.title_tab_storydescription) → ff[DescriptionFragment](),

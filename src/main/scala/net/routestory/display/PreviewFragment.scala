@@ -35,10 +35,10 @@ class PreviewFragment extends RouteStoryFragment {
   lazy val media = getActivity.asInstanceOf[HazStory].media
   lazy val map = findFrag[SupportMapFragment](Tag.previewMap).get.getMap
   lazy val routeManager = story.mapUi(new RouteManager(map, _).init())
-  lazy val mHandler = new Handler
+  lazy val handler = new Handler
 
   var playButton = slot[Button]
-  var mImageView = slot[ImageView]
+  var imageView = slot[ImageView]
 
   var mediaPlayer: Option[MediaPlayer] = None
   var manMarker: Option[Marker] = None
@@ -49,13 +49,13 @@ class PreviewFragment extends RouteStoryFragment {
         f[SupportMapFragment](Id.map, Tag.previewMap)
       ),
       l[FrameLayout](
-        w[ImageView] ~> wire(mImageView)
+        w[ImageView] ~> wire(imageView)
       ),
       l[FrameLayout](
         w[Button] ~> text(R.string.play) ~> wire(playButton) ~>
           lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER) ~>
           On.click {
-            story zip routeManager foreachUi { case (x, y) ⇒ startPreview(x, y) }
+            story.foreachUi(startPreview)
           }
       )
     )
@@ -67,7 +67,7 @@ class PreviewFragment extends RouteStoryFragment {
     /* Display the man */
     routeManager foreachUi { rm ⇒
       manMarker = Some(map.addMarker(new MarkerOptions()
-        .position(rm.getStart)
+        .position(rm.getStart.get)
         .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))))
     }
 
@@ -93,17 +93,17 @@ class PreviewFragment extends RouteStoryFragment {
   override def onEveryStart() {
     routeManager foreachUi { rm ⇒
       map.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()
-        .target(rm.getStart).tilt(90).zoom(19)
-        .bearing(rm.getStartBearing).build()))
+        .target(rm.getStart.get).tilt(90).zoom(19)
+        .bearing(rm.getStartBearing.get).build()))
     }
   }
 
   override def onStop() {
     super.onStop()
-    mHandler.removeCallbacksAndMessages(null)
+    handler.removeCallbacksAndMessages(null)
   }
 
-  def startPreview(s: Story, rm: RouteManager) {
+  def startPreview(s: Story) {
     playButton ~> hide
     val start = SystemClock.uptimeMillis()
     val ratio = s.duration.toDouble / RouteStoryApp.storyPreviewDuration / 1000
@@ -114,7 +114,7 @@ class PreviewFragment extends RouteStoryFragment {
     s.notes foreach {
       note ⇒
         Log.d("PreviewFragment", s"Scheduling note with text “${note.text}”")
-        mHandler.postAtTime({
+        handler.postAtTime({
           toast(note.text)
         }, start + (note.timestamp / ratio).toInt)
     }
@@ -122,7 +122,7 @@ class PreviewFragment extends RouteStoryFragment {
     s.heartbeat foreach {
       beat ⇒
         Log.d("PreviewFragment", s"Scheduling beat with bpm “${beat.bpm}”")
-        mHandler.postAtTime({
+        handler.postAtTime({
           vibrator.vibrate(beat.getVibrationPattern(4), -1)
         }, start + (beat.timestamp / ratio).toInt)
     }
@@ -136,10 +136,10 @@ class PreviewFragment extends RouteStoryFragment {
       case (photo, span) ⇒
         Log.d("PreviewFragment", "Scheduling a photo")
         if (span > 600) {
-          mHandler.postAtTime({
+          handler.postAtTime({
             photo.get(400) foreach { bitmap ⇒
-              mImageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(300)
-              mHandler.postDelayed(mImageView ~@> fadeOut(300), List(span - 600, 1500).min)
+              imageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(300)
+              handler.postDelayed(imageView ~@> fadeOut(300), List(span - 600, 1500).min)
             }
           }, start + (photo.timestamp / ratio).toInt)
         }
@@ -150,7 +150,7 @@ class PreviewFragment extends RouteStoryFragment {
       val now = s.getLocation(elapsed * ratio)
 
       val bearing = (List(100, 300, 500) map {
-        t ⇒ rm.getBearing(now, s.getLocation((elapsed + t) * ratio))
+        t ⇒ RouteManager.getBearing(now, s.getLocation((elapsed + t) * ratio))
       } zip List(0.3f, 0.4f, 0.3f) map {
         case (b, w) ⇒ b * w
       }).sum
@@ -158,10 +158,10 @@ class PreviewFragment extends RouteStoryFragment {
       Log.d("PreviewFragment", "Walking")
       map.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder(map.getCameraPosition).target(now).bearing(bearing).build()))
       if (elapsed < lastLocation) {
-        mHandler.postDelayed(move, 300)
+        handler.postDelayed(move, 300)
       }
     }
-    mHandler.postDelayed(move, 300)
+    handler.postDelayed(move, 300)
 
     def walk() {
       val elapsed = SystemClock.uptimeMillis() - start
@@ -171,12 +171,12 @@ class PreviewFragment extends RouteStoryFragment {
         .position(now)
         .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))))
       if (elapsed < lastLocation) {
-        mHandler.postDelayed(walk, 100)
+        handler.postDelayed(walk, 100)
       }
     }
-    mHandler.postDelayed(walk, 100)
+    handler.postDelayed(walk, 100)
 
-    mHandler.postDelayed({
+    handler.postDelayed({
       rewind()
     }, (RouteStoryApp.storyPreviewDuration + 3) * 1000)
 
@@ -187,11 +187,11 @@ class PreviewFragment extends RouteStoryFragment {
     playButton ~> show
     routeManager foreachUi { rm ⇒
       map.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder()
-        .target(rm.getStart).tilt(90).zoom(19)
-        .bearing(rm.getStartBearing).build()))
+        .target(rm.getStart.get).tilt(90).zoom(19)
+        .bearing(rm.getStartBearing.get).build()))
       manMarker.map(_.remove())
       manMarker = Some(map.addMarker(new MarkerOptions()
-        .position(rm.getStart)
+        .position(rm.getStart.get)
         .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))))
     }
   }

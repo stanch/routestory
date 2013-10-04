@@ -18,7 +18,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.location.Location
 import android.os.{ Message, Handler, Bundle }
-import android.preference.PreferenceManager
 import android.view._
 import android.widget.{ ProgressBar, LinearLayout }
 import net.routestory.R
@@ -26,7 +25,6 @@ import net.routestory.display.DisplayActivity
 import net.routestory.display.RouteManager
 import net.routestory.model.Story
 import net.routestory.parts.BitmapUtils
-import net.routestory.parts.GotoDialogFragments
 import net.routestory.parts.HapticButton
 import net.routestory.parts.RouteStoryActivity
 import ViewGroup.LayoutParams._
@@ -100,7 +98,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   lazy val locationClient = new LocationClient(this, this, this)
 
   lazy val map = findFrag[SupportMapFragment](Tag.recordingMap).get.getMap
-  lazy val mRouteManager = new RouteManager(map, story)
+  lazy val routeManager = new RouteManager(map, story)
   var manMarker: Option[Marker] = None
 
   var audioTrackerThread: Option[Thread] = None
@@ -113,7 +111,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
     super.onCreate(savedInstanceState)
 
     setContentView(l[VerticalLinearLayout](
-      w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) ~>
+      activityProgress ~>
         wire(progress) ~>
         showProgress(firstLocationPromise.future),
       w[HapticButton] ~> text("Add stuff") ~> TextSize.large ~>
@@ -128,8 +126,6 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
     bar.setDisplayShowTitleEnabled(true)
     bar.setDisplayShowHomeEnabled(true)
   }
-
-  var started = false
 
   override def onStart() {
     super.onStart()
@@ -229,7 +225,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   }
 
   override def onPrepareOptionsMenu(menu: Menu): Boolean = {
-    menu.findItem(R.id.stopRecord).setEnabled(!mRouteManager.isEmpty)
+    menu.findItem(R.id.stopRecord).setEnabled(!routeManager.isEmpty)
     menu.findItem(R.id.toggleAudio).setTitle(if (toogleAudio) R.string.menu_audioon else R.string.menu_audiooff)
     true
   }

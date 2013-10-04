@@ -1,20 +1,10 @@
 package net.routestory.explore
 
-import net.routestory.parts.{ WidgetFragment, RouteStoryFragment }
-import android.view.{ View, ViewGroup, LayoutInflater }
-import android.os.{ Looper, Bundle }
-import android.widget.{ ListView, ScrollView, TextView, LinearLayout }
-import net.routestory.R
-import org.scaloid.common._
 import org.ektorp.ViewQuery
 import net.routestory.model._
 import scala.concurrent.ExecutionContext.Implicits.global
-import android.graphics.Point
-import net.routestory.parts.Styles._
-import org.macroid.contrib.Layouts.VerticalLinearLayout
 import scala.async.Async.{ async, await }
-import rx.{ Var, Rx }
-import scala.concurrent.Future
+import rx.Var
 import android.util.Log
 
 class LatestFragment extends StoryListFragment with HazStories {

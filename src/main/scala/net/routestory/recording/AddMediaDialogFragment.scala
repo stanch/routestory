@@ -95,7 +95,7 @@ object AddMediaDialogFragment {
 
 class AddSomethingDialogFragment extends DialogFragment {
   lazy val activity = getActivity.asInstanceOf[RecordActivity]
-  lazy val coords = activity.mRouteManager.getEnd
+  lazy val coords = activity.routeManager.getEnd.get
 
   override def onDismiss(dialog: DialogInterface) {
     super.onDismiss(dialog)

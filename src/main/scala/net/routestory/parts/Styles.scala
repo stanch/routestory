@@ -1,10 +1,11 @@
 package net.routestory.parts
 
-import android.widget.TextView
+import android.widget.{ ProgressBar, TextView }
 import android.content.Context
-import android.view.View
+import android.view.{ ViewGroup, View }
 import org.scaloid.common._
 import net.routestory.R
+import ViewGroup.LayoutParams._
 
 object Styles extends org.macroid.contrib.ExtraTweaks {
   def p8dding(implicit ctx: Context) = padding(all = (8 dip))

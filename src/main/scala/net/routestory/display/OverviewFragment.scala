@@ -68,8 +68,8 @@ class OverviewFragment extends RouteStoryFragment {
     // format: OFF
     routeManager foreachUi { rm ⇒
       List(
-        rm.getStart → R.drawable.flag_start,
-        rm.getEnd → R.drawable.flag_end
+        rm.getStart.get → R.drawable.flag_start,
+        rm.getEnd.get → R.drawable.flag_end
       ) map { case (l, d) ⇒
         map.addMarker(new MarkerOptions()
           .position(l).anchor(0.3f, 1)
@@ -84,7 +84,7 @@ class OverviewFragment extends RouteStoryFragment {
         val mm = await(markerManager)
         val rm = await(routeManager)
         Ui {
-          map.moveCamera(CameraUpdateFactory.newLatLngBounds(rm.getBounds, 30 dip))
+          map.moveCamera(CameraUpdateFactory.newLatLngBounds(rm.getBounds.get, 30 dip))
           map.setOnCameraChangeListener { p: CameraPosition ⇒ mm.update() }
         }
       }
