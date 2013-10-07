@@ -15,7 +15,7 @@ import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayou
 import ViewGroup.LayoutParams._
 import org.scaloid.common._
 
-class DescriptionFragment extends RouteStoryFragment {
+class DetailsFragment extends RouteStoryFragment {
   lazy val story = getActivity.asInstanceOf[HazStory].story
 
   var authorPicture = slot[ImageView]

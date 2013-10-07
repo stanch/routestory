@@ -27,11 +27,17 @@ import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayou
 import android.widget.SeekBar.OnSeekBarChangeListener
 import rx.Var
 
-class PreviewFragment extends RouteStoryFragment {
+object DiveFragment {
+  val photoDuration = 1500
+  val photoFade = 300
+}
+
+class DiveFragment extends RouteStoryFragment {
   lazy val story = getActivity.asInstanceOf[HazStory].story
   lazy val media = getActivity.asInstanceOf[HazStory].media
   lazy val map = findFrag[SupportMapFragment](Tag.previewMap).get.getMap
   lazy val routeManager = story.mapUi(new RouteManager(map, _).init())
+  lazy val display = getActivity.getWindowManager.getDefaultDisplay
   lazy val handler = new Handler
 
   val ratio = Var(10.5 / 1000) // account for s → ms
@@ -72,7 +78,7 @@ class PreviewFragment extends RouteStoryFragment {
         w[Button] ~> Styles.bg(R.drawable.pause) ~> lp(32 dip, 32 dip) ~>
           wire(pause) ~> story.map(s ⇒ On.click { playing.update(false); stop(); }) ~> hide,
         w[SeekBar] ~> wire(seekBar) ~> lp(MATCH_PARENT, WRAP_CONTENT)
-      ) ~> Styles.p8dding ~> (_.setBackgroundColor(0xff101010))
+      ) ~> padding(left = 16 dip, right = 8 dip, top = 8 dip, bottom = 8 dip) ~> (_.setBackgroundColor(0xff101010))
     )
   }
 
@@ -97,11 +103,30 @@ class PreviewFragment extends RouteStoryFragment {
 
     async {
       val s = await(story)
-      seekBar ~> (_.setOnSeekBarChangeListener(new OnSeekBarChangeListener {
+      Ui(positionMap(s, 0, tiltZoom = true))
+      val m = await(media)
+      await(Future.sequence(m))
+      s.photos.foreach(photo ⇒ photo.get(maxSize) foreachUi {
+        bitmap ⇒ addPhoto(photo.getLocation, bitmap)
+      })
+      Ui(s.notes.foreach(note ⇒ map.addMarker(new MarkerOptions()
+        .position(note.getLocation)
+        .icon(BitmapDescriptorFactory.fromResource(R.drawable.text_note))
+      )))
+      Ui(s.heartbeat.foreach(beat ⇒ map.addMarker(new MarkerOptions()
+        .position(beat.getLocation)
+        .icon(BitmapDescriptorFactory.fromResource(R.drawable.heart))
+      )))
+    }
+  }
+
+  override def onEveryStart() {
+    story foreachUi { s ⇒
+      seekBar ~> (_.setMax(seekBar.get.getWidth)) ~> (_.setOnSeekBarChangeListener(new OnSeekBarChangeListener {
         def onProgressChanged(bar: SeekBar, position: Int, fromUser: Boolean) {
-          cue.update(position / 100.0)
+          cue.update(1.0 * position / bar.getMax)
           if (fromUser) {
-            val ts = (cue.now * s.duration / ratio.now).toInt
+            val ts = Math.ceil(cue.now * s.duration / ratio.now).toInt
             positionMap(s, ts, animate = false)
             positionMan(s, ts)
           }
@@ -113,12 +138,6 @@ class PreviewFragment extends RouteStoryFragment {
           stop()
         }
       }))
-      Ui(positionMap(s, 0, tiltZoom = true))
-      val m = await(media)
-      await(Future.sequence(m))
-      s.photos.foreach(photo ⇒ photo.get(maxSize) foreachUi {
-        bitmap ⇒ addPhoto(s.getLocation(photo.timestamp), bitmap)
-      })
     }
   }
 
@@ -154,11 +173,9 @@ class PreviewFragment extends RouteStoryFragment {
     playBig ~> hide
     play ~> hide
     pause ~> show
-    val duration = (s.duration / ratio.now).toInt
-    val from = cue.now * duration
+    val duration = Math.ceil(s.duration / ratio.now).toInt
+    val from = Math.ceil(cue.now * duration)
     val start = SystemClock.uptimeMillis
-
-    Log.d("PreviewFragment", "Preparing preview")
 
     s.notes foreach { note ⇒
       val at = note.timestamp / ratio.now - from
@@ -170,17 +187,19 @@ class PreviewFragment extends RouteStoryFragment {
       if (at > 0) handler.postAtTime(vibrator.vibrate(beat.getVibrationPattern(4), -1), start + at.toInt)
     }
 
-    // TODO: why so many magic numbers?
+    import DiveFragment._
+    // calculate timespans between photos
     val spans = s.photos.map(_.timestamp / ratio.now).sliding(2).map {
       case mutable.Buffer(a, b) ⇒ (b - a).toInt
-      case _ ⇒ 1000
-    }.toList ::: List(1000)
+      case _ ⇒ photoDuration
+    }.toList ::: List(photoDuration)
+    // only show a photo if there’s time to fade it in and out
     (s.photos zip spans) foreach {
-      case (photo, span) if span > 600 && (photo.timestamp / ratio.now > from) ⇒
+      case (photo, span) if span > 2 * photoFade && (photo.timestamp / ratio.now > from) ⇒
         handler.postAtTime({
-          photo.get(400) foreach { bitmap ⇒
-            imageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(300)
-            handler.postDelayed(imageView ~@> fadeOut(300), List(span - 600, 1500).min)
+          photo.get(Math.min(display.getWidth, display.getHeight)) foreach { bitmap ⇒
+            imageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(photoFade)
+            handler.postDelayed(imageView ~@> fadeOut(photoFade), List(span - 2 * photoFade, photoDuration).min)
           }
         }, start + (photo.timestamp / ratio.now - from).toInt)
       case _ ⇒
@@ -194,7 +213,7 @@ class PreviewFragment extends RouteStoryFragment {
 
     def walk() {
       val ts = SystemClock.uptimeMillis - start + from.toInt
-      seekBar ~> (_.setProgress((ts * 100 / duration).toInt))
+      seekBar ~> (_.setProgress((ts * seekBar.get.getMax / duration).toInt))
       positionMan(s, ts)
       if (ts <= duration) handler.postDelayed(walk, 100) else handler.postDelayed(rewind(s), 1000)
     }

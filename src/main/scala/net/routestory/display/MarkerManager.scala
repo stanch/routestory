@@ -2,7 +2,7 @@ package net.routestory.display
 
 import net.routestory.R
 import net.routestory.model.Story
-import net.routestory.parts.BitmapUtils
+import net.routestory.parts.{ AwesomeAdapter, BitmapUtils }
 import net.routestory.parts.BitmapUtils.MagicGrid
 import android.app.{ Activity, Dialog, AlertDialog }
 import android.content.{ Intent, Context, DialogInterface }
@@ -32,19 +32,39 @@ import ViewGroup.LayoutParams._
 import uk.co.senab.photoview.PhotoViewAttacher
 import org.macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
 
-class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, activity: Activity)(implicit ctx: Context) extends Concurrency {
+class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int], story: Story, activity: Activity)(implicit ctx: Context) extends Concurrency {
   var hideOverlays = false
 
   val maxIconSize = ((800 dip) :: displaySize).min / 4
 
   abstract class MarkerItem(val timestamp: Int) {
+    var marker: Option[Marker] = None
     val coords = story.getLocation(timestamp)
     var doi: Float = 0
 
+    def createMarker() {
+      marker = Some(googleMap.addMarker(new MarkerOptions()
+        .position(coords)
+        .icon(BitmapDescriptorFactory.fromBitmap(getIcon(scale = true)))
+        .anchor(0.5f, 0.5f)))
+    }
+
+    // create a marker if not created and hide it
+    def hideMarker() {
+      marker.foreach(_.setVisible(false))
+    }
+
+    // create a marker if not created and show it
+    def showMarker(dispatch: Map[Marker, MarkerItem]) = {
+      marker.map(_.setIcon(BitmapDescriptorFactory.fromBitmap(getIcon(scale = true)))).getOrElse(createMarker())
+      marker.foreach(_.setVisible(true))
+      dispatch + (marker.get → this)
+    }
+
     // add to list of markers to visualize
-    def addToMarkerList(list: List[MarkerItem]): List[MarkerItem] = {
-      //this :: list
-      if (googleMap.getProjection.getVisibleRegion.latLngBounds.contains(coords)) this :: list else list
+    def addToMarkerLists(shown: List[MarkerItem], hidden: List[MarkerItem], hide: Boolean = false): (List[MarkerItem], List[MarkerItem]) = {
+      lazy val visible = googleMap.getProjection.getVisibleRegion.latLngBounds.contains(coords)
+      if (hide || !visible) (shown, this :: hidden) else (this :: shown, hidden)
     }
 
     // add to list of things taking time to load
@@ -59,8 +79,8 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
   class ImageMarkerItem(data: Story.ImageData) extends MarkerItem(data.timestamp) with LayoutDsl with Tweaks {
     private val icon = data.get(maxIconSize)
 
-    override def addToMarkerList(list: List[MarkerItem]): List[MarkerItem] = {
-      if (icon.value.get.isSuccess) super.addToMarkerList(list) else list
+    override def addToMarkerLists(shown: List[MarkerItem], hidden: List[MarkerItem], hide: Boolean = false): (List[MarkerItem], List[MarkerItem]) = {
+      if (icon.value.get.isSuccess) super.addToMarkerLists(shown, hidden, hide) else (shown, this :: hidden)
     }
 
     override def addToLoadingList(list: List[Future[Unit]]): List[Future[Unit]] = {
@@ -70,7 +90,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
     override def getIcon(scale: Boolean): Bitmap = if (!scale) {
       icon.value.get.get
     } else {
-      BitmapUtils.createScaledTransparentBitmap(icon.value.get.get, (maxIconSize * (0.8 + doi * 0.2)).toInt, 0.3 + doi * 0.7, true)
+      BitmapUtils.createScaledTransparentBitmap(icon.value.get.get, (maxIconSize * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, true)
     }
 
     override def onClick() {
@@ -111,11 +131,11 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
   abstract class IconMarkerItem(data: Story.TimedData, resourceId: Int) extends MarkerItem(data.timestamp) {
     private val icon = IconMarkerItem.loadIcon(resourceId)
 
-    override def getIcon(scale: Boolean): Bitmap = if (!scale) {
+    override def getIcon(scale: Boolean): Bitmap = icon /*if (!scale) {
       icon
     } else {
-      BitmapUtils.createScaledTransparentBitmap(icon, (icon.getWidth * (0.9 + doi * 0.1)).toInt, 0.6 + doi * 0.4, false)
-    }
+      BitmapUtils.createScaledTransparentBitmap(icon, (icon.getWidth, 1.0, false))
+    }*/
   }
 
   // Audio marker
@@ -142,22 +162,22 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
   class VoiceMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.voice_note)
 
   // Text note marker
-  class TextMarkerItem(data: Story.TextData) extends IconMarkerItem(data, R.drawable.text_note) with LayoutDsl with ExtraTweaks {
+  class TextMarkerItem(data: Story.TextData) extends IconMarkerItem(data, R.drawable.text_note) with ExtraTweaks {
     override def onClick() {
       val bld = new AlertDialog.Builder(ctx)
       val textView = w[TextView] ~>
-        text(data.text) ~> TextSize.medium ~> padding(all = (8 dip)) ~>
+        text(data.text) ~> TextSize.medium ~> padding(all = 8 dip) ~>
         (_.setMaxWidth((displaySize(0) * 0.75).toInt))
       bld.setView(textView).create().show()
     }
   }
 
   // Foursquare venue marker
-  class VenueMarkerItem(data: Story.FoursquareData) extends IconMarkerItem(data, R.drawable.foursquare_bigger) with LayoutDsl with ExtraTweaks {
+  class VenueMarkerItem(data: Story.FoursquareData) extends IconMarkerItem(data, R.drawable.foursquare_bigger) with ExtraTweaks {
     override def onClick() {
       val bld = new AlertDialog.Builder(ctx)
       val view = l[VerticalLinearLayout](
-        w[TextView] ~> text(data.name) ~> TextSize.large ~> padding(left = (3 sp)),
+        w[TextView] ~> text(data.name) ~> TextSize.large ~> padding(left = 3 sp),
         w[Button] ~> text("Open in Foursquare®") ~> On.click {
           val intent = new Intent(Intent.ACTION_VIEW)
           intent.setData(s"https://foursquare.com/v/${data.id}")
@@ -208,7 +228,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
 
   // Grouping marker
   class GroupMarkerItem(val children: List[MarkerItem], val closest: Double, val bounds: LatLngBounds)
-    extends MarkerItem((children map { _.timestamp } sum) / children.length) {
+    extends MarkerItem((children map { _.timestamp } sum) / children.length) with LayoutDsl {
     lazy val leafList: List[MarkerItem] = children flatMap {
       case g: GroupMarkerItem ⇒ g.leafList
       case i ⇒ i :: Nil
@@ -230,8 +250,12 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
     }
     lazy val iconSize = Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize)
 
-    override def addToMarkerList(list: List[MarkerItem]): List[MarkerItem] = {
-      if (!seemsToFit) super.addToMarkerList(list) else children.foldLeft(list)((l, c) ⇒ c.addToMarkerList(l))
+    override def addToMarkerLists(shown: List[MarkerItem], hidden: List[MarkerItem], hide: Boolean = false): (List[MarkerItem], List[MarkerItem]) = {
+      val fits = seemsToFit()
+      // hiding self if hide=true or if children fit
+      val self = super.addToMarkerLists(shown, hidden, hide || fits)
+      // hiding children if hide=true or if they don’t fit
+      children.foldLeft(self) { case ((s, h), c) ⇒ c.addToMarkerLists(s, h, hide || !fits) }
     }
 
     override def addToLoadingList(list: List[Future[Unit]]): List[Future[Unit]] = {
@@ -239,7 +263,7 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
     }
 
     private var wasExpanded = false
-    private def seemsToFit = {
+    private def seemsToFit() = {
       // check if the closest pair of children is not overlapping
       // now features a hysteresis
       val List(ne, sw) = List(bounds.northeast, bounds.southwest).map(googleMap.getProjection.toScreenLocation)
@@ -248,32 +272,24 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
     }
 
     override def getIcon(scale: Boolean): Bitmap = {
-      BitmapUtils.createScaledTransparentBitmap(icon, (iconSize * (0.8 + doi * 0.2)).toInt, 0.3 + doi * 0.7, true)
+      BitmapUtils.createScaledTransparentBitmap(icon, (iconSize * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, true)
     }
 
     override def onClick() {
-      val p = googleMap.getProjection
       val List(ne, sw) = List(bounds.northeast, bounds.southwest) map { googleMap.getProjection.toScreenLocation }
       // check if there is a zoom level at which we can expand
-      if (MarkerManager.manhattanDistance(ne, sw) * Math.pow(2, googleMap.getMaxZoomLevel - googleMap.getCameraPosition.zoom) < maxIconSize) {
+      if (MarkerManager.manhattanDistance(ne, sw) * Math.pow(2, googleMap.getMaxZoomLevel - 2 - googleMap.getCameraPosition.zoom) < maxIconSize) {
         // show a confusion resolving dialog
+
         new AlertDialog.Builder(ctx)
-          .setAdapter(new ArrayAdapter[MarkerItem](ctx, 0, 0, leafList) {
-            override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-              val view = if (itemView == null) {
-                val v = new LinearLayout(ctx)
-                val imageView = new ImageView(ctx)
-                imageView.setAdjustViewBounds(true)
-                imageView.setId(1)
-                v.asInstanceOf[LinearLayout].addView(imageView)
-                v
-              } else itemView
-              val icon = leafList(position).getIcon(scale = false)
-              view.findViewById(1).asInstanceOf[ImageView].setImageBitmap(
-                BitmapUtils.createScaledBitmap(icon, Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize)))
-              view
+          .setAdapter(AwesomeAdapter.simple(leafList)(
+            w[ImageView] ~> (_.setAdjustViewBounds(true)),
+            item ⇒ { view: ImageView ⇒
+              val icon = item.getIcon(scale = false)
+              val bitmap = BitmapUtils.createScaledBitmap(icon, Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize))
+              view.setImageBitmap(bitmap)
             }
-          }, new OnClickListener() {
+          ), new OnClickListener() {
             def onClick(dialog: DialogInterface, which: Int) {
               leafList(which).onClick()
             }
@@ -360,29 +376,35 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
   }
 
   private def doiEvaluate(markerItems: List[MarkerItem]) {
-    // check if there is an image marker in the small centered "focus" area
+    // if there’s just one marker, simply assign doi=1
+    if (markerItems.length == 1) {
+      markerItems.head.doi = 1
+      return
+    }
+
+    // check if there is an image marker in the small centered “focus” area
     // if so, select it as the center
-    val List(width, height) = displaySize
+    val (width, height) = (mapView.getWidth, mapView.getHeight)
     val p = googleMap.getProjection
-    val radius = Math.min(width, height) / 8
+    val radius = Math.min(width, height) / 5
     val _center = new Point(width / 2, height / 2)
-    val center = markerItems.par map { item ⇒
+    val center = markerItems map { item ⇒
       (item, MarkerManager.chebyshevDistance(p.toScreenLocation(item.coords), _center))
     } filter {
-      case (i: ImageMarkerItem, d) if d < radius ⇒ true
+      case ((_: ImageMarkerItem | _: GroupMarkerItem), d) if d < radius ⇒ true
       case _ ⇒ false
     } match {
       case l if l.length == 0 ⇒ _center
-      case l ⇒ p.toScreenLocation((l.minBy(_._2))._1.coords)
+      case l ⇒ p.toScreenLocation(l.minBy(_._2)._1.coords)
     }
 
     // assign degrees of interest
     val n = (width + height) / 2.toFloat
-    markerItems.par foreach { item ⇒
+    markerItems foreach { item ⇒
       // Manhattan distance is used for optimization, and also due to the fact that
       // the images are rectangular and therefore produce less confusion when moved apart diagonally
       val d = MarkerManager.manhattanDistance(p.toScreenLocation(item.coords), center) / n
-      item.doi = (1 - 1.5f * d)
+      item.doi = 1 - 1.5f * d
     }
   }
 
@@ -390,27 +412,23 @@ class MarkerManager(googleMap: GoogleMap, displaySize: List[Int], story: Story, 
     if (!readyFuture.isCompleted) return
     if (rootMarkerItem.isEmpty) return
     if (hideOverlays) {
-      remove()
+      val (_, hidden) = rootMarkerItem.get.addToMarkerLists(Nil, Nil, hide = true)
+      hidden.foreach(_.hideMarker())
       return
     }
 
-    // produce a list of markers to show
-    val markerItems = rootMarkerItem.get.addToMarkerList(List())
+    // produce a list of markers to show and hide
+    val (shown, hidden) = rootMarkerItem.get.addToMarkerLists(Nil, Nil)
 
     // calculate degrees if interest
-    doiEvaluate(markerItems)
+    doiEvaluate(shown)
 
-    // show the markers
-    val icons = markerItems.par.map(_.getIcon(scale = true))
-    val temp = (markerItems.zip(icons) map {
-      case (item, icon) ⇒
-        googleMap.addMarker(new MarkerOptions()
-          .position(item.coords)
-          .icon(BitmapDescriptorFactory.fromBitmap(icon))
-          .anchor(0.5f, 0.5f)) → item
-    }).toMap
-    remove()
-    markerDispatch = temp
+    // hide hidden markers
+    hidden.foreach(_.hideMarker())
+
+    // show visible markers
+    val temp = markerDispatch
+    markerDispatch = shown.foldLeft(temp)((d, i) ⇒ i.showMarker(d))
   }
 
   def remove() {

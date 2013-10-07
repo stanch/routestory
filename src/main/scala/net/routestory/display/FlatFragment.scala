@@ -20,13 +20,14 @@ import android.widget.{ Button, FrameLayout }
 import ViewGroup.LayoutParams._
 import scala.async.Async.{ async, await }
 
-class OverviewFragment extends RouteStoryFragment {
+class FlatFragment extends RouteStoryFragment {
   lazy val story = getActivity.asInstanceOf[HazStory].story
   lazy val media = getActivity.asInstanceOf[HazStory].media
   lazy val display = getActivity.getWindowManager.getDefaultDisplay
+  lazy val mapView = findFrag[SupportMapFragment](Tag.overviewMap).get.getView
   lazy val map = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap
   lazy val routeManager = story.mapUi(new RouteManager(map, _).init())
-  lazy val markerManager = story.map(new MarkerManager(map, List(display.getWidth(), display.getHeight()), _, getActivity))
+  lazy val markerManager = story.map(new MarkerManager(map, mapView, List(display.getWidth, display.getHeight), _, getActivity))
 
   var toggleOverlays = slot[Button]
 

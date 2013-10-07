@@ -59,16 +59,16 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Firs
       startActivityForResult(new Intent(this, implicitly[ClassTag[A]].runtimeClass), 0)
     }
     // format: OFF
-    val adapter = AwesomeAdapter(
+    val data = Seq(
       ("Explore", clicker[ExploreActivity]),
       ("Create a story", clicker[RecordActivity]),
       ("My stories", clicker[MyStoriesActivity]),
       ("Profile", clicker[AccountActivity]),
       ("Settings", clicker[SettingsActivity])
-    )(
-      w[TextView] ~> TextSize.medium ~> padding(all = 10 dip) ~> TextStyle.boldItalic
-    )(
-      view ⇒ data ⇒ view ~> text(data._1) ~> data._2
+    )
+    val adapter = AwesomeAdapter.simple(data)(
+      w[TextView] ~> TextSize.medium ~> padding(all = 10 dip) ~> TextStyle.boldItalic,
+      data ⇒ text(data._1) + data._2
     )
     // format: ON
     val layout = l[DrawerLayout](

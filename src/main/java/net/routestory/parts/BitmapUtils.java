@@ -28,8 +28,8 @@ public class BitmapUtils {
 		Bitmap target = Bitmap.createBitmap(width+2*b, height+2*b, Config.ARGB_8888);
 		Canvas canvas = new Canvas(target);
 		canvas.save();
-		canvas.clipRect(new Rect(b, b, width+b, height+b), Op.XOR);
-		//canvas.drawARGB(0xfa, 0x67, 0x3d, 200);
+		canvas.clipRect(new Rect(b-1, b-1, width+b+1, height+b+1), Op.XOR);
+		canvas.drawARGB(0xfa, 0xff, 0xff, 0xff);
 		canvas.restore();
 		Paint paint = new Paint();
 		paint.setAlpha((int)(alpha*255));

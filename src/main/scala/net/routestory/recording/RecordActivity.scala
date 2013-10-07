@@ -64,7 +64,7 @@ trait LocationHandler
     locationClient.connect()
   }
   def looseLocation() {
-    Option(locationClient).filter(_.isConnected).foreach(_.removeLocationUpdates(this))
+    Option(locationClient).filter(_.isConnected).foreach { c ⇒ c.removeLocationUpdates(this); c.disconnect() }
   }
 
   def onConnected(bundle: Bundle) {

@@ -5,6 +5,7 @@ import android.content.Context
 import android.view.{ ViewGroup, View }
 import scala.util.Try
 import scala.collection.JavaConversions._
+import org.macroid.{ Tweaking, LayoutTransforming }
 
 abstract class AwesomeAdapter[A, B <: View](implicit ctx: Context) extends ArrayAdapter[A](ctx, 0) {
   override def getView(position: Int, view: View, parent: ViewGroup): View = {
@@ -15,10 +16,15 @@ abstract class AwesomeAdapter[A, B <: View](implicit ctx: Context) extends Array
   def fillView(view: B, data: A): Any
 }
 
-object AwesomeAdapter {
-  def apply[A, B <: View](data: A*)(m: ⇒ B)(f: B ⇒ A ⇒ Any)(implicit ctx: Context) = new AwesomeAdapter[A, B] {
+object AwesomeAdapter extends Tweaking with LayoutTransforming {
+  def simple[A, B <: View](data: Seq[A])(m: ⇒ B, f: A ⇒ Tweak[B])(implicit ctx: Context) = new AwesomeAdapter[A, B] {
     addAll(data)
     def makeView = m
-    def fillView(view: B, data: A) = f(view)(data)
+    def fillView(view: B, data: A) = view ~> f(data)
+  }
+  def apply[A, B <: ViewGroup](data: Seq[A])(m: ⇒ B, f: A ⇒ Transformer)(implicit ctx: Context) = new AwesomeAdapter[A, B] {
+    addAll(data)
+    def makeView = m
+    def fillView(view: B, data: A) = view ~~> f(data)
   }
 }
