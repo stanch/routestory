@@ -42,7 +42,7 @@ class RouteStoryServiceSpec extends FlatSpec with ScalatestRouteTest with RouteS
   }
 
   it should "search by tag and title" in {
-    Get("/api/stories/search/lisbo~") ~> theRoute ~> check {
+    Get("/api/stories/search/lisbo%20n") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
     }
   }
