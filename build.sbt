@@ -1,6 +1,10 @@
+import com.typesafe.sbt.SbtStartScript
+
 name := "RouteStory-bag"
 
 scalaVersion := "2.10.3"
+
+seq(SbtStartScript.startScriptForClassesSettings: _*)
 
 resolvers ++= Seq(
 	"spray repo" at "http://repo.spray.io",

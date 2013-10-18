@@ -13,11 +13,12 @@ import spray.routing._
 import spray.client.pipelining._
 import scala.async.Async.{async, await}
 import spray.http.Uri.Query
+import scala.util.Properties
 
 object Main extends App {
   implicit val system = ActorSystem("routestory")
   val service = system.actorOf(Props[RouteStoryServiceActor], "service")
-  IO(Http) ! Http.Bind(service, "localhost", port = 8080)
+  IO(Http) ! Http.Bind(service, "localhost", port = Properties.envOrElse("PORT", "8080").toInt)
 }
 
 class RouteStoryServiceActor extends Actor with RouteStoryService {
