@@ -26,13 +26,14 @@ import android.graphics.Bitmap
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import android.widget.SeekBar.OnSeekBarChangeListener
 import rx.Var
+import org.macroid.contrib.ExtraTweaks
 
 object DiveFragment {
   val photoDuration = 1500
   val photoFade = 300
 }
 
-class DiveFragment extends RouteStoryFragment {
+class DiveFragment extends RouteStoryFragment with ExtraTweaks {
   lazy val story = getActivity.asInstanceOf[HazStory].story
   lazy val media = getActivity.asInstanceOf[HazStory].media
   lazy val map = findFrag[SupportMapFragment](Tag.previewMap).get.getMap
@@ -65,7 +66,7 @@ class DiveFragment extends RouteStoryFragment {
         l[FrameLayout](
           w[Button] ~> wire(playBig) ~>
             lp(80 dip, 80 dip, Gravity.CENTER) ~>
-            Styles.bg(R.drawable.play_big) ~>
+            Bg.res(R.drawable.play_big) ~>
             story.map(s ⇒ On.click {
               playing.update(true)
               start(s)
@@ -73,12 +74,12 @@ class DiveFragment extends RouteStoryFragment {
         )
       ) ~> lp(WRAP_CONTENT, WRAP_CONTENT, 1.0f),
       l[HorizontalLinearLayout](
-        w[Button] ~> Styles.bg(R.drawable.play) ~> lp(32 dip, 32 dip) ~>
+        w[Button] ~> Bg.res(R.drawable.play) ~> lp(32 dip, 32 dip) ~>
           wire(play) ~> story.map(s ⇒ On.click { playing.update(true); start(s) }),
-        w[Button] ~> Styles.bg(R.drawable.pause) ~> lp(32 dip, 32 dip) ~>
+        w[Button] ~> Bg.res(R.drawable.pause) ~> lp(32 dip, 32 dip) ~>
           wire(pause) ~> story.map(s ⇒ On.click { playing.update(false); stop(); }) ~> hide,
         w[SeekBar] ~> wire(seekBar) ~> lp(MATCH_PARENT, WRAP_CONTENT)
-      ) ~> padding(left = 16 dip, right = 8 dip, top = 8 dip, bottom = 8 dip) ~> (_.setBackgroundColor(0xff101010))
+      ) ~> padding(left = 16 dip, right = 8 dip, top = 8 dip, bottom = 8 dip)
     )
   }
 
@@ -109,7 +110,7 @@ class DiveFragment extends RouteStoryFragment {
       s.photos.foreach(photo ⇒ photo.get(maxSize) foreachUi {
         bitmap ⇒ addPhoto(photo.getLocation, bitmap)
       })
-      Ui(s.notes.foreach(note ⇒ map.addMarker(new MarkerOptions()
+      Ui(s.textNotes.foreach(note ⇒ map.addMarker(new MarkerOptions()
         .position(note.getLocation)
         .icon(BitmapDescriptorFactory.fromResource(R.drawable.text_note))
       )))
@@ -177,7 +178,7 @@ class DiveFragment extends RouteStoryFragment {
     val from = Math.ceil(cue.now * duration)
     val start = SystemClock.uptimeMillis
 
-    s.notes foreach { note ⇒
+    s.textNotes foreach { note ⇒
       val at = note.timestamp / ratio.now - from
       if (at > 0) handler.postAtTime(toast(note.text), start + at.toInt)
     }

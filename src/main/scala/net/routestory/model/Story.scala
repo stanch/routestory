@@ -166,7 +166,7 @@ class Story extends CouchDbDocument with CouchDbObject {
   @JsonIgnore
   def bind(couch: CouchDbConnector) {
     couchRef = WeakReference(couch)
-    List(audio, photos, notes, voice, heartbeat).foreach(_.foreach(_.bind(this)))
+    List(sounds, photos, textNotes, voiceNotes, heartbeat).foreach(_.foreach(_.bind(this)))
   }
 
   @JsonIgnore
@@ -202,15 +202,15 @@ class Story extends CouchDbDocument with CouchDbObject {
 
   @JsonIgnore
   def addAudio(time: Long, contentType: String, ext: String): String = {
-    val id = s"audio/${audio.size + 1}.$ext"
-    audio.add(getMedia(time, id, contentType, AudioData.apply))
+    val id = s"audio/${sounds.size + 1}.$ext"
+    sounds.add(getMedia(time, id, contentType, AudioData.apply))
     id
   }
 
   @JsonIgnore
   def addVoice(time: Long, contentType: String, ext: String): String = {
-    val id = s"voice/${voice.size + 1}.$ext"
-    voice.add(getMedia(time, id, contentType, AudioData.apply))
+    val id = s"voice/${voiceNotes.size + 1}.$ext"
+    voiceNotes.add(getMedia(time, id, contentType, AudioData.apply))
     id
   }
 
@@ -223,7 +223,7 @@ class Story extends CouchDbDocument with CouchDbObject {
 
   @JsonIgnore
   def addNote(time: Long, note: String) {
-    notes.add(TextData((time - starttime).toInt, note))
+    textNotes.add(TextData((time - starttime).toInt, note))
   }
 
   @JsonIgnore
@@ -256,6 +256,7 @@ class Story extends CouchDbDocument with CouchDbObject {
 
   @JsonProperty("type") val `type` = "story"
   @JsonProperty("private") var isPrivate = false
+  @JsonProperty("draft") var isDraft = false
   @JsonProperty("author") var authorId: String = _
   @JsonIgnore var author: Author = _
 
@@ -267,10 +268,10 @@ class Story extends CouchDbDocument with CouchDbObject {
   @JsonProperty("tags") var tags: Array[String] = null
 
   @JsonProperty("locations") var locations = new java.util.LinkedList[Story.LocationData]()
-  @JsonProperty("audio") var audio = new java.util.LinkedList[Story.AudioData]()
+  @JsonProperty("audio") var sounds = new java.util.LinkedList[Story.AudioData]()
   @JsonProperty("photos") var photos = new java.util.LinkedList[Story.ImageData]()
-  @JsonProperty("notes") var notes = new java.util.LinkedList[Story.TextData]()
-  @JsonProperty("voice") var voice = new java.util.LinkedList[Story.AudioData]()
+  @JsonProperty("notes") var textNotes = new java.util.LinkedList[Story.TextData]()
+  @JsonProperty("voice") var voiceNotes = new java.util.LinkedList[Story.AudioData]()
   @JsonProperty("heartbeat") var heartbeat = new java.util.LinkedList[Story.HeartbeatData]()
   @JsonProperty("venues") var venues = new java.util.LinkedList[Story.FoursquareData]()
 }

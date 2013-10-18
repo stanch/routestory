@@ -10,6 +10,8 @@ import org.macroid.util.Thunk
 import com.viewpagerindicator.TitlePageIndicator
 import ViewGroup.LayoutParams._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
+import org.macroid.contrib.ExtraTweaks
+import net.routestory.R
 
 class MapAwareViewPager(ctx: Context) extends ViewPager(ctx) {
   override def canScroll(scrollingView: View, checkV: Boolean, dx: Int, x: Int, y: Int) = {
@@ -28,16 +30,16 @@ case class PagingAdapter(fm: FragmentManager, frags: Seq[(CharSequence, Thunk[Fr
   override def getPageTitle(position: Int): CharSequence = frags(position)._1
 }
 
-trait FragmentPaging extends LayoutDsl with Tweaks { self: ViewSearch ⇒
+trait FragmentPaging extends LayoutDsl with ExtraTweaks { self: ViewSearch ⇒
   def getTabs(frags: (CharSequence, Thunk[Fragment])*)(implicit ctx: Context) = {
     val pager = w[MapAwareViewPager] ~>
       id(Id.pager) ~>
       (_.setAdapter(PagingAdapter(fragmentManager, frags)))
     val indicator = w[TitlePageIndicator] ~>
       lpOf[ViewGroup](MATCH_PARENT, WRAP_CONTENT) ~>
+      Bg.res(R.color.dark) ~>
       (_.setViewPager(pager)) ~>
-      (_.setBackgroundColor(0xff101010)) ~>
-      (_.setFooterColor(0xff358482))
+      (_.setFooterColor(ctx.getResources.getColor(R.color.aquadark)))
     l[VerticalLinearLayout](indicator, pager)
   }
 }

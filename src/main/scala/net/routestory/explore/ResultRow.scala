@@ -7,17 +7,17 @@ import android.content.Context
 import android.content.Intent
 import android.text.SpannableString
 import android.text.style.UnderlineSpan
-import android.view.{ ViewGroup, LayoutInflater, View }
+import android.view.{ ViewGroup, View }
 import android.widget.LinearLayout
 import android.widget.TextView
 import net.routestory.R
 import net.routestory.display.DisplayActivity
 import net.routestory.model.StoryResult
-import android.view.ViewGroup.LayoutParams
 import org.macroid.{ Tweaks, LayoutDsl, BasicViewSearch }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
+import net.routestory.parts.Styles
 
 object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
   def underlined(s: String) = new SpannableString(s) {
@@ -37,7 +37,7 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
 
         // create the piece
         val (piece, pieceWidth) = {
-          val p = w[TextView] ~> tagStyle ~> text(underlined(tag._1)) ~>
+          val p = w[TextView] ~> Styles.tag ~> text(underlined(tag._1)) ~>
             tag._2.map(s ⇒ TextSize.sp(20 + (s * 20).toInt)) ~>
             measure ~> On.click {
               val intent = new Intent(activity, classOf[SearchActivity])
@@ -65,15 +65,15 @@ object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
     // init the view
     val view = _view getOrElse {
       l[VerticalLinearLayout](
-        w[TextView] ~> id(Id.storyTitle) ~> titleStyle ~> lp(WRAP_CONTENT, WRAP_CONTENT),
+        w[TextView] ~> id(Id.storyTitle) ~> Styles.title ~> lp(WRAP_CONTENT, WRAP_CONTENT),
         l[HorizontalLinearLayout](
-          w[TextView] ~> text(R.string.by) ~> captionStyle,
+          w[TextView] ~> text(R.string.by) ~> Styles.caption,
           w[TextView] ~> id(Id.storyAuthor) ~> TextSize.medium
         ),
         l[HorizontalLinearLayout](
           l[VerticalLinearLayout]() ~> id(Id.storyTagRows)
         ) ~> id(Id.storyTags) ~> padding(left = storyShift)
-      ) ~> (_.setPadding(0, 8 dip, 0, 8 dip))
+      ) ~> padding(0, 8 dip, 0, 8 dip)
     }
 
     // title

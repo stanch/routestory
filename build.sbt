@@ -6,9 +6,7 @@ version := "1.0"
 
 versionCode := 0
 
-scalaVersion := "2.10.3-RC3"
-
-scalaOrganization := "org.scala-lang"
+scalaVersion := "2.10.3"
 
 platformName := "android-18"
 
@@ -23,7 +21,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
 	"org.scaloid" % "scaloid" % "1.1_8_2.10",
-	"org.macroid" %% "macroid" % "1.0.0-20131002",
+	"org.macroid" %% "macroid" % "1.0.0",
 	"com.scalarx" %% "scalarx" % "0.1",
 	"me.lessis" %% "retry-core" % "0.1.0",
 	aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),

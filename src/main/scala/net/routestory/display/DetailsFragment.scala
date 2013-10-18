@@ -9,7 +9,7 @@ import android.widget.{ ScrollView, LinearLayout, TextView, ImageView }
 import net.routestory.explore.ResultRow
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import net.routestory.parts.RouteStoryFragment
+import net.routestory.parts.{ Styles, RouteStoryFragment }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
@@ -27,20 +27,20 @@ class DetailsFragment extends RouteStoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[ScrollView](
       l[VerticalLinearLayout](
-        w[TextView] ~> text("Author") ~> headerStyle(noPadding = true),
+        w[TextView] ~> text("Author") ~> Styles.header(noPadding = true),
         w[ImageView] ~> lp(100 dip, WRAP_CONTENT) ~> wire(authorPicture),
         w[TextView] ~> lp(MATCH_PARENT, WRAP_CONTENT) ~> wire(authorName) ~> TextSize.medium,
 
-        w[TextView] ~> text(R.string.description) ~> headerStyle(),
+        w[TextView] ~> text(R.string.description) ~> Styles.header(),
         w[TextView] ~> lp(MATCH_PARENT, WRAP_CONTENT) ~> wire(description) ~> TextSize.medium,
 
         l[VerticalLinearLayout](
-          w[TextView] ~> text(R.string.tags) ~> headerStyle(),
+          w[TextView] ~> text(R.string.tags) ~> Styles.header(),
           l[HorizontalLinearLayout](
             l[VerticalLinearLayout]() ~> wire(tagRows)
           )
         ) ~> wire(tagStuff)
-      ) ~> padding(left = (8 dip))
+      ) ~> padding(left = 8 dip)
     )
   }
 

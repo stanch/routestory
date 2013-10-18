@@ -2,9 +2,11 @@
     
     <color name="aquadark">#358482</color>
     <color name="orange">#fa673d</color>
+    <color name="dark">#101010</color>
+    <color name="drawer">#f0141414</color>
 
     <style name="AppTheme" parent="@style/Theme.Story">
-    	<item name="android:windowBackground">@drawable/startup_screen_gradient</item>
+    	<item name="android:windowBackground">@color/dark</item>
     </style>
 
 </resources>

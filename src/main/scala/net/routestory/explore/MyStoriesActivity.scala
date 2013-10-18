@@ -21,6 +21,7 @@ class MyStoriesActivity extends RouteStoryActivity
   def getStories = myStories
   def getFragmentData(tag: String): HazStories = this
   override val showControls = false
+  override val showReloadProgress = false
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)

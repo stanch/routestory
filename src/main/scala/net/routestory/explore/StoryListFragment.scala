@@ -17,6 +17,7 @@ import android.content.Context
 import org.macroid.contrib.Layouts.HorizontalLinearLayout
 import android.util.Log
 import scala.async.Async.{ async, await }
+import org.macroid.contrib.ExtraTweaks
 
 trait StoryListObserverFragment extends FragmentData[HazStories] { self: Fragment ⇒
   lazy val storyteller = getFragmentData
@@ -40,7 +41,7 @@ trait StoryListObserverFragment extends FragmentData[HazStories] { self: Fragmen
   }
 }
 
-class StoryListFragment extends ListFragment with RouteStoryFragment with StoryListObserverFragment {
+class StoryListFragment extends ListFragment with RouteStoryFragment with StoryListObserverFragment with ExtraTweaks {
   lazy val emptyText = Option(getArguments) map {
     _.getString("emptyText")
   } getOrElse {
@@ -56,7 +57,7 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
   var adapter: Option[StoryListFragment.Adapter] = None
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    val view = super.onCreateView(inflater, container, savedInstanceState)
+    val view = super.onCreateView(inflater, container, savedInstanceState) ~> Bg.res(R.drawable.caspa)
     val list = findView[ListView](view, android.R.id.list) ~> (_.setDivider(null))
     if (storyteller.showControls) {
       list.get.addFooterView(l[HorizontalLinearLayout](
@@ -76,6 +77,7 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
 
   override def onStop() {
     super.onStop()
+    adapter = None
     neglect()
   }
 

@@ -2,7 +2,7 @@ package net.routestory.display
 
 import net.routestory.R
 import net.routestory.model.Story
-import net.routestory.parts.{ AwesomeAdapter, BitmapUtils }
+import net.routestory.parts.{ Styles, BitmapUtils }
 import net.routestory.parts.BitmapUtils.MagicGrid
 import android.app.{ Activity, Dialog, AlertDialog }
 import android.content.{ Intent, Context, DialogInterface }
@@ -22,7 +22,6 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import net.routestory.parts.Implicits._
 import scala.collection.JavaConversions._
-import scala.collection.SeqExtractors
 import org.scaloid.common._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -31,6 +30,7 @@ import org.macroid.contrib.ExtraTweaks
 import ViewGroup.LayoutParams._
 import uk.co.senab.photoview.PhotoViewAttacher
 import org.macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
+import org.macroid.contrib.ListAdapter
 
 class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int], story: Story, activity: Activity)(implicit ctx: Context) extends Concurrency {
   var hideOverlays = false
@@ -76,7 +76,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
   }
 
   // Image marker
-  class ImageMarkerItem(data: Story.ImageData) extends MarkerItem(data.timestamp) with LayoutDsl with Tweaks {
+  class ImageMarkerItem(data: Story.ImageData) extends MarkerItem(data.timestamp) with LayoutDsl with Tweaks with ExtraTweaks {
     private val icon = data.get(maxIconSize)
 
     override def addToMarkerLists(shown: List[MarkerItem], hidden: List[MarkerItem], hide: Boolean = false): (List[MarkerItem], List[MarkerItem]) = {
@@ -99,11 +99,10 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
       data.get(displaySize.max) foreachUi {
         case bitmap if bitmap != null ⇒
           progress.dismiss()
-          val view = w[ImageView] ~> lpOf[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER) ~> { x ⇒
-            x.setImageBitmap(bitmap)
-            x.setAdjustViewBounds(true)
-            x.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE)
-          }
+          val view = w[ImageView] ~>
+            lpOf[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER) ~>
+            Image.bitmap(bitmap) ~> Image.adjustBounds ~>
+            (_.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE))
           val attacher = new PhotoViewAttacher(view)
           attacher.update()
           new Dialog(ctx, android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
@@ -166,7 +165,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
     override def onClick() {
       val bld = new AlertDialog.Builder(ctx)
       val textView = w[TextView] ~>
-        text(data.text) ~> TextSize.medium ~> padding(all = 8 dip) ~>
+        text(data.text) ~> TextSize.medium ~> Styles.p8dding ~>
         (_.setMaxWidth((displaySize(0) * 0.75).toInt))
       bld.setView(textView).create().show()
     }
@@ -228,7 +227,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
 
   // Grouping marker
   class GroupMarkerItem(val children: List[MarkerItem], val closest: Double, val bounds: LatLngBounds)
-    extends MarkerItem((children map { _.timestamp } sum) / children.length) with LayoutDsl {
+    extends MarkerItem((children map { _.timestamp } sum) / children.length) with LayoutDsl with ExtraTweaks {
     lazy val leafList: List[MarkerItem] = children flatMap {
       case g: GroupMarkerItem ⇒ g.leafList
       case i ⇒ i :: Nil
@@ -282,12 +281,11 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
         // show a confusion resolving dialog
 
         new AlertDialog.Builder(ctx)
-          .setAdapter(AwesomeAdapter.simple(leafList)(
-            w[ImageView] ~> (_.setAdjustViewBounds(true)),
-            item ⇒ { view: ImageView ⇒
+          .setAdapter(ListAdapter.simple(leafList)(
+            w[ImageView] ~> Image.adjustBounds,
+            item ⇒ Image.bitmap {
               val icon = item.getIcon(scale = false)
-              val bitmap = BitmapUtils.createScaledBitmap(icon, Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize))
-              view.setImageBitmap(bitmap)
+              BitmapUtils.createScaledBitmap(icon, Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize))
             }
           ), new OnClickListener() {
             def onClick(dialog: DialogInterface, which: Int) {
@@ -309,9 +307,9 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
     // format: OFF
     val markerItems =
       Option(story.photos).map(x ⇒ makeMarkers(x, new ImageMarkerItem(_: Story.ImageData))).getOrElse(Vector.empty) ++
-      Option(story.audio).map(x ⇒ makeMarkers(x, new SoundMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
-      Option(story.voice).map(x ⇒ makeMarkers(x, new VoiceMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
-      Option(story.notes).map(x ⇒ makeMarkers(x, new TextMarkerItem(_: Story.TextData))).getOrElse(Vector.empty) ++
+      Option(story.sounds).map(x ⇒ makeMarkers(x, new SoundMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
+      Option(story.voiceNotes).map(x ⇒ makeMarkers(x, new VoiceMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
+      Option(story.textNotes).map(x ⇒ makeMarkers(x, new TextMarkerItem(_: Story.TextData))).getOrElse(Vector.empty) ++
       Option(story.heartbeat).map(x ⇒ makeMarkers(x, new HeartbeatMarkerItem(_: Story.HeartbeatData))).getOrElse(Vector.empty) ++
       Option(story.venues).map(x ⇒ makeMarkers(x, new VenueMarkerItem(_: Story.FoursquareData))).getOrElse(Vector.empty)
     // format: ON

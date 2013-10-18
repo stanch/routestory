@@ -11,8 +11,7 @@ import android.widget.{ ProgressBar, TextView, ListView }
 import android.view.ViewGroup.LayoutParams._
 import android.app.Activity
 import scala.reflect.ClassTag
-import org.macroid.util.Thunk
-import org.macroid.contrib.Layouts.VerticalLinearLayout
+import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
 import net.routestory.recording.RecordActivity
 import net.routestory.explore.{ ExploreActivity, MyStoriesActivity }
 import android.os.Bundle
@@ -51,8 +50,7 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Firs
 
   def activityProgress(implicit ctx: Context) =
     w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) ~>
-      lpOf[ViewGroup](MATCH_PARENT, WRAP_CONTENT) ~>
-      (_.setBackgroundColor(0xff101010))
+      lpOf[ViewGroup](MATCH_PARENT, WRAP_CONTENT)
 
   def drawer(view: View) = {
     def clicker[A <: Activity: ClassTag] = On.click {
@@ -66,8 +64,8 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Firs
       ("Profile", clicker[AccountActivity]),
       ("Settings", clicker[SettingsActivity])
     )
-    val adapter = AwesomeAdapter.simple(data)(
-      w[TextView] ~> TextSize.medium ~> padding(all = 10 dip) ~> TextStyle.boldItalic,
+    val adapter = ListAdapter.text(data)(
+      TextSize.medium + TextStyle.boldItalic + padding(all = 10 dip),
       data ⇒ text(data._1) + data._2
     )
     // format: ON
@@ -76,7 +74,7 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Firs
       w[ListView] ~>
         (_.setAdapter(adapter)) ~>
         lp(240 dip, MATCH_PARENT, Gravity.START) ~>
-        (_.setBackgroundColor(0xf0141414))
+        ExtraTweaks.Bg.res(R.color.drawer)
     )
     drawerToggle = new ActionBarDrawerToggle(
       this, layout, R.drawable.ic_navigation_drawer,
