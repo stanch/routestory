@@ -28,7 +28,7 @@ class RouteStoryServiceActor extends Actor with RouteStoryService {
   implicit val ectx = context.dispatcher
   def actorRefFactory = context
 
-  val proxyPipeline = IO(Http).ask(Http.HostConnectorSetup(host = "routestory.cloudant.com", port = 443, sslEncryption = true)) map {
+  def proxyPipeline = IO(Http).ask(Http.HostConnectorSetup(host = "routestory.cloudant.com", port = 443, sslEncryption = true)) map {
     case Http.HostConnectorInfo(c: ActorRef, _) ⇒
       addCredentials(BasicHttpCredentials("ioneveredgendartheretted", "yUE3vHifamEEoJrPRHlnw0sj")) ~>
         removeHeader("host") ~>
