@@ -18,7 +18,7 @@ import scala.util.Properties
 object Main extends App {
   implicit val system = ActorSystem("routestory")
   val service = system.actorOf(Props[RouteStoryServiceActor], "service")
-  IO(Http) ! Http.Bind(service, "localhost", port = Properties.envOrElse("PORT", "8080").toInt)
+  IO(Http) ! Http.Bind(service, interface = "0.0.0.0", port = Properties.envOrElse("PORT", "8080").toInt)
 }
 
 class RouteStoryServiceActor extends Actor with RouteStoryService {
