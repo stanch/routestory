@@ -26,14 +26,12 @@ class TagsFragment extends RouteStoryFragment {
     val displaySize = new Point
     getActivity.getWindowManager.getDefaultDisplay.getSize(displaySize)
 
-    async {
-      val query = new ViewQuery().designDocId("_design/Story").viewName("tags").group(true)
-      val result = await(app.getPlainQueryResults(remote = true, query))
-      val tags = Random.shuffle(result.getRows.toList).take(50).map(x ⇒ (x.getKey, x.getValueAsInt))
-      val (max, min) = (tags.maxBy(_._2)._2, tags.minBy(_._2)._2)
+    net.routestory.lounge2.Lounge.getPopularTags foreachUi { tags ⇒
+      val shuffled = Random.shuffle(tags).take(50).map(x ⇒ (x.key, x.data))
+      val (max, min) = (shuffled.maxBy(_._2)._2, shuffled.minBy(_._2)._2)
       def n(x: Int) = if (max == min) 1 else (x - min).toDouble / (max - min)
-      val norm = tags.map { case (t, q) ⇒ (t, Some(n(q))) }
-      Ui(ResultRow.fillTags(rows, displaySize.x - 30, norm.toArray, getActivity))
+      val norm = shuffled.map { case (t, q) ⇒ (t, Some(n(q))) }
+      ResultRow.fillTags(rows, displaySize.x - 30, norm.toArray, getActivity)
     }
   }
 }

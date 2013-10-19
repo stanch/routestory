@@ -10,6 +10,8 @@ import android.content.{ Intent, Context }
 import android.app.SearchManager
 import android.widget.SearchView
 import net.routestory.recording.RecordActivity
+import android.util.Log
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class ExploreActivity extends RouteStoryActivity with FragmentPaging {
   override def onCreate(savedInstanceState: Bundle) {
