@@ -28,7 +28,7 @@ trait SyncRoutes { self: RouteStoryService ⇒
     }
   }
 
-  private val db = (path("") & head) {
+  private val db = (path(PathEnd) & head) {
     proxyPass(Head("/story2"))
   }
 

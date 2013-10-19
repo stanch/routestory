@@ -41,7 +41,7 @@ class RouteStoryServiceActor extends Actor with RouteStoryService {
   def receive = runRoute(theRoute)
 }
 
-trait RouteStoryService extends HttpService with SyncRoutes with StoryRoutes {
+trait RouteStoryService extends HttpService with SyncRoutes with StoryRoutes with TagRoutes {
   implicit val executionContext = actorRefFactory.dispatcher
   implicit val timeout: Timeout = 10.seconds
 
@@ -56,6 +56,6 @@ trait RouteStoryService extends HttpService with SyncRoutes with StoryRoutes {
       syncRoutes
     } ~
     pathPrefix("api") {
-      storyRoutes
+      storyRoutes ~ tagRoutes
     }
 }

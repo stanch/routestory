@@ -58,4 +58,10 @@ class RouteStoryServiceSpec extends FlatSpec with ScalatestRouteTest with RouteS
       status should equal (StatusCodes.OK)
     }
   }
+
+  it should "provide a list of all tags" in {
+    Get("/api/tags") ~> theRoute ~> check {
+      status should equal (StatusCodes.OK)
+    }
+  }
 }
