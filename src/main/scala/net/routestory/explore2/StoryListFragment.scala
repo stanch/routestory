@@ -83,12 +83,12 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
 
   override def onStart() {
     super.onStart()
+    Option(getListAdapter) orElse adapter.map(setListAdapter)
     observe()
   }
 
   override def onStop() {
     super.onStop()
-    adapter = None
     neglect()
   }
 
