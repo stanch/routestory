@@ -1,0 +1,102 @@
+package net.routestory.explore2
+
+import org.scaloid.common._
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.text.SpannableString
+import android.text.style.UnderlineSpan
+import android.view.{ ViewGroup, View }
+import android.widget.LinearLayout
+import android.widget.TextView
+import net.routestory.R
+import net.routestory.display.DisplayActivity
+import org.macroid.{ Tweaks, LayoutDsl, BasicViewSearch }
+import net.routestory.parts.Styles._
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import ViewGroup.LayoutParams._
+import net.routestory.parts.Styles
+import net.routestory.lounge2.Puffy
+import net.routestory.model2.StoryPreview
+
+object ResultRow extends LayoutDsl with Tweaks with BasicViewSearch {
+  def underlined(s: String) = new SpannableString(s) {
+    setSpan(new UnderlineSpan(), 0, length, 0)
+  }
+
+  def fillTags(tagRowsView: Option[LinearLayout], maxWidth: Int, tags: List[(String, Option[Double])], activity: Activity)(implicit ctx: Context) {
+    // form rows by accumulating tags that fit in one line
+    val (_, rows) = tags.foldLeft[(Int, List[List[View]])]((0, Nil :: Nil)) {
+      case ((width, row :: prevRows), tag) ⇒
+
+        // create spacer if needed
+        val (spacer, spacerWidth) = if (row.isEmpty) (Nil, 0) else {
+          val s = w[TextView] ~> TextSize.medium ~> text(", ") ~> measure
+          (s :: Nil, s.getMeasuredWidth)
+        }
+
+        // create the piece
+        val (piece, pieceWidth) = {
+          val p = w[TextView] ~> Styles.tag ~> text(underlined(tag._1)) ~>
+            tag._2.map(s ⇒ TextSize.sp(20 + (s * 20).toInt)) ~>
+            measure ~> On.click {
+              val intent = new Intent(activity, classOf[net.routestory.explore.SearchActivity])
+              intent.putExtra("tag", tag._1)
+              activity.startActivityForResult(intent, 0)
+            }
+          (p :: Nil, p.getMeasuredWidth)
+        }
+
+        val occupied = width + spacerWidth + pieceWidth
+        if (occupied > maxWidth && !row.isEmpty) {
+          // create a new line
+          (pieceWidth, piece :: (spacer ::: row) :: prevRows)
+        } else {
+          // fit on the same line
+          (occupied, (piece ::: spacer ::: row) :: prevRows)
+        }
+    }
+
+    // add to layout
+    tagRowsView ~> addViewsReverse(rows.map(row ⇒ l[HorizontalLinearLayout]() ~> addViewsReverse(row)), removeOld = true)
+  }
+
+  def getView(_view: Option[View], maxWidth: Int, story: Puffy[StoryPreview], activity: Activity)(implicit ctx: Context) = {
+    // init the view
+    val view = _view getOrElse {
+      l[VerticalLinearLayout](
+        w[TextView] ~> id(Id.storyTitle) ~> Styles.title ~> lp(WRAP_CONTENT, WRAP_CONTENT),
+        l[HorizontalLinearLayout](
+          w[TextView] ~> text(R.string.by) ~> Styles.caption,
+          w[TextView] ~> id(Id.storyAuthor) ~> TextSize.medium
+        ),
+        l[HorizontalLinearLayout](
+          l[VerticalLinearLayout]() ~> id(Id.storyTagRows)
+        ) ~> id(Id.storyTags) ~> padding(left = storyShift)
+      ) ~> padding(0, 8 dip, 0, 8 dip)
+    }
+
+    // title
+    val title = story.data.title.filter(!_.isEmpty).toRight(R.string.untitled)
+    findView[TextView](view, Id.storyTitle) ~> text(title) ~> On.click {
+      val intent = new Intent(activity, classOf[DisplayActivity])
+      intent.putExtra("id", story.id)
+      activity.startActivityForResult(intent, 0)
+    }
+
+    // author
+    val author = story.data.author.map(_.name).toRight(R.string.me)
+    findView[TextView](view, Id.storyAuthor) ~> text(author)
+
+    // tags
+    findView[View](view, Id.storyTags) ~> (Some(story.data.tags).filter(!_.isEmpty) map { tags ⇒
+      val tagRows = findView[LinearLayout](view, Id.storyTagRows)
+      fillTags(tagRows, maxWidth, tags.map((_, None)), activity)
+      show
+    } getOrElse {
+      hide
+    })
+
+    view
+  }
+}

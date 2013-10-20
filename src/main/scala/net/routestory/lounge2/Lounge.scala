@@ -12,9 +12,15 @@ object Lounge {
 
   def getStory(id: String) = async {
     val story = await(client.getJson[Pillow[Story]](s"$apiUrl/stories/$id"))
-    val author = await(client.getJson[Pillow[Author]](s"$apiUrl/authors/$id"))
-    story.data.author = Some(author.data)
+    //val author = await(client.getJson[Pillow[Author]](s"$apiUrl/authors/$id"))
+    //story.data.author = Some(author.data)
     story
+  }
+
+  def getLatestStories = async {
+    val stories = await(client.getJson[ViewResult[StoryPreview]](s"$apiUrl/stories/latest"))
+    //authors...
+    stories.rows
   }
 
   def getPopularTags = client.getJson[ReducedViewResult[String, Int]](s"$apiUrl/tags/").map(_.rows)

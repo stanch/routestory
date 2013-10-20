@@ -75,11 +75,13 @@ case class Story(meta: Story.Meta, segments: List[Story.Segment], authorId: Opti
   var author: Option[Author] = None
 }
 
-case class StoryPreview(title: Option[String], tags: List[String], authorId: String)
+case class StoryPreview(title: Option[String], tags: List[String], authorId: String) {
+  var author: Option[Author] = None
+}
 object StoryPreview {
   implicit val read = (
     (__ \ 'title).read[Option[String]] and
-    ((__ \ 'tags).read[List[String]] orElse (__ \ "tags").read[String].map(_ :: Nil)) and
+    ((__ \ 'tags).read[List[String]] orElse (__ \ 'tags).read[String].map(_ :: Nil)) and
     (__ \ 'authorId).read[String]
   )(apply _)
 }

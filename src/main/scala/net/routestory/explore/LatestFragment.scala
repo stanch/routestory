@@ -7,7 +7,7 @@ import scala.async.Async.{ async, await }
 import rx.Var
 import android.util.Log
 
-class LatestFragment extends StoryListFragment with HazStories {
+class LatestFragment extends net.routestory.explore2.StoryListFragment with net.routestory.explore2.HazStories {
   lazy val latestStories = Var {
     Log.d("Latest", "init")
     fetchStories
@@ -28,12 +28,14 @@ class LatestFragment extends StoryListFragment with HazStories {
     if (latestStories.now.isCompleted) latestStories.update(fetchStories)
   }
 
-  def fetchStories = async {
-    Log.d("Latest", "Fetching latest stories")
-    val query = new ViewQuery().designDocId("_design/Story").viewName("byTimestamp").descending(true).limit(number)
-    val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = true, query, None))
-    val authors = await(app.getObjects[Author](stories.filter(_.authorId != null).map(_.authorId)))
-    stories.filter(_.authorId != null).foreach(s ⇒ s.author = authors(s.authorId))
-    stories
-  }
+  def fetchStories = net.routestory.lounge2.Lounge.getLatestStories
+
+  //  def fetchStories = async {
+  //    Log.d("Latest", "Fetching latest stories")
+  //    val query = new ViewQuery().designDocId("_design/Story").viewName("byTimestamp").descending(true).limit(number)
+  //    val (stories, _, _) = await(app.getQueryResults[StoryResult](remote = true, query, None))
+  //    val authors = await(app.getObjects[Author](stories.filter(_.authorId != null).map(_.authorId)))
+  //    stories.filter(_.authorId != null).foreach(s ⇒ s.author = authors(s.authorId))
+  //    stories
+  //  }
 }

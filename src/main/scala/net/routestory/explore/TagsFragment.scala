@@ -5,13 +5,10 @@ import android.os.Bundle
 import android.widget.{ ScrollView, LinearLayout }
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.parts.RouteStoryFragment
-import org.ektorp.ViewQuery
 import scala.util.Random
 import android.graphics.Point
-import scala.collection.JavaConversions._
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
-import scala.async.Async.{ async, await }
 
 class TagsFragment extends RouteStoryFragment {
   var rows = slot[LinearLayout]
