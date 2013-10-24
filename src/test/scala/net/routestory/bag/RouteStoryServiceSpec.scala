@@ -10,6 +10,7 @@ import spray.client.pipelining._
 import spray.http.{StatusCodes, MediaTypes, BasicHttpCredentials}
 import spray.http.HttpHeaders.Accept
 import org.scalatest.matchers.ShouldMatchers
+import akka.util.Timeout
 
 class RouteStoryServiceSpec extends FlatSpec with ScalatestRouteTest with RouteStoryService with ShouldMatchers {
   def actorRefFactory = system
@@ -53,15 +54,21 @@ class RouteStoryServiceSpec extends FlatSpec with ScalatestRouteTest with RouteS
     }
   }
 
-  ignore should "allow to get story attachments" in {
-    Get("/api/stories/story-Yt5toJcTsyu87ehpgqzqE5/images/1.jpg") ~> theRoute ~> check {
-      status should equal (StatusCodes.OK)
-    }
-  }
+//  it should "allow to get story attachments" in {
+//    Get("/api/stories/story-Yt5toJcTsyu87ehpgqzqE5/images/1.jpg") ~> theRoute ~> check {
+//      status should equal (StatusCodes.OK)
+//    }
+//  }
 
   it should "provide a list of all tags" in {
     Get("/api/tags") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
+    }
+  }
+
+  it should "allow to get authors" in {
+    Get("/api/authors/author-27u6ExbZKej8ML9QcnYCf3") ~> theRoute ~> check {
+      println(response)
     }
   }
 }
