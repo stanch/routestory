@@ -21,7 +21,7 @@ trait SyncRoutes { self: RouteStoryService ⇒
 
   private val checkpoints = path("_local" / Segment) { id ⇒
     get {
-      proxyPass(Get(s"/story2/_local/$id"))
+      couchComplete(Get(s"/story2/_local/$id"))
     } ~
     put {
       ???
@@ -29,7 +29,7 @@ trait SyncRoutes { self: RouteStoryService ⇒
   }
 
   private val db = path(PathEnd) {
-    proxyPass(Head("/story2"))
+    couchComplete(Head("/story2"))
   }
 
   val syncRoutes = db

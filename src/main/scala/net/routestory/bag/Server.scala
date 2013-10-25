@@ -5,15 +5,16 @@ import akka.io.IO
 import akka.util.Timeout
 import akka.pattern.ask
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import spray.can.Http
 import spray.http._
 import spray.http.HttpHeaders.Accept
 import spray.routing._
 import spray.client.pipelining._
-import scala.async.Async.{async, await}
-import spray.http.Uri.Query
 import scala.util.Properties
+import spray.httpx.unmarshalling.Unmarshaller
+import play.api.libs.json._
+import spray.httpx.marshalling.Marshaller
 
 object Main extends App {
   implicit val system = ActorSystem("routestory")
@@ -22,36 +23,44 @@ object Main extends App {
 }
 
 class RouteStoryServiceActor extends Actor with RouteStoryService {
-  import spray.httpx.{ ResponseTransformation, RequestBuilding }
-
   implicit val actorSystem = context.system
   implicit val ectx = context.dispatcher
   def actorRefFactory = context
 
-  val proxyPipeline = IO(Http).ask(Http.HostConnectorSetup(host = "routestory.cloudant.com", port = 443, sslEncryption = true)) map {
+  val connector = IO(Http).ask(Http.HostConnectorSetup(host = "routestory.cloudant.com", port = 443, sslEncryption = true)) map {
     case Http.HostConnectorInfo(c: ActorRef, _) ⇒
       addCredentials(BasicHttpCredentials("ioneveredgendartheretted", "yUE3vHifamEEoJrPRHlnw0sj")) ~>
         removeHeader("host") ~>
         addHeader(Accept(MediaTypes.`application/json`)) ~>
-        RequestBuilding.logRequest { x: HttpRequest ⇒ println(x) } ~>
-        sendReceive(c) ~>
-        ResponseTransformation.logResponse { x: HttpResponse ⇒ println(x) }
+        sendReceive(c)
   }
+
+  val couchPipeline = { request: HttpRequest ⇒ connector.flatMap(_(request)) }
 
   def receive = runRoute(theRoute)
 }
 
-trait RouteStoryService extends HttpService with SyncRoutes with StoryRoutes with AuthorRoutes with TagRoutes {
+trait RouteStoryService extends HttpService
+  with AuthRoutes
+  with SyncRoutes
+  with StoryRoutes
+  with AuthorRoutes
+  with TagRoutes {
+
   implicit val executionContext = actorRefFactory.dispatcher
   implicit val timeout: Timeout = 10.seconds
 
-  val proxyPipeline: Future[HttpRequest ⇒ Future[HttpResponse]]
-
-  /* Http proxy helpers */
-  def proxySend(req: HttpRequest): Future[HttpResponse] = proxyPipeline.flatMap(_(req))
-  def proxyPass(req: HttpRequest) = complete(proxySend(req))
+  /* Pipelines */
+  implicit def jsValueUnmarshaller = Unmarshaller.delegate[String, JsValue](MediaTypes.`application/json`)(Json.parse)
+  implicit def jsValueMarshaller = Marshaller.delegate[JsValue, String](MediaTypes.`application/json`)(Json.stringify _)
+  val couchPipeline: SendReceive
+  lazy val couchJsonPipeline = couchPipeline ~> unmarshal[JsValue]
+  def couchComplete(request: HttpRequest) = complete(couchPipeline(request))
 
   val theRoute =
+    pathPrefix("auth") {
+      authRoutes
+    } ~
     pathPrefix("sync") {
       syncRoutes
     } ~
