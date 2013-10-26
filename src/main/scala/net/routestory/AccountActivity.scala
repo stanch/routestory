@@ -116,6 +116,7 @@ class AccountActivity extends RouteStoryActivity {
             return
           }
           val token = bundle.getString(AccountManager.KEY_AUTHTOKEN) // cool, we have a token
+          Log.d("AUTH", token)
           val progress = spinnerDialog("", ctx.getResources.getString(R.string.toast_signingin))
           async {
             val url = new URL("https://www-routestory-net.herokuapp.com/signin?mobiletoken=" + URLEncoder.encode(token, "UTF-8"))

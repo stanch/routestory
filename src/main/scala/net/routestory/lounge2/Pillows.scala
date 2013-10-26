@@ -14,7 +14,7 @@ object Pillow {
     (__ \ '_id).format[String] and
     (__).format[A] and
     (__ \ 'type).format[String] and
-    (__ \ '_attachments).format[Option[JsValue]] and
+    (__ \ '_attachments).formatNullable[JsValue] and
     (__ \ '_rev).format[Option[String]]
   )(apply[A], unlift(unapply[A]))
 }
