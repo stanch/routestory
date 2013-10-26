@@ -49,9 +49,11 @@ object Google {
 
 trait AuthRoutes { self: RouteStoryService ⇒
   private def updateAuthor(author: Author) = async {
+    import Json._
+
     // check if the author is in the database
     val docs = await(couchJsonPipeline {
-      Get(Couch.viewUri("Author", "byId", "key" → Json.toJson(author.originalId).toString))
+      Couch.viewReq("Author", "byId", "key" → toJson(author.originalId).toString)
     })
 
     // get author id and info
@@ -61,19 +63,20 @@ trait AuthRoutes { self: RouteStoryService ⇒
         val doc = await(couchJsonPipeline(Get(Couch.docUri(i))))
         (i, doc.as[JsObject])
       case _ ⇒
-        (Shortuuid.make, Json.obj())
+        (Shortuuid.make, obj())
     }
 
     // update/create info
-    await(couchPipeline(Put(Couch.docUri(id), doc ++ Json.obj(
-      "_id" → Json.toJson(id),
-      "originalId" → Json.toJson(author.originalId),
-      "name" → Json.toJson(author.name),
-      "link" → Json.toJson(author.link),
-      "picture" → Json.toJson(author.picture)
+    await(couchPipeline(Put(Couch.docUri(id), doc ++ obj(
+      "_id" → toJson(id),
+      "type" → "author",
+      "originalId" → toJson(author.originalId),
+      "name" → toJson(author.name),
+      "link" → toJson(author.link),
+      "picture" → toJson(author.picture)
     ))))
 
-    Json.obj("authorId" → Json.toJson(id), "authToken" → Json.toJson(Cookery.encode(id)))
+    obj("authorId" → toJson(id), "authToken" → toJson(Cookery.encode(id)))
   }
 
   val authRoutes =

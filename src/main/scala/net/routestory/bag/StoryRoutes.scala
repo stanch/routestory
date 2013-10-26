@@ -5,37 +5,36 @@ import spray.http.Uri
 import spray.http.Uri.Query
 
 trait StoryRoutes { self: RouteStoryService ⇒
+  private val storyId = Shortuuid.matcher("story")
+
   private val latest = (path("latest") & parameters('limit.as[Int] ?, 'skip.as[Int] ?)) { (limit, skip) ⇒
-    couchComplete(Get(Couch.viewUri("Story", "byTimestamp",
+    couchComplete(Couch.viewReq("Story", "byTimestamp",
       "descending" → "true",
       "limit" → limit.getOrElse(10).toString,
       "skip" → skip.getOrElse(0).toString
-    )))
+    ))
   }
 
-  private val tagged = path("tags" / Segment) { tag ⇒
-    couchComplete(Get(Lucene.uri("q" → Lucene.exact("tags", tag))))
+  private val search = (path("search" / Segment) & parameters('limit.as[Int] ?, 'bookmark.as[String] ?)) { (key, limit, bookmark) ⇒ ctx ⇒
+    val args = Seq(
+      "limit" → limit.getOrElse(10).toString,
+      "q" → (Lucene.fuzzy("tags", key) + Lucene.fuzzy("title", key))
+    ) ++ bookmark.map(b ⇒ Seq("bookmark" → b)).getOrElse(Seq())
+    couchComplete(Couch.searchReq("Story", "byEverything", args: _*))(ctx)
   }
 
-  private val search = path("search" / Segment) { key ⇒
-    couchComplete(Get(Lucene.uri("q" → (Lucene.fuzzy("tags", key) + Lucene.fuzzy("title", key)))))
-  }
-
-  private val story = pathPrefix("(story-[A-Za-z0-9]+)".r) { id ⇒
+  private val story = pathPrefix(storyId) { id ⇒
     get {
       path(PathEnd) {
         couchComplete(Get(Couch.docUri(id)))
       } ~
       path(Rest) { attachmentId ⇒
-        couchComplete(Get(Couch.attUri(id, attachmentId)))
+        couchComplete(Couch.attReq(id, attachmentId))
       }
     }
   }
 
   val storyRoutes = pathPrefix("stories") {
-    get {
-      latest ~ tagged ~ search
-    } ~
-    story
+    get(latest ~ search) ~ story
   }
 }

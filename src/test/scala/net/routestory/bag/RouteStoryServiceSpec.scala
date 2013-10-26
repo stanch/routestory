@@ -40,7 +40,7 @@ class RouteStoryServiceSpec extends FlatSpec with ScalatestRouteTest with RouteS
   }
 
   it should "search by tag" in {
-    Get("/api/stories/tags/lisbon") ~> theRoute ~> check {
+    Get("/api/tags/lisbon/stories") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
     }
   }
@@ -75,9 +75,15 @@ class RouteStoryServiceSpec extends FlatSpec with ScalatestRouteTest with RouteS
     }
   }
 
-  it should "handle android auth" in {
-    Get("/auth/android?token=ya29.AHES6ZStuaz7Bsto7SGv-B6muc5OtgacXi7Bo6T-QDj3GkADNzk") ~> theRoute ~> check {
-      println(response)
+  it should "allow to get authors in batch" in {
+    Get("/api/authors/author-27u6ExbZKej8ML9QcnYCf3,author-56KSvs3obcffYQqVWJF3EE,author-WMVnW2qhqXTC7cCnbqG6DZ") ~> theRoute ~> check {
+      println(responseAs[JsValue])
     }
   }
+
+//  it should "handle android auth" in {
+//    Get("/auth/android?token=ya29.AHES6ZStuaz7Bsto7SGv-B6muc5OtgacXi7Bo6T-QDj3GkADNzk") ~> theRoute ~> check {
+//      println(response)
+//    }
+//  }
 }
