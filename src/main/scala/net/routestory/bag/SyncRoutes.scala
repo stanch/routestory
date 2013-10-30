@@ -28,7 +28,7 @@ trait SyncRoutes { self: RouteStoryService ⇒
     }
   }
 
-  private val db = path(PathEnd) {
+  private val db = pathEnd {
     couchComplete(Head("/story2"))
   }
 

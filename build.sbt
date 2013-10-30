@@ -14,10 +14,10 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-	"io.spray" % "spray-can" % "1.1-20131011",
-	"io.spray" % "spray-client" % "1.1-20131011",
-	"io.spray" % "spray-routing" % "1.1-20131011",
-	"io.spray" % "spray-testkit" % "1.1-20131011" % "test",
+	"io.spray" % "spray-can" % "1.1-RC2",
+	"io.spray" % "spray-client" % "1.1-RC2",
+	"io.spray" % "spray-routing" % "1.1-RC2",
+	"io.spray" % "spray-testkit" % "1.1-RC2" % "test",
 	"com.typesafe.play" %% "play-json" % "2.2.0",
 	"com.typesafe.akka" %% "akka-actor" % "2.1.4",
 	"org.scalatest" %% "scalatest" % "1.9.2" % "test"

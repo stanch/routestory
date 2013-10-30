@@ -25,7 +25,7 @@ trait StoryRoutes { self: RouteStoryService ⇒
 
   private val story = pathPrefix(storyId) { id ⇒
     get {
-      path(PathEnd) {
+      pathEnd {
         couchComplete(Get(Couch.docUri(id)))
       } ~
       path(Rest) { attachmentId ⇒

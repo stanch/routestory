@@ -22,10 +22,9 @@ object Main extends App {
   IO(Http) ! Http.Bind(service, interface = "0.0.0.0", port = Properties.envOrElse("PORT", "8080").toInt)
 }
 
-class RouteStoryServiceActor extends Actor with RouteStoryService {
+class RouteStoryServiceActor extends HttpServiceActor with RouteStoryService {
   implicit val actorSystem = context.system
-  implicit val ectx = context.dispatcher
-  def actorRefFactory = context
+  implicit val ectx = executionContext
 
   val connector = IO(Http).ask(Http.HostConnectorSetup(host = "routestory.cloudant.com", port = 443, sslEncryption = true)) map {
     case Http.HostConnectorInfo(c: ActorRef, _) ⇒

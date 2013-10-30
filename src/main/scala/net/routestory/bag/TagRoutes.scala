@@ -2,7 +2,7 @@ package net.routestory.bag
 
 trait TagRoutes { self: RouteStoryService ⇒
   val tagRoutes = (pathPrefix("tags") & get) {
-    path(PathEnd) {
+    pathEnd {
       couchComplete(Couch.viewReq("Story", "tags", "reduce" → "true", "group" → "true"))
     } ~
     path(Segment / "stories") { tag ⇒

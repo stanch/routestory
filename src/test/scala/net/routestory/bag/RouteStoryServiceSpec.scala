@@ -15,7 +15,7 @@ import play.api.libs.json.JsValue
 
 class RouteStoryServiceSpec extends FlatSpec with ScalatestRouteTest with RouteStoryService with ShouldMatchers {
   def actorRefFactory = system
-  override implicit val executionContext = system.dispatcher
+  implicit val ectx = executionContext
 
   val connector = IO(Http).ask(Http.HostConnectorSetup(host = "routestory.cloudant.com", port = 443, sslEncryption = true)) map {
     case Http.HostConnectorInfo(c: ActorRef, _) ⇒
