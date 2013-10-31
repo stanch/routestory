@@ -22,7 +22,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
 	"org.scaloid" % "scaloid" % "1.1_8_2.10",
-	"org.macroid" %% "macroid" % "1.0.0",
+	"org.macroid" %% "macroid" % "1.0.1",
 	"com.scalarx" %% "scalarx" % "0.1",
 	"me.lessis" %% "retry-core" % "0.1.0",
 	"com.typesafe.play" %% "play-json" % "2.2.0",

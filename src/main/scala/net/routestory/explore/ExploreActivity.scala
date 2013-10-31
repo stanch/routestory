@@ -12,6 +12,7 @@ import android.widget.SearchView
 import net.routestory.recording.RecordActivity
 import android.util.Log
 import scala.concurrent.ExecutionContext.Implicits.global
+import net.routestory.explore2.{ TagsFragment, LatestFragment }
 
 class ExploreActivity extends RouteStoryActivity with FragmentPaging {
   override def onCreate(savedInstanceState: Bundle) {

@@ -2,7 +2,7 @@ package net.routestory.explore2
 
 import net.routestory.R
 import android.view.{ LayoutInflater, Gravity, View, ViewGroup }
-import android.widget._
+import android.widget.{ ListAdapter ⇒ _, _ }
 import net.routestory.parts.{ FragmentData, RouteStoryFragment }
 import android.support.v4.app.{ Fragment, ListFragment }
 import android.app.Activity
@@ -17,8 +17,10 @@ import org.macroid.contrib.Layouts.HorizontalLinearLayout
 import android.util.Log
 import scala.async.Async.{ async, await }
 import org.macroid.contrib.ExtraTweaks
+import org.macroid.contrib.ListAdapter
 import net.routestory.lounge2.Puffy
 import net.routestory.model2.StoryPreview
+import scala.ref.WeakReference
 
 trait HazStories {
   def getStories: Rx[Future[List[Puffy[StoryPreview]]]]
@@ -93,7 +95,7 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
   }
 
   def update(data: Future[List[Puffy[StoryPreview]]]) = async {
-    if (storyteller.showReloadProgress || Option(getListAdapter).exists(_.getCount == 0)) await(Ui(setListShown(false)))
+    if (storyteller.showReloadProgress || Option(getListAdapter).exists(_.isEmpty)) await(Ui(setListShown(false)))
     Log.d("StoryList", s"Received future $data from $observer")
     val s = await(data mapUi {
       x ⇒ setEmptyText(emptyText); x
@@ -103,11 +105,11 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
     Ui {
       adapter map { a ⇒
         a.clear()
-        a.addAll(s)
       } getOrElse {
-        adapter = Some(StoryListFragment.Adapter(s, getActivity))
+        adapter = Some(StoryListFragment.Adapter(WeakReference(getActivity)))
         setListAdapter(adapter.get)
       }
+      adapter.map(_.addAll(s))
       setListShown(true)
     }
     prevButton ~> enable(storyteller.hasPrev)
@@ -116,12 +118,10 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
 }
 
 object StoryListFragment {
-  case class Adapter(results: List[Puffy[StoryPreview]], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, 0, results) {
-    override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-      val view = ResultRow.getView(Option(itemView), parent.getMeasuredWidth, getItem(position), activity)
-      view.setPaddingRelative(0, view.getPaddingTop, 8 dip, view.getPaddingBottom)
-      view
-    }
-    override def isEnabled(position: Int): Boolean = false
+  case class Adapter(activity: WeakReference[Activity])(implicit ctx: Context) extends ListAdapter[Puffy[StoryPreview], View] {
+    def makeView = PreviewRow.makeView
+    def fillView(view: View, parent: ViewGroup, data: Puffy[StoryPreview]) =
+      PreviewRow.fillView(view, parent.getMeasuredWidth, data, activity)
+    override def isEnabled(position: Int) = false
   }
 }

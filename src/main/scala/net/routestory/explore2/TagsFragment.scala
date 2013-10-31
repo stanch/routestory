@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.explore2
 
 import android.view.{ View, ViewGroup, LayoutInflater }
 import android.os.Bundle
@@ -9,6 +9,8 @@ import scala.util.Random
 import android.graphics.Point
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
+import net.routestory.lounge2.Lounge
+import scala.ref.WeakReference
 
 class TagsFragment extends RouteStoryFragment {
   var rows = slot[LinearLayout]
@@ -23,12 +25,12 @@ class TagsFragment extends RouteStoryFragment {
     val displaySize = new Point
     getActivity.getWindowManager.getDefaultDisplay.getSize(displaySize)
 
-    net.routestory.lounge2.Lounge.getPopularTags foreachUi { tags ⇒
+    Lounge.getPopularTags foreachUi { tags ⇒
       val shuffled = Random.shuffle(tags).take(50).map(x ⇒ (x.key, x.data))
       val (max, min) = (shuffled.maxBy(_._2)._2, shuffled.minBy(_._2)._2)
       def n(x: Int) = if (max == min) 1 else (x - min).toDouble / (max - min)
       val norm = shuffled.map { case (t, q) ⇒ (t, Some(n(q))) }
-      ResultRow.fillTags(rows, displaySize.x - 30, norm.toArray, getActivity)
+      PreviewRow.fillTags(rows, displaySize.x - (20 dp), norm, WeakReference(getActivity))
     }
   }
 }

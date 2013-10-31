@@ -25,5 +25,5 @@ object Lounge {
     stories.rows
   }
 
-  def getPopularTags = client.getJson[ReducedViewResult[String, Int]](s"$apiUrl/tags/").map(_.rows)
+  def getPopularTags = client.getJson[ReducedViewResult[String, Int]](s"$apiUrl/tags").map(_.rows)
 }
