@@ -4,9 +4,7 @@ import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.parts.{ Styles, BitmapUtils, RouteStoryFragment }
 import android.media.MediaPlayer
-import android.os.Bundle
-import android.os.Handler
-import android.os.SystemClock
+import android.os.{ Vibrator, Bundle, Handler, SystemClock }
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,7 +12,6 @@ import android.view.ViewGroup
 import android.widget.{ SeekBar, Button, FrameLayout, ImageView }
 import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model._
-import org.scaloid.common._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
@@ -27,6 +24,8 @@ import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayou
 import android.widget.SeekBar.OnSeekBarChangeListener
 import rx.Var
 import org.macroid.contrib.ExtraTweaks
+import net.routestory.parts.Implicits._
+import android.content.Context
 
 object DiveFragment {
   val photoDuration = 1500
@@ -65,7 +64,7 @@ class DiveFragment extends RouteStoryFragment with ExtraTweaks {
         ),
         l[FrameLayout](
           w[Button] ~> wire(playBig) ~>
-            lp(80 dip, 80 dip, Gravity.CENTER) ~>
+            lp(80 dp, 80 dp, Gravity.CENTER) ~>
             Bg.res(R.drawable.play_big) ~>
             story.map(s ⇒ On.click {
               playing.update(true)
@@ -74,12 +73,12 @@ class DiveFragment extends RouteStoryFragment with ExtraTweaks {
         )
       ) ~> lp(WRAP_CONTENT, WRAP_CONTENT, 1.0f),
       l[HorizontalLinearLayout](
-        w[Button] ~> Bg.res(R.drawable.play) ~> lp(32 dip, 32 dip) ~>
+        w[Button] ~> Bg.res(R.drawable.play) ~> lp(32 dp, 32 dp) ~>
           wire(play) ~> story.map(s ⇒ On.click { playing.update(true); start(s) }),
-        w[Button] ~> Bg.res(R.drawable.pause) ~> lp(32 dip, 32 dip) ~>
+        w[Button] ~> Bg.res(R.drawable.pause) ~> lp(32 dp, 32 dp) ~>
           wire(pause) ~> story.map(s ⇒ On.click { playing.update(false); stop(); }) ~> hide,
         w[SeekBar] ~> wire(seekBar) ~> lp(MATCH_PARENT, WRAP_CONTENT)
-      ) ~> padding(left = 16 dip, right = 8 dip, top = 8 dip, bottom = 8 dip)
+      ) ~> padding(left = 16 dp, right = 8 dp, top = 8 dp, bottom = 8 dp)
     )
   }
 
@@ -177,6 +176,8 @@ class DiveFragment extends RouteStoryFragment with ExtraTweaks {
     val duration = Math.ceil(s.duration / ratio.now).toInt
     val from = Math.ceil(cue.now * duration)
     val start = SystemClock.uptimeMillis
+
+    lazy val vibrator = ctx.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator]
 
     s.textNotes foreach { note ⇒
       val at = note.timestamp / ratio.now - from

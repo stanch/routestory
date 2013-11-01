@@ -1,6 +1,5 @@
 package net.routestory.explore2
 
-import org.scaloid.common._
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -11,7 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import net.routestory.R
 import net.routestory.display.DisplayActivity
-import org.macroid.{ Tweaks, LayoutDsl, BasicViewSearch }
+import org.macroid.{ MediaQueries, Tweaks, LayoutDsl, BasicViewSearch }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
@@ -20,7 +19,7 @@ import net.routestory.lounge2.Puffy
 import net.routestory.model2.StoryPreview
 import scala.ref.WeakReference
 
-object PreviewRow extends LayoutDsl with Tweaks with BasicViewSearch {
+object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicViewSearch {
   def underlined(s: String) = new SpannableString(s) {
     setSpan(new UnderlineSpan(), 0, length, 0)
   }
@@ -73,7 +72,7 @@ object PreviewRow extends LayoutDsl with Tweaks with BasicViewSearch {
     l[HorizontalLinearLayout](
       l[VerticalLinearLayout]() ~> id(Id.storyTagRows)
     ) ~> id(Id.storyTags) ~> padding(left = storyShift)
-  ) ~> padding(0, 8 dip, 0, 8 dip)
+  ) ~> padding(0, 8 dp, 0, 8 dp)
 
   def fillView(view: View, maxWidth: Int, story: Puffy[StoryPreview], activity: WeakReference[Activity])(implicit ctx: Context) = {
     // title

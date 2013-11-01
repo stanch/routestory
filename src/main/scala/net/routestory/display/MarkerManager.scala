@@ -22,20 +22,21 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import net.routestory.parts.Implicits._
 import scala.collection.JavaConversions._
-import org.scaloid.common._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import org.macroid.{ Tweaks, LayoutDsl, Concurrency }
+import org.macroid.{ MediaQueries, Tweaks, LayoutDsl, Concurrency }
 import org.macroid.contrib.ExtraTweaks
 import ViewGroup.LayoutParams._
 import uk.co.senab.photoview.PhotoViewAttacher
 import org.macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
 import org.macroid.contrib.ListAdapter
+import android.net.Uri
+import android.os.Vibrator
 
-class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int], story: Story, activity: Activity)(implicit ctx: Context) extends Concurrency {
+class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int], story: Story, activity: Activity)(implicit ctx: Context) extends Concurrency with MediaQueries {
   var hideOverlays = false
 
-  val maxIconSize = ((800 dip) :: displaySize).min / 4
+  val maxIconSize = ((800 dp) :: displaySize).min / 4
 
   abstract class MarkerItem(val timestamp: Int) {
     var marker: Option[Marker] = None
@@ -95,10 +96,10 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
 
     override def onClick() {
       // show the image in a pop-up window
-      val progress = spinnerDialog("", "Loading image...") // TODO: strings.xml
+      //val progress = spinnerDialog("", "Loading image...") // TODO: strings.xml
       data.get(displaySize.max) foreachUi {
         case bitmap if bitmap != null ⇒
-          progress.dismiss()
+          //progress.dismiss()
           val view = w[ImageView] ~>
             lpOf[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER) ~>
             Image.bitmap(bitmap) ~> Image.adjustBounds ~>
@@ -113,7 +114,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
             show()
           }
         case _ ⇒
-          progress.dismiss()
+        //progress.dismiss()
       }
     }
   }
@@ -179,7 +180,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
         w[TextView] ~> text(data.name) ~> TextSize.large ~> padding(left = 3 sp),
         w[Button] ~> text("Open in Foursquare®") ~> On.click {
           val intent = new Intent(Intent.ACTION_VIEW)
-          intent.setData(s"https://foursquare.com/v/${data.id}")
+          intent.setData(Uri.parse(s"https://foursquare.com/v/${data.id}"))
           activity.startActivityForResult(intent, 0)
         }
       )
@@ -190,7 +191,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
   // Heartbeat marker
   class HeartbeatMarkerItem(data: Story.HeartbeatData) extends IconMarkerItem(data, R.drawable.heart) {
     override def onClick() {
-      vibrator.vibrate(data.getVibrationPattern(5), -1)
+      ctx.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator].vibrate(data.getVibrationPattern(5), -1)
     }
   }
 
@@ -266,7 +267,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
       // check if the closest pair of children is not overlapping
       // now features a hysteresis
       val List(ne, sw) = List(bounds.northeast, bounds.southwest).map(googleMap.getProjection.toScreenLocation)
-      wasExpanded = MarkerManager.manhattanDistance(ne, sw) > maxIconSize + (if (wasExpanded) (-5 dip) else (5 dip))
+      wasExpanded = MarkerManager.manhattanDistance(ne, sw) > maxIconSize + (if (wasExpanded) -5.dp else 5.dp)
       wasExpanded
     }
 

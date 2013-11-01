@@ -11,7 +11,6 @@ import java.io.File
 import android.view.{ ViewGroup, Gravity, View }
 import net.routestory.R
 import android.app.Dialog
-import org.scaloid.common._
 import android.content.{ Context, DialogInterface, Intent }
 import net.routestory.parts.{ Effects, RouteStoryFragment }
 import android.app.Activity
@@ -78,13 +77,13 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
 }
 
 object AddMediaDialogFragment {
-  class MediaListAdapter(media: List[(Int, String, Thunk[Any])])(implicit ctx: Context) extends ArrayAdapter(ctx, 0, media) with LayoutDsl with ExtraTweaks with BasicViewSearch {
+  class MediaListAdapter(media: List[(Int, String, Thunk[Any])])(implicit ctx: Context) extends ArrayAdapter(ctx, 0, media) with LayoutDsl with MediaQueries with ExtraTweaks with BasicViewSearch {
     override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
       val item = getItem(position)
       val v = Option(itemView) getOrElse {
         l[HorizontalLinearLayout](
           w[ImageView] ~> id(Id.image), w[TextView] ~> id(Id.text) ~> TextSize.large
-        ) ~> padding(top = (12 dip), bottom = (12 dip), left = (8 dip))
+        ) ~> padding(top = (12 dp), bottom = (12 dp), left = (8 dp))
       }
       findView[ImageView](v, Id.image) ~> (_.setImageResource(item._1))
       findView[TextView](v, Id.text) ~> text(item._2)
@@ -103,7 +102,7 @@ class AddSomethingDialogFragment extends DialogFragment {
   }
 }
 
-class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurrency with BasicViewSearch with FragmentContext {
+class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurrency with BasicViewSearch with MediaQueries with FragmentContext {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val client_id = "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05"
     val client_secret = "SIPSHLBOLADA2HW3RT44GE14OGBDNSM0VPBN4MSEWH2E4VLN"
@@ -217,7 +216,7 @@ class VoiceDialogFragment extends AddSomethingDialogFragment with LayoutDsl with
   }
 }
 
-class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutDsl with Tweaks with FragmentContext {
+class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutDsl with MediaQueries with Tweaks with FragmentContext {
   val taps = Var(List[Long]())
   val beats = Rx {
     if (taps().length < 5) 0 else {
@@ -233,7 +232,7 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
       w[Button] ~> text("TAP") ~> On.click {
         taps.update(System.currentTimeMillis() :: taps().take(4))
       } ~> { x ⇒
-        x.setHeight(100 dip)
+        x.setHeight(100 dp)
         x.setGravity(Gravity.CENTER)
       }
     )

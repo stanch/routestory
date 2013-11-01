@@ -13,7 +13,6 @@ import net.routestory.parts.{ Styles, RouteStoryFragment }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
-import org.scaloid.common._
 
 class DetailsFragment extends RouteStoryFragment {
   lazy val story = getActivity.asInstanceOf[HazStory].story
@@ -28,7 +27,7 @@ class DetailsFragment extends RouteStoryFragment {
     l[ScrollView](
       l[VerticalLinearLayout](
         w[TextView] ~> text("Author") ~> Styles.header(noPadding = true),
-        w[ImageView] ~> lp(100 dip, WRAP_CONTENT) ~> wire(authorPicture),
+        w[ImageView] ~> lp(100 dp, WRAP_CONTENT) ~> wire(authorPicture),
         w[TextView] ~> lp(MATCH_PARENT, WRAP_CONTENT) ~> wire(authorName) ~> TextSize.medium,
 
         w[TextView] ~> text(R.string.description) ~> Styles.header(),
@@ -40,7 +39,7 @@ class DetailsFragment extends RouteStoryFragment {
             l[VerticalLinearLayout]() ~> wire(tagRows)
           )
         ) ~> wire(tagStuff)
-      ) ~> padding(left = 8 dip)
+      ) ~> padding(left = 8 dp)
     )
   }
 

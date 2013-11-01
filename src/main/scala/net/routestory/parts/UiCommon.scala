@@ -1,13 +1,12 @@
 package net.routestory.parts
 
-import org.scaloid.common._
 import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivity }
 import net.routestory.{ SettingsActivity, R, AccountActivity, RouteStoryApp }
 import org.macroid._
 import android.view.{ ViewGroup, Gravity, View, MenuItem }
 import android.content.{ Context, Intent }
 import android.support.v4.widget.DrawerLayout
-import android.widget.{ ProgressBar, TextView, ListView }
+import android.widget.{ Toast, ProgressBar, TextView, ListView }
 import android.view.ViewGroup.LayoutParams._
 import android.app.Activity
 import scala.reflect.ClassTag
@@ -28,6 +27,9 @@ trait FirstEveryStart {
     }
     onEveryStart()
   }
+
+  // temporary hack
+  def toast(str: String)(implicit ctx: Context) = Toast.makeText(ctx, str, Toast.LENGTH_SHORT)
 }
 
 trait RouteStoryActivity extends FragmentActivity with FullDslActivity with FirstEveryStart {
@@ -65,7 +67,7 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Firs
       ("Settings", clicker[SettingsActivity])
     )
     val adapter = ListAdapter.text(data)(
-      TextSize.medium + TextStyle.boldItalic + padding(all = 10 dip),
+      TextSize.medium + TextStyle.boldItalic + padding(all = 10 dp),
       data ⇒ text(data._1) + data._2
     )
     // format: ON
@@ -73,7 +75,7 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Firs
       view ~> lp(MATCH_PARENT, MATCH_PARENT),
       w[ListView] ~>
         (_.setAdapter(adapter)) ~>
-        lp(240 dip, MATCH_PARENT, Gravity.START) ~>
+        lp(240 dp, MATCH_PARENT, Gravity.START) ~>
         ExtraTweaks.Bg.res(R.color.drawer)
     )
     drawerToggle = new ActionBarDrawerToggle(

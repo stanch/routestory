@@ -10,7 +10,6 @@ import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import rx._
-import org.scaloid.common._
 import android.os.Bundle
 import android.content.Context
 import org.macroid.contrib.Layouts.HorizontalLinearLayout
@@ -21,6 +20,7 @@ import org.macroid.contrib.ListAdapter
 import net.routestory.lounge2.Puffy
 import net.routestory.model2.StoryPreview
 import scala.ref.WeakReference
+import org.macroid.MediaQueries
 
 trait HazStories {
   def getStories: Rx[Future[List[Puffy[StoryPreview]]]]
@@ -118,7 +118,7 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
 }
 
 object StoryListFragment {
-  case class Adapter(activity: WeakReference[Activity])(implicit ctx: Context) extends ListAdapter[Puffy[StoryPreview], View] {
+  case class Adapter(activity: WeakReference[Activity])(implicit ctx: Context) extends ListAdapter[Puffy[StoryPreview], View] with MediaQueries {
     def makeView = PreviewRow.makeView
     def fillView(view: View, parent: ViewGroup, data: Puffy[StoryPreview]) =
       PreviewRow.fillView(view, parent.getMeasuredWidth, data, activity)

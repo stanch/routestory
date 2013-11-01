@@ -7,8 +7,6 @@ import java.io.FileOutputStream
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ Promise, Future, future }
 
-import org.scaloid.common._
-
 import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model._
 
@@ -370,7 +368,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
         progress ~> showProgress(async {
           await(createStory)
           app.requestSync
-          val intent = SIntent[DisplayActivity]
+          val intent = new Intent(ctx, classOf[DisplayActivity])
           intent.putExtra("id", story.getId)
           intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
           startActivity(intent)

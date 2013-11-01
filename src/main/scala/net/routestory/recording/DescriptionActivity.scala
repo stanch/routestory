@@ -1,6 +1,5 @@
 package net.routestory.recording
 
-import org.scaloid.common._
 import android.content.Intent
 import android.os.Bundle
 import android.preference.PreferenceManager

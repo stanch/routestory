@@ -26,7 +26,7 @@ trait Lounge extends LocalCouch with RemoteCouch {
   def init = async {
     await(setHttpFactory(Local.server, authToken.now))
     await(setViews(Local.server, authorId.now))
-    import org.scaloid.common._
+    import net.routestory.parts.Implicits.runnableSAM
     // syncService is only instantiated at this point
     // to make sure we can’t replicate before authToken and authorId are defined
     syncService = Some(Executors.newScheduledThreadPool(1))
@@ -134,8 +134,8 @@ trait Lounge extends LocalCouch with RemoteCouch {
 
   /** This should be the only entry point for replication (for thread safety) */
   def requestSync = {
-    import org.scaloid.common._
     val syncPromise = Promise[Any]()
+    import net.routestory.parts.Implicits.runnableSAM
     syncService.map(_.schedule({
       syncPromise.completeWith(sync)
     }, 0, TimeUnit.SECONDS)).getOrElse(syncPromise.complete(Success(())))

@@ -4,7 +4,6 @@ import android.support.v4.view.ViewPager
 import android.content.Context
 import android.view.{ ViewGroup, View }
 import android.support.v4.app.{ FragmentPagerAdapter, FragmentManager, Fragment }
-import org.scaloid.common._
 import org.macroid._
 import org.macroid.util.Thunk
 import com.viewpagerindicator.TitlePageIndicator
@@ -13,11 +12,11 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 import org.macroid.contrib.ExtraTweaks
 import net.routestory.R
 
-class MapAwareViewPager(ctx: Context) extends ViewPager(ctx) {
+class MapAwareViewPager(ctx: Context) extends ViewPager(ctx) with MediaQueries {
   override def canScroll(scrollingView: View, checkV: Boolean, dx: Int, x: Int, y: Int) = {
     implicit val c = ctx
     if (scrollingView.getClass.getPackage.getName.startsWith("maps.")) {
-      x > (20 dip) && x < scrollingView.getWidth - (20 dip)
+      x > 20.dp && x < scrollingView.getWidth - 20.dp
     } else {
       super.canScroll(scrollingView, checkV, dx, x, y)
     }

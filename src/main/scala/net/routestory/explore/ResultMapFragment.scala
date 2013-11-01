@@ -11,7 +11,6 @@ import android.view.ViewGroup
 import com.google.android.gms.maps._
 import com.google.android.gms.maps.model._
 import net.routestory.parts.RouteStoryFragment
-import org.scaloid.common._
 import net.routestory.parts.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.google.android.gms.maps.model.CameraPosition
@@ -76,10 +75,10 @@ class ResultMapFragment extends RouteStoryFragment with StoryListObserverFragmen
     }
     val bounds = boundsBuilder.build()
     Ui(Try {
-      map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dip))
+      map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dp))
     } getOrElse {
       map.setOnCameraChangeListener { p: CameraPosition ⇒
-        map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dip))
+        map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dp))
         map.setOnCameraChangeListener { p: CameraPosition ⇒ () }
       }
     })

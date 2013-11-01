@@ -55,7 +55,8 @@ class ExploreActivity extends RouteStoryActivity with FragmentPaging {
 
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
-      case R.id.create ⇒ startActivity(new Intent(this, classOf[RecordActivity])); true
+      case R.id.create ⇒
+        startActivity(new Intent(this, classOf[RecordActivity])); true
       case _ ⇒ super[RouteStoryActivity].onOptionsItemSelected(item)
     }
   }

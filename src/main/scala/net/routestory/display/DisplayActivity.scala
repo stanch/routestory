@@ -5,8 +5,6 @@ import java.nio.charset.Charset
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import org.scaloid.common._
-
 import android.app.{ AlertDialog, PendingIntent }
 import android.content.Intent
 import android.content.IntentFilter
@@ -24,6 +22,7 @@ import android.widget.{ ProgressBar, Toast }
 import net.routestory.R
 import net.routestory.model._
 import net.routestory.parts._
+import net.routestory.parts.Implicits._
 import scala.concurrent._
 import scala.async.Async.{ async, await }
 import org.macroid.util.Text
@@ -41,7 +40,7 @@ object DisplayActivity {
       Option(i.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)) map { rawMsgs ⇒
         val msg = rawMsgs(0).asInstanceOf[NdefMessage]
         val rec = msg.getRecords()(0)
-        new String(rec.getPayload)
+        Uri.parse(new String(rec.getPayload))
       }
     } else None
   }
@@ -168,7 +167,7 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
             await(app.deleteStory(s))
             app.requestSync
             finish()
-            val intent = SIntent[ExploreActivity].addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            val intent = new Intent(ctx, classOf[ExploreActivity]).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             startActivity(intent)
           })
           setNegativeButton(android.R.string.no, ())

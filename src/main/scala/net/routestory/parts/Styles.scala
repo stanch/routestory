@@ -3,12 +3,12 @@ package net.routestory.parts
 import android.widget.{ ProgressBar, TextView }
 import android.content.Context
 import android.view.{ ViewGroup, View }
-import org.scaloid.common._
 import net.routestory.R
 import ViewGroup.LayoutParams._
+import org.macroid.MediaQueries
 
-object Styles extends org.macroid.contrib.ExtraTweaks {
-  def p8dding(implicit ctx: Context) = padding(all = 8 dip)
+object Styles extends org.macroid.contrib.ExtraTweaks with MediaQueries {
+  def p8dding(implicit ctx: Context) = padding(all = 8 dp)
 
   def measure: Tweak[View] = _.measure(0, 0)
 
@@ -18,7 +18,7 @@ object Styles extends org.macroid.contrib.ExtraTweaks {
       if (!noPadding) x ~> padding(top = 15 sp)
     }
 
-  def storyShift(implicit ctx: Context) = (10 dip)
+  def storyShift(implicit ctx: Context) = (10 dp)
 
   def title(implicit ctx: Context): Tweak[TextView] =
     TextSize.large + TextStyle.bold + Bg.res(R.color.aquadark) +

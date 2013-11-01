@@ -11,13 +11,13 @@ import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import rx._
-import org.scaloid.common._
 import android.os.Bundle
 import android.content.Context
 import org.macroid.contrib.Layouts.HorizontalLinearLayout
 import android.util.Log
 import scala.async.Async.{ async, await }
 import org.macroid.contrib.ExtraTweaks
+import org.macroid.MediaQueries
 
 trait StoryListObserverFragment extends FragmentData[HazStories] { self: Fragment ⇒
   lazy val storyteller = getFragmentData
@@ -105,10 +105,10 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
 }
 
 object StoryListFragment {
-  case class Adapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, 0, results) {
+  case class Adapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, 0, results) with MediaQueries {
     override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
       val view = ResultRow.getView(Option(itemView), parent.getMeasuredWidth, getItem(position), activity)
-      view.setPaddingRelative(0, view.getPaddingTop, 8 dip, view.getPaddingBottom)
+      view.setPaddingRelative(0, view.getPaddingTop, 8 dp, view.getPaddingBottom)
       view
     }
     override def isEnabled(position: Int): Boolean = false

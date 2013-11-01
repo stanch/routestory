@@ -5,10 +5,8 @@ import java.net.URL
 import java.net.URLEncoder
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.future
 
 import org.apache.commons.io.IOUtils
-import org.scaloid.common._
 
 import android.accounts.Account
 import android.accounts.AccountManager
@@ -23,6 +21,7 @@ import android.view.{ View, ViewGroup }
 import android.widget._
 import net.routestory.parts.{ Retry, GotoDialogFragments, HapticButton, RouteStoryActivity }
 import net.routestory.parts.Styles._
+import net.routestory.parts.Implicits._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import scala.async.Async.{ async, await }
 import android.util.Log
@@ -74,10 +73,10 @@ class AccountActivity extends RouteStoryActivity {
   }
 
   def showSignedIn() {
-    val progress = spinnerDialog("", ctx.getResources.getString(R.string.message_preparingaccount))
+    //val progress = spinnerDialog("", ctx.getResources.getString(R.string.message_preparingaccount))
     async {
       await(Retry.backoff(max = 100)(app.localContains(app.authorId.now.get)))
-      Ui(progress.dismiss())
+      //Ui(progress.dismiss())
       val author = await(app.getAuthor).get
       Ui(setContentView(l[ScrollView](
         l[VerticalLinearLayout](
@@ -117,7 +116,7 @@ class AccountActivity extends RouteStoryActivity {
           }
           val token = bundle.getString(AccountManager.KEY_AUTHTOKEN) // cool, we have a token
           Log.d("AUTH", token)
-          val progress = spinnerDialog("", ctx.getResources.getString(R.string.toast_signingin))
+          //val progress = spinnerDialog("", ctx.getResources.getString(R.string.toast_signingin))
           async {
             val url = new URL("https://www-routestory-net.herokuapp.com/signin?mobiletoken=" + URLEncoder.encode(token, "UTF-8"))
             val response = await(async {
@@ -126,7 +125,7 @@ class AccountActivity extends RouteStoryActivity {
             })
             // the response is: author_id;hashed_authentication_token
             await(app.setAuthData(Some(response.split(";"))))
-            Ui(progress.dismiss())
+            //Ui(progress.dismiss())
             Ui(showSignedIn())
           } onFailureUi {
             case t ⇒

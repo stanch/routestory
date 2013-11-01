@@ -15,7 +15,6 @@ import android.widget.{ FrameLayout, SearchView }
 
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import org.scaloid.common._
 import rx._
 import scala.util.Try
 import scala.async.Async.{ async, await }

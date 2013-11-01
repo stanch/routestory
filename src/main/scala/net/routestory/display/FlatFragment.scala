@@ -12,7 +12,6 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model._
 import scala.concurrent.ExecutionContext.Implicits.global
-import org.scaloid.common._
 import net.routestory.parts.RouteStoryFragment
 import net.routestory.parts.Implicits._
 import scala.concurrent.Future
@@ -85,7 +84,7 @@ class FlatFragment extends RouteStoryFragment {
         val mm = await(markerManager)
         val rm = await(routeManager)
         Ui {
-          map.moveCamera(CameraUpdateFactory.newLatLngBounds(rm.getBounds.get, 30 dip))
+          map.moveCamera(CameraUpdateFactory.newLatLngBounds(rm.getBounds.get, 30 dp))
           map.setOnCameraChangeListener { p: CameraPosition ⇒ mm.update() }
         }
       }
