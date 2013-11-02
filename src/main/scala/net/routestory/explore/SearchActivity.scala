@@ -92,11 +92,11 @@ class SearchActivity extends RouteStoryActivity
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
-      "Results" → ff[StoryListFragment](
+      "Results" → f[StoryListFragment].pass(
         "emptyText" → "Couldn’t find anything :(",
         "errorText" → "Error occured :("
-      ),
-      "Map" → ff[ResultMapFragment]()
+      ).factory,
+      "Map" → f[ResultMapFragment].factory
     )))
   }
 

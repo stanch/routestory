@@ -33,7 +33,7 @@ class FlatFragment extends RouteStoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[FrameLayout](
       l[FrameLayout](
-        f[SupportMapFragment](Id.map, Tag.overviewMap)
+        f[SupportMapFragment].framed(Id.map, Tag.overviewMap)
       ),
       l[FrameLayout](
         w[Button] ~>

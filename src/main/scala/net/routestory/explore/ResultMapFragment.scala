@@ -32,7 +32,7 @@ class ResultMapFragment extends RouteStoryFragment with StoryListObserverFragmen
   )
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    f[SupportMapFragment](Id.map, Tag.resultsMap)
+    f[SupportMapFragment].framed(Id.map, Tag.resultsMap)
   }
 
   override def onStart() {

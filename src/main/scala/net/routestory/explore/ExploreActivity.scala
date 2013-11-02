@@ -31,8 +31,8 @@ class ExploreActivity extends RouteStoryActivity with FragmentPaging {
     bar.setHomeButtonEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
-      "Latest" → ff[LatestFragment]("number" → 10),
-      "Popular tags" → ff[TagsFragment]()
+      "Latest" → f[LatestFragment].pass("number" → 10).factory,
+      "Popular tags" → f[TagsFragment].factory
     )))
   }
 

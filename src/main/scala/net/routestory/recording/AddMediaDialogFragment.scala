@@ -53,10 +53,10 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
 
     val buttons = List(
       (R.drawable.photo, "Take a picture", Thunk(cameraClicker)),
-      (R.drawable.text_note, "Add a text note", Thunk(clicker(ff[NoteDialogFragment](), Tag.noteDialog))),
-      (R.drawable.voice_note, "Make a voice note", Thunk(clicker(ff[VoiceDialogFragment](), Tag.voiceDialog))),
-      (R.drawable.heart, "Record heartbeat", Thunk(clicker(ff[MeasurePulseDialogFragment](), Tag.pulseDialog))),
-      (R.drawable.foursquare, "Mention a venue", Thunk(clicker(ff[FoursquareDialogFragment](), Tag.fsqDialog)))
+      (R.drawable.text_note, "Add a text note", Thunk(clicker(f[NoteDialogFragment].factory, Tag.noteDialog))),
+      (R.drawable.voice_note, "Make a voice note", Thunk(clicker(f[VoiceDialogFragment].factory, Tag.voiceDialog))),
+      (R.drawable.heart, "Record heartbeat", Thunk(clicker(f[MeasurePulseDialogFragment].factory, Tag.pulseDialog))),
+      (R.drawable.foursquare, "Mention a venue", Thunk(clicker(f[FoursquareDialogFragment].factory, Tag.fsqDialog)))
     )
 
     val view = w[ListView] ~> (_.setAdapter(new MediaListAdapter(buttons)))

@@ -6,15 +6,15 @@ import AudioFormat._
 import java.io.{ FileOutputStream, File }
 import scala.ref.WeakReference
 import android.content.Context
-import org.macroid.util.Map2Bundle
 import android.util.Log
 import com.todoroo.aacenc.AACEncoder
 import org.apache.commons.io.FileUtils
 import java.nio.{ ByteOrder, ByteBuffer }
 import scala.concurrent._
 import java.util.concurrent.Executors
+import org.macroid.Bundles
 
-class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone: Int = 0) extends Runnable {
+class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone: Int = 0) extends Runnable with Bundles {
   import AudioTracker._
 
   val frameSize = ms(10) * 2 // 10 ms * 2B per Float
@@ -59,7 +59,7 @@ class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone
           val now = System.currentTimeMillis / 1000
           val processed = processPiece(dump.getAbsolutePath)
           val msg = new Message
-          msg.setData(Map2Bundle(Map("ts" → now, "path" → processed)))
+          msg.setData(bundle("ts" → now, "path" → processed))
           handler.sendMessage(msg)
         }
         piecesDone += 1

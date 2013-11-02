@@ -116,7 +116,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
         layoutParams(MATCH_PARENT, WRAP_CONTENT) ~>
         On.click(new AddMediaDialogFragment().show(getSupportFragmentManager, Tag.addMedia)),
       l[LinearLayout](
-        f[SupportMapFragment](Id.map, Tag.recordingMap)
+        f[SupportMapFragment].framed(Id.map, Tag.recordingMap)
       )
     ))
 

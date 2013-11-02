@@ -92,9 +92,9 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
       l[VerticalLinearLayout](
         activityProgress ~> wire(progress),
         getTabs(
-          "Dive" → ff[DiveFragment](),
-          "Details" → ff[DetailsFragment](),
-          "Flat view" → ff[FlatFragment]()
+          "Dive" → f[DiveFragment].factory,
+          "Details" → f[DetailsFragment].factory,
+          "Flat view" → f[FlatFragment].factory
         )
       )
     ))

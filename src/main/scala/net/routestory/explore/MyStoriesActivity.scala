@@ -29,11 +29,11 @@ class MyStoriesActivity extends RouteStoryActivity
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(drawer(getTabs(
-      "Stories" → ff[StoryListFragment](
+      "Stories" → f[StoryListFragment].pass(
         "emptyText" → Text(R.string.empty_mystories),
         "errorText" → "Error occured :("
-      ),
-      "Map" → ff[ResultMapFragment]()
+      ).factory,
+      "Map" → f[ResultMapFragment].factory
     )))
   }
 

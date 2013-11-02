@@ -57,7 +57,7 @@ class DiveFragment extends RouteStoryFragment with ExtraTweaks {
     l[VerticalLinearLayout](
       l[FrameLayout](
         l[FrameLayout](
-          f[SupportMapFragment](Id.map, Tag.previewMap)
+          f[SupportMapFragment].framed(Id.map, Tag.previewMap)
         ),
         l[FrameLayout](
           w[ImageView] ~> wire(imageView)
