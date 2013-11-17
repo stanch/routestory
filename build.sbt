@@ -17,15 +17,17 @@ compileOrder := CompileOrder.JavaThenScala
 resolvers ++= Seq(
 	"Couchbase" at "http://files.couchbase.com/maven2/",
 	Resolver.sonatypeRepo("snapshots"),
+	Resolver.sonatypeRepo("releases"),
 	"typesafe repo" at "http://repo.typesafe.com/typesafe/releases/"
 )
 
 libraryDependencies ++= Seq(
-	"org.macroid" %% "macroid" % "1.1.0-20131102",
+	"org.macroid" %% "macroid" % "1.1.0-20131112",
 	"com.scalarx" %% "scalarx" % "0.1",
 	"me.lessis" %% "retry-core" % "0.1.0",
 	"com.typesafe.play" %% "play-json" % "2.2.0",
 	"com.loopj.android" % "android-async-http" % "1.4.4",
+	"org.scala-lang.modules" %% "scala-async" % "0.9.0-M2",
 	aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),
 	aarlib("com.couchbase.cblite" % "CBLiteEktorp" % "1.0.0-beta"),
 	"com.android.support" % "support-v13" % "18.0.0",

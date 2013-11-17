@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.explore2
 
 import net.routestory.R
 import net.routestory.model.StoryResult
@@ -17,10 +17,13 @@ import com.google.android.gms.maps.model.CameraPosition
 import scala.concurrent.Future
 import scala.util.Try
 import scala.async.Async.{ async, await }
+import scala.ref.WeakReference
+import net.routestory.model2.StoryPreview
+import net.routestory.lounge2.Puffy
 
-class ResultMapFragment extends RouteStoryFragment with StoryListObserverFragment {
+class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment {
   lazy val map = findFrag[SupportMapFragment](Tag.resultsMap).get.getMap
-  var markers = Map[Marker, StoryResult]()
+  var markers = Map[Marker, Puffy[StoryPreview]]()
   var routes = List[Polyline]()
 
   val kellyColors = List(
@@ -41,7 +44,8 @@ class ResultMapFragment extends RouteStoryFragment with StoryListObserverFragmen
       val story = markers(marker)
       // TODO: wtf? how to measure one?
       val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8
-      val view = ResultRow.getView(None, a.toInt, story, getActivity)
+      val view = PreviewRow.makeView
+      PreviewRow.fillView(view, a.toInt, story, WeakReference(getActivity))
       new AlertDialog.Builder(ctx).setView(view).create().show()
       true
     }
@@ -53,34 +57,34 @@ class ResultMapFragment extends RouteStoryFragment with StoryListObserverFragmen
     neglect()
   }
 
-  def update(data: Future[List[StoryResult]]) = async {
+  def update(data: Future[HazStories#Stories]) = async {
     val res = await(data)
     routes.foreach(_.remove())
     markers.foreach(_._1.remove())
     routes = List()
     markers = Map()
-    val boundsBuilder = LatLngBounds.builder()
-    res.zipWithIndex.foreach {
-      case (r, i) ⇒
-        val routeOptions = (new PolylineOptions).color(Color.parseColor(kellyColors(i % kellyColors.length)))
-        r.geom.asLatLngs.foreach { p ⇒
-          boundsBuilder.include(p)
-          routeOptions.add(p)
-        }
-        Ui(routes ::= map.addPolyline(routeOptions))
-        Ui(markers += (map.addMarker(new MarkerOptions()
-          .position(r.geom.asLatLngs(0))
-          .icon(BitmapDescriptorFactory.fromResource(R.drawable.flag_start))
-          .anchor(0.3f, 1)) → r))
-    }
-    val bounds = boundsBuilder.build()
-    Ui(Try {
-      map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dp))
-    } getOrElse {
-      map.setOnCameraChangeListener { p: CameraPosition ⇒
-        map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dp))
-        map.setOnCameraChangeListener { p: CameraPosition ⇒ () }
-      }
-    })
+    //    val boundsBuilder = LatLngBounds.builder()
+    //    res.zipWithIndex.foreach {
+    //      case (r, i) ⇒
+    //        val routeOptions = (new PolylineOptions).color(Color.parseColor(kellyColors(i % kellyColors.length)))
+    //        r.geom.asLatLngs.foreach { p ⇒
+    //          boundsBuilder.include(p)
+    //          routeOptions.add(p)
+    //        }
+    //        Ui(routes ::= map.addPolyline(routeOptions))
+    //        Ui(markers += (map.addMarker(new MarkerOptions()
+    //          .position(r.geom.asLatLngs(0))
+    //          .icon(BitmapDescriptorFactory.fromResource(R.drawable.flag_start))
+    //          .anchor(0.3f, 1)) → r))
+    //    }
+    //    val bounds = boundsBuilder.build()
+    //    Ui(Try {
+    //      map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dp))
+    //    } getOrElse {
+    //      map.setOnCameraChangeListener { p: CameraPosition ⇒
+    //        map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 30 dp))
+    //        map.setOnCameraChangeListener { p: CameraPosition ⇒ () }
+    //      }
+    //    })
   }
 }

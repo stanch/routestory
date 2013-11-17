@@ -67,7 +67,7 @@ class DescriptionActivity extends RouteStoryActivity {
       val tagz = await(app.getPlainQueryResults(remote = true, query))
       val tagArray = tagz.getRows.map(_.getKey)
       Ui {
-        val adapter = ListAdapter.text(tagArray)(tweakMonoid.zero, t ⇒ text(t))
+        val adapter = ListAdapter.text(tagArray)(Tweak.blank, t ⇒ text(t))
         tags.setAdapter(adapter)
         tags.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)
       }

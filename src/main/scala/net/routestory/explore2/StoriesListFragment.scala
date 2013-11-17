@@ -1,65 +1,53 @@
-package net.routestory.explore
+package net.routestory.explore2
 
 import net.routestory.R
-import net.routestory.model.StoryResult
 import android.view.{ LayoutInflater, Gravity, View, ViewGroup }
-import android.widget._
-import net.routestory.parts.{ FragmentData, RouteStoryFragment }
-import android.support.v4.app.{ Fragment, ListFragment }
+import android.widget.{ ListAdapter ⇒ _, _ }
+import net.routestory.parts.RouteStoryFragment
+import android.support.v4.app.ListFragment
 import android.app.Activity
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import rx._
 import android.os.Bundle
 import android.content.Context
 import org.macroid.contrib.Layouts.HorizontalLinearLayout
 import android.util.Log
 import scala.async.Async.{ async, await }
 import org.macroid.contrib.ExtraTweaks
+import org.macroid.contrib.ListAdapter
+import net.routestory.lounge2.Puffy
+import net.routestory.model2.StoryPreview
+import scala.ref.WeakReference
 import org.macroid.MediaQueries
 
-trait StoryListObserverFragment extends FragmentData[HazStories] { self: Fragment ⇒
-  lazy val storyteller = getFragmentData
-  lazy val stories = storyteller.getStories
-  var observer: Option[Obs] = None
+class StoriesListFragment extends ListFragment
+  with RouteStoryFragment
+  with StoriesObserverFragment
+  with ExtraTweaks {
 
-  def update(data: Future[List[StoryResult]])
-
-  def observe() {
-    if (observer.isEmpty) {
-      // create a new observer
-      observer = Some(Obs(stories)(update(stories())))
-    }
-    // start observing
-    observer.foreach(_.active = true)
-  }
-
-  def neglect() {
-    // stop observing, since we go out of screen
-    observer.foreach(_.active = false)
-  }
-}
-
-class StoryListFragment extends ListFragment with RouteStoryFragment with StoryListObserverFragment with ExtraTweaks {
   lazy val emptyText = Option(getArguments) map {
     _.getString("emptyText")
   } getOrElse {
     getResources.getString(R.string.empty_search)
   }
+
   lazy val errorText = Option(getArguments) map {
     _.getString("errorText")
   } getOrElse emptyText
 
+  lazy val showControls = Option(getArguments).exists(_.getBoolean("showControls", false))
+  lazy val showReload = Option(getArguments).exists(_.getBoolean("showReload", false))
+
   var nextButton = slot[Button]
   var prevButton = slot[Button]
 
-  var adapter: Option[StoryListFragment.Adapter] = None
+  var adapter: Option[StoriesListFragment.Adapter] = None
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val view = super.onCreateView(inflater, container, savedInstanceState) ~> Bg.res(R.drawable.caspa)
     val list = findView[ListView](view, android.R.id.list) ~> (_.setDivider(null))
-    if (storyteller.showControls) {
+    if (showControls) {
       list.get.addFooterView(l[HorizontalLinearLayout](
         w[Button] ~> text("Prev") ~> wire(prevButton) ~> On.click(storyteller.prev()),
         w[Button] ~> text("Next") ~> wire(nextButton) ~> On.click(storyteller.next())
@@ -81,8 +69,8 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
     neglect()
   }
 
-  def update(data: Future[List[StoryResult]]) = async {
-    if (storyteller.showReloadProgress || Option(getListAdapter).exists(_.getCount == 0)) await(Ui(setListShown(false)))
+  def update(data: Future[HazStories#Stories]) = async {
+    if (showReload || Option(getListAdapter).exists(_.isEmpty)) await(Ui(setListShown(false)))
     Log.d("StoryList", s"Received future $data from $observer")
     val s = await(data mapUi {
       x ⇒ setEmptyText(emptyText); x
@@ -92,11 +80,11 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
     Ui {
       adapter map { a ⇒
         a.clear()
-        a.addAll(s)
       } getOrElse {
-        adapter = Some(StoryListFragment.Adapter(s, getActivity))
+        adapter = Some(StoriesListFragment.Adapter(WeakReference(getActivity)))
         setListAdapter(adapter.get)
       }
+      adapter.map(_.addAll(s))
       setListShown(true)
     }
     prevButton ~> enable(storyteller.hasPrev)
@@ -104,13 +92,11 @@ class StoryListFragment extends ListFragment with RouteStoryFragment with StoryL
   }
 }
 
-object StoryListFragment {
-  case class Adapter(results: List[StoryResult], activity: Activity)(implicit ctx: Context) extends ArrayAdapter(ctx, 0, results) with MediaQueries {
-    override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-      val view = ResultRow.getView(Option(itemView), parent.getMeasuredWidth, getItem(position), activity)
-      view.setPaddingRelative(0, view.getPaddingTop, 8 dp, view.getPaddingBottom)
-      view
-    }
-    override def isEnabled(position: Int): Boolean = false
+object StoriesListFragment {
+  case class Adapter(activity: WeakReference[Activity])(implicit ctx: Context) extends ListAdapter[Puffy[StoryPreview], View] with MediaQueries {
+    def makeView = PreviewRow.makeView
+    def fillView(view: View, parent: ViewGroup, data: Puffy[StoryPreview]) =
+      PreviewRow.fillView(view, parent.getMeasuredWidth, data, activity)
+    override def isEnabled(position: Int) = false
   }
 }

@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.explore2
 
 import android.os.Bundle
 import net.routestory.parts.{ FragmentPaging, RouteStoryActivity }
@@ -10,9 +10,6 @@ import android.content.{ Intent, Context }
 import android.app.SearchManager
 import android.widget.SearchView
 import net.routestory.recording.RecordActivity
-import android.util.Log
-import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.explore2.{ TagsFragment, LatestFragment }
 
 class ExploreActivity extends RouteStoryActivity with FragmentPaging {
   override def onCreate(savedInstanceState: Bundle) {
@@ -36,28 +33,16 @@ class ExploreActivity extends RouteStoryActivity with FragmentPaging {
     )))
   }
 
-  override def onCreateOptionsMenu(menu: Menu): Boolean = {
+  override def onCreateOptionsMenu(menu: Menu) = {
     getMenuInflater.inflate(R.menu.activity_explore, menu)
-    val searchManager = getSystemService(Context.SEARCH_SERVICE).asInstanceOf[SearchManager]
-    val searchMenuItem = menu.findItem(R.id.search)
-    val searchView = searchMenuItem.getActionView.asInstanceOf[SearchView]
-    searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName))
-    searchView.setIconifiedByDefault(false)
-    searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener {
-      override def onFocusChange(view: View, queryTextFocused: Boolean) {
-        if (!queryTextFocused) {
-          searchMenuItem.collapseActionView()
-        }
-      }
-    })
+    setupSearch(menu)
     true
   }
 
-  override def onOptionsItemSelected(item: MenuItem): Boolean = {
-    item.getItemId match {
-      case R.id.create ⇒
-        startActivity(new Intent(this, classOf[RecordActivity])); true
-      case _ ⇒ super[RouteStoryActivity].onOptionsItemSelected(item)
-    }
+  override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
+    case R.id.create ⇒
+      startActivity(new Intent(this, classOf[RecordActivity])); true
+    case _ ⇒
+      super[RouteStoryActivity].onOptionsItemSelected(item)
   }
 }

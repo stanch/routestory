@@ -25,7 +25,7 @@ class TagsFragment extends RouteStoryFragment {
     val displaySize = new Point
     getActivity.getWindowManager.getDefaultDisplay.getSize(displaySize)
 
-    Lounge.getPopularTags foreachUi { tags ⇒
+    Lounge.popularTags foreachUi { tags ⇒
       val shuffled = Random.shuffle(tags).take(50).map(x ⇒ (x.key, x.data))
       val (max, min) = (shuffled.maxBy(_._2)._2, shuffled.minBy(_._2)._2)
       def n(x: Int) = if (max == min) 1 else (x - min).toDouble / (max - min)

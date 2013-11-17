@@ -66,7 +66,7 @@ trait LocationHandler
   }
 
   def onConnected(bundle: Bundle) {
-    toast("Connected!")
+    toast("Connected!") ~> fry
     val request = LocationRequest.create()
       .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
       .setInterval(5000) // 5 seconds
@@ -74,7 +74,7 @@ trait LocationHandler
     locationClient.requestLocationUpdates(request, this)
   }
   def onDisconnected() {
-    toast("Disconnected")
+    toast("Disconnected") ~> fry
   }
   def onConnectionFailed(connectionResult: ConnectionResult) {
     if (connectionResult.hasResolution) {
@@ -83,7 +83,7 @@ trait LocationHandler
       } recover { case t ⇒ t.printStackTrace() }
     } else {
       // TODO: show error
-      toast(connectionResult.getErrorCode.toString)
+      toast(connectionResult.getErrorCode.toString) ~> fry
     }
   }
 }
@@ -229,7 +229,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   }
 
   def onLocationChanged(location: Location) {
-    toast(s"Location: $location")
+    toast(s"Location: $location") ~> fry
     firstLocationPromise.tryComplete(Success(()))
     //    if (mRouteManager.isEmpty) mStory.start()
     //    val pt = mStory.addLocation(System.currentTimeMillis() / 1000L, location).asLatLng
@@ -375,7 +375,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
         } recoverUi {
           case t ⇒
             t.printStackTrace()
-            toast("Something went wrong!")
+            toast("Something went wrong!") ~> fry
             finish()
         })
       case _ ⇒

@@ -26,13 +26,13 @@ import net.routestory.parts.Implicits._
 import scala.concurrent._
 import scala.async.Async.{ async, await }
 import org.macroid.util.Text
-import net.routestory.explore.ExploreActivity
 import net.routestory.lounge.Patterns
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import scala.collection.JavaConversions._
 import io.dylemma.frp.Observer
 import java.util.concurrent.Executors
 import Styles._
+import net.routestory.explore2.ExploreActivity
 
 object DisplayActivity {
   object NfcIntent {
@@ -114,7 +114,7 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
     } onFailureUi {
       case t ⇒
         t.printStackTrace()
-        toast("Failed to load the story")
+        toast("Failed to load the story") ~> fry
         finish()
     }
   }
@@ -145,7 +145,7 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
         val filter = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED)
         val techs = Array(Array(classOf[NdefFormatable].getName, classOf[Ndef].getName))
         nfcAdapter.foreach(_.enableForegroundDispatch(this, intent, Array(filter), techs))
-        toast("Waiting for the tag...") // TODO: strings.xml
+        toast("Waiting for the tag...") ~> fry // TODO: strings.xml
         true
       }
       case R.id.shareStory ⇒ {
@@ -185,7 +185,7 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
   }
 
   override def onNewIntent(intent: Intent) {
-    Toast.makeText(this, "Found a tag, writing...", Toast.LENGTH_SHORT).show()
+    toast("Found a tag, writing...") ~> fry
     // TODO: strings.xml
     val tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG).asInstanceOf[Tag]
     val uri = ("http://www.routestory.net/" + id.replace("story-", "story/")).getBytes(Charset.forName("US-ASCII"))
@@ -202,7 +202,7 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
     } catch {
       case e @ (_: FormatException | _: IOException) ⇒ e.printStackTrace()
     }
-    toast("Done!") // TODO: strings.xml
+    toast("Done!") ~> fry
   }
 
   override def onPause() {

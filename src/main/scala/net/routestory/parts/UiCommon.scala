@@ -3,18 +3,18 @@ package net.routestory.parts
 import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivity }
 import net.routestory.{ SettingsActivity, R, AccountActivity, RouteStoryApp }
 import org.macroid._
-import android.view.{ ViewGroup, Gravity, View, MenuItem }
+import android.view._
 import android.content.{ Context, Intent }
 import android.support.v4.widget.DrawerLayout
-import android.widget.{ Toast, ProgressBar, TextView, ListView }
+import android.widget.{ SearchView, ProgressBar, ListView }
 import android.view.ViewGroup.LayoutParams._
-import android.app.Activity
+import android.app.{ SearchManager, Activity }
 import scala.reflect.ClassTag
 import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
 import net.routestory.recording.RecordActivity
-import net.routestory.explore.{ ExploreActivity, MyStoriesActivity }
 import android.os.Bundle
 import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
+import net.routestory.explore2.{ MyStoriesActivity, ExploreActivity }
 
 trait FirstEveryStart {
   var everStarted = false
@@ -27,12 +27,9 @@ trait FirstEveryStart {
     }
     onEveryStart()
   }
-
-  // temporary hack
-  def toast(str: String)(implicit ctx: Context) = Toast.makeText(ctx, str, Toast.LENGTH_SHORT)
 }
 
-trait RouteStoryActivity extends FragmentActivity with FullDslActivity with FirstEveryStart {
+trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Toasts with FirstEveryStart {
   lazy val app = getApplication.asInstanceOf[RouteStoryApp]
   lazy val bar = getActionBar
   var drawerToggle: ActionBarDrawerToggle = _
@@ -84,9 +81,24 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Firs
     )
     layout.setDrawerListener(drawerToggle); layout
   }
+
+  def setupSearch(menu: Menu) = {
+    val searchManager = getSystemService(Context.SEARCH_SERVICE).asInstanceOf[SearchManager]
+    val searchMenuItem = menu.findItem(R.id.search)
+    val searchView = searchMenuItem.getActionView.asInstanceOf[SearchView]
+    searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName))
+    searchView.setIconifiedByDefault(false)
+    searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener {
+      override def onFocusChange(view: View, queryTextFocused: Boolean) {
+        if (!queryTextFocused) {
+          searchMenuItem.collapseActionView()
+        }
+      }
+    })
+  }
 }
 
-trait RouteStoryFragment extends Fragment with FullDslFragment with FirstEveryStart {
+trait RouteStoryFragment extends Fragment with FullDslFragment with Toasts with FirstEveryStart {
   lazy val app = getActivity.getApplication.asInstanceOf[RouteStoryApp]
 
   override def onStart() {

@@ -6,13 +6,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.{ ScrollView, LinearLayout, TextView, ImageView }
-import net.routestory.explore.ResultRow
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import net.routestory.parts.{ Styles, RouteStoryFragment }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
+import net.routestory.explore2.PreviewRow
+import scala.ref.WeakReference
 
 class DetailsFragment extends RouteStoryFragment {
   lazy val story = getActivity.asInstanceOf[HazStory].story
@@ -69,7 +70,7 @@ class DetailsFragment extends RouteStoryFragment {
       description ~> text(d)
 
       Option(s.tags).filter(_.length > 0) map { t ⇒
-        ResultRow.fillTags(tagRows, width - 20, t.map((_, None)), getActivity)
+        PreviewRow.fillTags(tagRows, width - 20, t.map((_, None)).toList, WeakReference(getActivity))
       } getOrElse {
         tagStuff ~> hide
       }

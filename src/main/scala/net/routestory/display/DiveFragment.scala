@@ -181,7 +181,7 @@ class DiveFragment extends RouteStoryFragment with ExtraTweaks {
 
     s.textNotes foreach { note ⇒
       val at = note.timestamp / ratio.now - from
-      if (at > 0) handler.postAtTime(toast(note.text), start + at.toInt)
+      if (at > 0) handler.postAtTime(toast(note.text) ~> fry, start + at.toInt)
     }
 
     s.heartbeat foreach { beat ⇒

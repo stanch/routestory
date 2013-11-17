@@ -41,7 +41,7 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
             tag._2.map(s ⇒ TextSize.sp(20 + (s * 20).toInt)) ~>
             measure ~> On.click {
               activity.get map { a ⇒
-                val intent = new Intent(a, classOf[net.routestory.explore.SearchActivity])
+                val intent = new Intent(a, classOf[SearchActivity])
                 intent.putExtra("tag", tag._1)
                 a.startActivityForResult(intent, 0)
               }
@@ -74,7 +74,7 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
     ) ~> id(Id.storyTags) ~> padding(left = storyShift)
   ) ~> padding(0, 8 dp, 0, 8 dp)
 
-  def fillView(view: View, maxWidth: Int, story: Puffy[StoryPreview], activity: WeakReference[Activity])(implicit ctx: Context) = {
+  def fillView(view: View, maxWidth: Int, story: Puffy[StoryPreview], activity: WeakReference[Activity])(implicit ctx: Context) {
     // title
     val title = story.data.title.filter(!_.isEmpty).toRight(R.string.untitled)
     findView[TextView](view, Id.storyTitle) ~> text(title) ~> On.click {
