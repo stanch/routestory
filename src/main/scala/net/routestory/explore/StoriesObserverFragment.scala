@@ -1,4 +1,4 @@
-package net.routestory.explore2
+package net.routestory.explore
 
 import android.support.v4.app.Fragment
 import net.routestory.lounge2.Puffy

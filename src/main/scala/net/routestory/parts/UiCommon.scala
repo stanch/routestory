@@ -14,7 +14,7 @@ import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
 import net.routestory.recording.RecordActivity
 import android.os.Bundle
 import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
-import net.routestory.explore2.{ MyStoriesActivity, ExploreActivity }
+import net.routestory.explore.{ MyStoriesActivity, ExploreActivity }
 
 trait FirstEveryStart {
   var everStarted = false

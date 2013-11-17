@@ -32,7 +32,7 @@ import scala.collection.JavaConversions._
 import io.dylemma.frp.Observer
 import java.util.concurrent.Executors
 import Styles._
-import net.routestory.explore2.ExploreActivity
+import net.routestory.explore.ExploreActivity
 
 object DisplayActivity {
   object NfcIntent {

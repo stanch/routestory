@@ -1,4 +1,4 @@
-package net.routestory.explore2
+package net.routestory.explore
 
 import android.app.Activity
 import android.content.Context

@@ -1,4 +1,4 @@
-package net.routestory.explore2
+package net.routestory.explore
 
 import net.routestory.parts.{ FragmentPaging, FragmentDataProvider, RouteStoryActivity }
 import rx.Var

@@ -1,4 +1,4 @@
-package net.routestory.explore2
+package net.routestory.explore
 
 import android.view.{ View, ViewGroup, LayoutInflater }
 import android.os.Bundle

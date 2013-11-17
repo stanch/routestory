@@ -1,4 +1,4 @@
-package net.routestory.explore2
+package net.routestory.explore
 
 import rx.Var
 import android.util.Log

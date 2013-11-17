@@ -1,4 +1,4 @@
-package net.routestory.explore2
+package net.routestory.explore
 
 import android.os.Bundle
 import net.routestory.parts.{ FragmentPaging, RouteStoryActivity }

@@ -1,4 +1,4 @@
-package net.routestory.explore2
+package net.routestory.explore
 
 import android.content.{ Context, Intent }
 import android.app.SearchManager

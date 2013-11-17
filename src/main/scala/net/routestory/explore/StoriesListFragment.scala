@@ -1,4 +1,4 @@
-package net.routestory.explore2
+package net.routestory.explore
 
 import net.routestory.R
 import android.view.{ LayoutInflater, Gravity, View, ViewGroup }

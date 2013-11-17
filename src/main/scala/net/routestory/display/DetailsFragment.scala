@@ -12,7 +12,7 @@ import net.routestory.parts.{ Styles, RouteStoryFragment }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
-import net.routestory.explore2.PreviewRow
+import net.routestory.explore.PreviewRow
 import scala.ref.WeakReference
 
 class DetailsFragment extends RouteStoryFragment {
