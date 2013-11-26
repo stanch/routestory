@@ -5,10 +5,8 @@ import net.routestory.parts.{ FragmentPaging, RouteStoryActivity }
 import com.google.android.gms.common.{ ConnectionResult, GooglePlayServicesUtil }
 import android.preference.PreferenceManager
 import net.routestory.R
-import android.view.{ MenuItem, View, Menu }
-import android.content.{ Intent, Context }
-import android.app.SearchManager
-import android.widget.SearchView
+import android.view.{ MenuItem, Menu }
+import android.content.Intent
 import net.routestory.recording.RecordActivity
 
 class ExploreActivity extends RouteStoryActivity with FragmentPaging {

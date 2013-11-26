@@ -55,5 +55,9 @@ object Lounge {
     stories
   }
 
+  def author(id: String) = async {
+    await(client.getJson[Pillow[Author]](s"$apiUrl/authors/$id"))
+  }
+
   def popularTags = client.getJson[ReducedViewResult[String, Int]](s"$apiUrl/tags").map(_.rows)
 }
