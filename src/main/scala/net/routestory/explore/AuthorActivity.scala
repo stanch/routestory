@@ -8,15 +8,16 @@ import scala.async.Async._
 import android.widget.{ TextView, ImageView }
 import android.view.ViewGroup.LayoutParams._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
-import net.routestory.lounge2.Lounge
 import scala.concurrent.ExecutionContext.Implicits.global
+import net.routestory.model2.StoryPreview
+import net.routestory.needs.NeedAuthor
 
 class AuthorActivity extends RouteStoryActivity
   with HazStories
   with FragmentDataProvider[HazStories]
   with FragmentPaging {
 
-  lazy val stories: Var[Future[Stories]] = Var(fetchStories)
+  lazy val stories: Var[Future[List[StoryPreview]]] = Var(fetchStories)
   def getFragmentData(tag: String): HazStories = this
 
   var picture = slot[ImageView]
@@ -46,13 +47,13 @@ class AuthorActivity extends RouteStoryActivity
   override def onStart() {
     super.onStart()
     async {
-      val author = await(Lounge.author(id))
-      name ~> text(author.data.name)
+      val author = await(NeedAuthor(id).go)
+      name ~> text(author.name)
     }
     //if (stories.now.isCompleted) stories.update(fetchStories)
   }
 
-  def fetchStories: Future[Stories] = async {
+  def fetchStories: Future[List[StoryPreview]] = async {
     ???
   }
 }

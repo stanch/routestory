@@ -69,7 +69,7 @@ class StoriesListFragment extends ListFragment
     neglect()
   }
 
-  def update(data: Future[HazStories#Stories]) = async {
+  def update(data: Future[List[StoryPreview]]) = async {
     if (showReload || Option(getListAdapter).exists(_.isEmpty)) await(Ui(setListShown(false)))
     Log.d("StoryList", s"Received future $data from $observer")
     val s = await(data mapUi {
@@ -93,9 +93,9 @@ class StoriesListFragment extends ListFragment
 }
 
 object StoriesListFragment {
-  case class Adapter(activity: WeakReference[Activity])(implicit ctx: Context) extends ListAdapter[Puffy[StoryPreview], View] with MediaQueries {
+  case class Adapter(activity: WeakReference[Activity])(implicit ctx: Context) extends ListAdapter[StoryPreview, View] with MediaQueries {
     def makeView = PreviewRow.makeView
-    def fillView(view: View, parent: ViewGroup, data: Puffy[StoryPreview]) =
+    def fillView(view: View, parent: ViewGroup, data: StoryPreview) =
       PreviewRow.fillView(view, parent.getMeasuredWidth, data, activity)
     override def isEnabled(position: Int) = false
   }

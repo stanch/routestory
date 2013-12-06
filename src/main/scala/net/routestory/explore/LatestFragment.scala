@@ -2,12 +2,13 @@ package net.routestory.explore
 
 import rx.Var
 import android.util.Log
-import net.routestory.lounge2.Lounge
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import net.routestory.model2.StoryPreview
+import net.routestory.needs.NeedLatest
 
 class LatestFragment extends StoriesListFragment with HazStories {
-  override lazy val stories: Var[Future[Stories]] = Var {
+  override lazy val stories: Var[Future[List[StoryPreview]]] = Var {
     Log.d("Latest", "init")
     fetchStories
   }
@@ -26,5 +27,5 @@ class LatestFragment extends StoriesListFragment with HazStories {
     if (stories.now.isCompleted) stories.update(fetchStories)
   }
 
-  def fetchStories = Lounge.latestStories(limit = number).map(_.rows)
+  def fetchStories = NeedLatest(number).go.map(_.stories)
 }

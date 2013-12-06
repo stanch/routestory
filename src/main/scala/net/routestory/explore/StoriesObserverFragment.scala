@@ -8,9 +8,7 @@ import rx.{ Obs, Rx }
 import scala.concurrent.Future
 
 trait HazStories {
-  type Stories = List[Puffy[StoryPreview]]
-
-  val stories: Rx[Future[Stories]]
+  val stories: Rx[Future[List[StoryPreview]]]
   def next() {}
   def prev() {}
   def hasNext = false
@@ -22,7 +20,7 @@ trait StoriesObserverFragment extends FragmentData[HazStories] { self: Fragment 
   lazy val stories = storyteller.stories
   var observer: Option[Obs] = None
 
-  def update(data: Future[HazStories#Stories])
+  def update(data: Future[List[StoryPreview]])
 
   def observe() {
     if (observer.isEmpty) {

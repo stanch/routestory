@@ -23,7 +23,7 @@ import net.routestory.lounge2.Puffy
 
 class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment {
   lazy val map = findFrag[SupportMapFragment](Tag.resultsMap).get.getMap
-  var markers = Map[Marker, Puffy[StoryPreview]]()
+  var markers = Map[Marker, StoryPreview]()
   var routes = List[Polyline]()
 
   val kellyColors = List(
@@ -57,7 +57,7 @@ class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment
     neglect()
   }
 
-  def update(data: Future[HazStories#Stories]) = async {
+  def update(data: Future[List[StoryPreview]]) = async {
     val res = await(data)
     routes.foreach(_.remove())
     markers.foreach(_._1.remove())

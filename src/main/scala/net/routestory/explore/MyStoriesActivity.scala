@@ -8,13 +8,14 @@ import org.macroid.util.Text
 import net.routestory.R
 import scala.async.Async._
 import scala.concurrent.ExecutionContext.Implicits.global
+import net.routestory.model2.StoryPreview
 
 class MyStoriesActivity extends RouteStoryActivity
   with HazStories
   with FragmentDataProvider[HazStories]
   with FragmentPaging {
 
-  lazy val stories: Var[Future[Stories]] = Var(fetchStories)
+  lazy val stories: Var[Future[List[StoryPreview]]] = Var(fetchStories)
   def getFragmentData(tag: String): HazStories = this
 
   override def onCreate(savedInstanceState: Bundle) {
@@ -36,7 +37,7 @@ class MyStoriesActivity extends RouteStoryActivity
     if (stories.now.isCompleted) stories.update(fetchStories)
   }
 
-  def fetchStories: Future[Stories] = async {
+  def fetchStories: Future[List[StoryPreview]] = async {
     ???
   }
 }

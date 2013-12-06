@@ -3,6 +3,8 @@ package net.routestory.lounge2
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
+// format: OFF
+
 trait Puffy[A] {
   val id: String
   val data: A

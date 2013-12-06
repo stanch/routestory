@@ -2,6 +2,10 @@ package net.routestory.model2
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import org.needs._
+import net.routestory.needs.NeedAuthor
+
+// format: OFF
 
 object Story {
   trait Timed {
@@ -49,7 +53,7 @@ object Story {
     implicit val format = Json.format[Heartbeat]
   }
 
-  case class Segment(
+  case class Chapter(
     start: Long,
     duration: Int,
     locations: List[Location],
@@ -59,8 +63,8 @@ object Story {
     voiceNotes: List[Audio],
     venues: List[Venue],
     heartbeat: List[Heartbeat])
-  object Segment {
-    implicit val format = Json.format[Segment]
+  object Chapter {
+    implicit val format = Json.format[Chapter]
   }
 
   case class Meta(title: Option[String], description: Option[String], tags: List[String] = Nil)
@@ -68,20 +72,19 @@ object Story {
     implicit val format = Json.format[Meta]
   }
 
-  implicit val format = Json.format[Story]
+  implicit val reads = Fulfillable.reads[Story] {
+    (__ \ '_id).read[String] and
+    (__ \ 'meta).read[Story.Meta] and
+    (__ \ 'segments).read[List[Story.Chapter]] and
+    (__ \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption) and
+    (__ \ 'private).read[Boolean]
+  }
 }
 
-case class Story(meta: Story.Meta, segments: List[Story.Segment], authorId: Option[String], `private`: Boolean = true) {
-  var author: Option[Author] = None
-}
+case class Story(
+  id: String,
+  meta: Story.Meta,
+  chapters: List[Story.Chapter],
+  author: Option[Author],
+  `private`: Boolean = true) extends org.needs.rest.HasId
 
-case class StoryPreview(title: Option[String], tags: List[String], authorId: String) {
-  var author: Option[Author] = None
-}
-object StoryPreview {
-  implicit val read = (
-    (__ \ 'title).read[Option[String]] and
-    ((__ \ 'tags).read[List[String]] orElse (__ \ 'tags).read[String].map(_ :: Nil)) and
-    (__ \ 'authorId).read[String]
-  )(apply _)
-}

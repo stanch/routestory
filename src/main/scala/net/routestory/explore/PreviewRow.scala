@@ -74,9 +74,9 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
     ) ~> id(Id.storyTags) ~> padding(left = storyShift)
   ) ~> padding(0, 8 dp, 0, 8 dp)
 
-  def fillView(view: View, maxWidth: Int, story: Puffy[StoryPreview], activity: WeakReference[Activity])(implicit ctx: Context) {
+  def fillView(view: View, maxWidth: Int, story: StoryPreview, activity: WeakReference[Activity])(implicit ctx: Context) {
     // title
-    val title = story.data.title.filter(!_.isEmpty).toRight(R.string.untitled)
+    val title = story.title.filter(!_.isEmpty).toRight(R.string.untitled)
     findView[TextView](view, Id.storyTitle) ~> text(title) ~> On.click {
       activity.get map { a ⇒
         val intent = new Intent(a, classOf[DisplayActivity])
@@ -86,11 +86,11 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
     }
 
     // author
-    val author = story.data.author.map(_.name).toRight(R.string.me)
+    val author = story.author.map(_.name).toRight(R.string.me)
     findView[TextView](view, Id.storyAuthor) ~> text(author)
 
     // tags
-    findView[View](view, Id.storyTags) ~> (Some(story.data.tags).filter(!_.isEmpty) map { tags ⇒
+    findView[View](view, Id.storyTags) ~> (Some(story.tags).filter(!_.isEmpty) map { tags ⇒
       val tagRows = findView[LinearLayout](view, Id.storyTagRows)
       fillTags(tagRows, maxWidth, tags.map((_, None)), activity)
       show

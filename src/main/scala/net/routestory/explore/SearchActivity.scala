@@ -12,9 +12,10 @@ import scala.async.Async._
 import scala.Some
 import android.view.{ View, Menu }
 import android.widget.SearchView
-import net.routestory.lounge2.Lounge
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.macroid.util.Text
+import net.routestory.model2.StoryPreview
+import net.routestory.needs.{ NeedTagged, NeedSearch }
 
 object SearchActivity {
   object SearchIntent {
@@ -37,7 +38,7 @@ class SearchActivity extends RouteStoryActivity
   import SearchActivity._
 
   // this is failed at the beginning, so that observers don’t update (they update onSuccess)
-  val stories: Var[Future[Stories]] = Var(Future.failed(new UninitializedError))
+  val stories: Var[Future[List[StoryPreview]]] = Var(Future.failed(new UninitializedError))
   def getFragmentData(tag: String): HazStories = this
 
   // a stack of page bookmarks
@@ -70,11 +71,11 @@ class SearchActivity extends RouteStoryActivity
   }
 
   def textQuery(q: String) = { bookmark: Option[String] ⇒
-    Lounge.searchStories(q, storiesByPage, bookmark)
+    NeedSearch(q, storiesByPage, bookmark).go
   }
 
   def tagQuery(tag: String) = { bookmark: Option[String] ⇒
-    Lounge.taggedStories(tag, storiesByPage, bookmark)
+    NeedTagged(tag, storiesByPage, bookmark).go
   }
 
   override def onCreate(savedInstanceState: Bundle) {
@@ -102,7 +103,7 @@ class SearchActivity extends RouteStoryActivity
     val results = await(query(bookmark))
     bookmarks ::= results.bookmark
     totalStories = results.total
-    results.rows
+    results.stories
   }
 
   override def onCreateOptionsMenu(menu: Menu) = {
