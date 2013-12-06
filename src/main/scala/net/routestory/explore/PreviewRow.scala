@@ -79,7 +79,7 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
     val title = story.title.filter(!_.isEmpty).toRight(R.string.untitled)
     findView[TextView](view, Id.storyTitle) ~> text(title) ~> On.click {
       activity.get map { a ⇒
-        val intent = new Intent(a, classOf[DisplayActivity])
+        val intent = new Intent(a, classOf[net.routestory.display2.DisplayActivity])
         intent.putExtra("id", story.id)
         a.startActivityForResult(intent, 0)
       }
