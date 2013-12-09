@@ -4,6 +4,7 @@ import org.needs._
 import net.routestory.model2._
 import scala.concurrent.{ Future, ExecutionContext }
 import org.needs.http.HttpEndpoint
+import JsonFormats._
 
 case class NeedAuthor(id: String) extends Need[Author] with rest.Probing[Author] {
   use { RemoteAuthor(id) }

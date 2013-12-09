@@ -3,19 +3,9 @@ package net.routestory.model2
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import org.needs._
-import net.routestory.needs.NeedAuthor
+import JsonFormats._
 
 // format: OFF
-
-case class StoryPreview(id: String, title: Option[String], tags: List[String], author: Option[Author])
-object StoryPreview {
-  implicit val read = Fulfillable.reads[StoryPreview] {
-    (__ \ 'id).read[String] and
-    (__ \ 'value \ 'title).read[Option[String]] and
-    ((__ \ 'value \ 'tags).read[List[String]] orElse (__ \ 'value \ 'tags).read[String].map(_ :: Nil)) and
-    (__ \ 'value \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
-  }
-}
 
 case class Latest(total: Int, stories: List[StoryPreview])
 object Latest {
