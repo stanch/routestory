@@ -9,7 +9,7 @@ import android.widget.{ TextView, ImageView }
 import android.view.ViewGroup.LayoutParams._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.model2.StoryPreview
+import net.routestory.model.StoryPreview
 import net.routestory.needs.NeedAuthor
 
 class AuthorActivity extends RouteStoryActivity

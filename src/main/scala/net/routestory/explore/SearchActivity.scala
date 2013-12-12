@@ -14,7 +14,7 @@ import android.view.{ View, Menu }
 import android.widget.SearchView
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.macroid.util.Text
-import net.routestory.model2.StoryPreview
+import net.routestory.model.StoryPreview
 import net.routestory.needs.{ NeedTagged, NeedSearch }
 
 object SearchActivity {

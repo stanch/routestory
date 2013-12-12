@@ -1,7 +1,7 @@
 package net.routestory.needs
 
 import org.needs._
-import net.routestory.model2._
+import net.routestory.model._
 import scala.concurrent.{ Future, ExecutionContext }
 import org.needs.http.HttpEndpoint
 import JsonFormats._

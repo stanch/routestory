@@ -1,7 +1,6 @@
 package net.routestory.display
 
 import net.routestory.R
-import android.app.ProgressDialog
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -18,15 +17,16 @@ import scala.concurrent.Future
 import android.widget.{ Button, FrameLayout }
 import ViewGroup.LayoutParams._
 import scala.async.Async.{ async, await }
+import scala.ref.WeakReference
 
 class FlatFragment extends RouteStoryFragment {
   lazy val story = getActivity.asInstanceOf[HazStory].story
-  lazy val media = getActivity.asInstanceOf[HazStory].media
+  //lazy val media = getActivity.asInstanceOf[HazStory].media
   lazy val display = getActivity.getWindowManager.getDefaultDisplay
   lazy val mapView = findFrag[SupportMapFragment](Tag.overviewMap).get.getView
   lazy val map = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap
-  lazy val routeManager = story.mapUi(new RouteManager(map, _).init())
-  lazy val markerManager = story.map(new MarkerManager(map, mapView, List(display.getWidth, display.getHeight), _, getActivity))
+  lazy val routeManager = new RouteManager(map)
+  lazy val markerManager = story.map(s ⇒ new MarkerManager(map, mapView, List(display.getWidth, display.getHeight), s.chapters(0), WeakReference(getActivity)))
 
   var toggleOverlays = slot[Button]
 
@@ -55,8 +55,8 @@ class FlatFragment extends RouteStoryFragment {
     /* Initialize marker manager */
     async {
       val mm = await(markerManager)
-      val m = await(media)
-      await(Future.sequence(m)) // preload not to cache twice
+      //val m = await(media)
+      //await(Future.sequence(m)) // preload not to cache twice
       await(Future.sequence(mm.loadingItems))
       Ui {
         mm.update()
@@ -66,15 +66,17 @@ class FlatFragment extends RouteStoryFragment {
 
     /* Put start and end markers */
     // format: OFF
-    routeManager foreachUi { rm ⇒
+    val rm = story mapUi { s ⇒
+      routeManager.add(s.chapters(0))
       List(
-        rm.getStart.get → R.drawable.flag_start,
-        rm.getEnd.get → R.drawable.flag_end
+        routeManager.start.get → R.drawable.flag_start,
+        routeManager.end.get → R.drawable.flag_end
       ) map { case (l, d) ⇒
         map.addMarker(new MarkerOptions()
           .position(l).anchor(0.3f, 1)
           .icon(BitmapDescriptorFactory.fromResource(d)))
       }
+      ()
     }
     // format: ON
 
@@ -82,9 +84,9 @@ class FlatFragment extends RouteStoryFragment {
     map.setOnCameraChangeListener { p: CameraPosition ⇒
       async {
         val mm = await(markerManager)
-        val rm = await(routeManager)
+        await(rm)
         Ui {
-          map.moveCamera(CameraUpdateFactory.newLatLngBounds(rm.getBounds.get, 30 dp))
+          map.moveCamera(CameraUpdateFactory.newLatLngBounds(routeManager.bounds.get, 30 dp))
           map.setOnCameraChangeListener { p: CameraPosition ⇒ mm.update() }
         }
       }

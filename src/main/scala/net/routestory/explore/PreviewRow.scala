@@ -9,14 +9,12 @@ import android.view.{ ViewGroup, View }
 import android.widget.LinearLayout
 import android.widget.TextView
 import net.routestory.R
-import net.routestory.display.DisplayActivity
 import org.macroid.{ MediaQueries, Tweaks, LayoutDsl, BasicViewSearch }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
 import net.routestory.parts.Styles
-import net.routestory.lounge2.Puffy
-import net.routestory.model2.StoryPreview
+import net.routestory.model.StoryPreview
 import scala.ref.WeakReference
 
 object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicViewSearch {
@@ -79,7 +77,7 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
     val title = story.title.filter(!_.isEmpty).toRight(R.string.untitled)
     findView[TextView](view, Id.storyTitle) ~> text(title) ~> On.click {
       activity.get map { a ⇒
-        val intent = new Intent(a, classOf[net.routestory.display2.DisplayActivity])
+        val intent = new Intent(a, classOf[net.routestory.display.DisplayActivity])
         intent.putExtra("id", story.id)
         a.startActivityForResult(intent, 0)
       }

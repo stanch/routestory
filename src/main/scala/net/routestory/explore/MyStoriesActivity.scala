@@ -8,7 +8,7 @@ import org.macroid.util.Text
 import net.routestory.R
 import scala.async.Async._
 import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.model2.StoryPreview
+import net.routestory.model.StoryPreview
 
 class MyStoriesActivity extends RouteStoryActivity
   with HazStories

@@ -1,9 +1,6 @@
 package net.routestory.explore
 
-import net.routestory.R
-import net.routestory.model.StoryResult
 import android.app.AlertDialog
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,11 +12,9 @@ import net.routestory.parts.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.google.android.gms.maps.model.CameraPosition
 import scala.concurrent.Future
-import scala.util.Try
 import scala.async.Async.{ async, await }
 import scala.ref.WeakReference
-import net.routestory.model2.StoryPreview
-import net.routestory.lounge2.Puffy
+import net.routestory.model.StoryPreview
 
 class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment {
   lazy val map = findFrag[SupportMapFragment](Tag.resultsMap).get.getMap

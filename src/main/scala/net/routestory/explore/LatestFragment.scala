@@ -4,7 +4,7 @@ import rx.Var
 import android.util.Log
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.model2.StoryPreview
+import net.routestory.model.StoryPreview
 import net.routestory.needs.NeedLatest
 
 class LatestFragment extends StoriesListFragment with HazStories {

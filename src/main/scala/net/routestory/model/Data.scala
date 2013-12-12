@@ -1,4 +1,4 @@
-package net.routestory.model2
+package net.routestory.model
 
 import com.google.android.gms.maps.model.LatLng
 import play.api.libs.json.JsValue

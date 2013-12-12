@@ -1,7 +1,6 @@
 package net.routestory.display
 
 import net.routestory.R
-import net.routestory.model.Story
 import net.routestory.parts.{ Styles, BitmapUtils }
 import net.routestory.parts.BitmapUtils.MagicGrid
 import android.app.{ Activity, Dialog, AlertDialog }
@@ -32,15 +31,18 @@ import org.macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayou
 import org.macroid.contrib.ListAdapter
 import android.net.Uri
 import android.os.Vibrator
+import net.routestory.model.Story.Chapter
+import scala.ref.WeakReference
+import net.routestory.model.Story
 
-class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int], story: Story, activity: Activity)(implicit ctx: Context) extends Concurrency with MediaQueries {
+class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int], chapter: Chapter, activity: WeakReference[Activity])(implicit ctx: Context) extends Concurrency with MediaQueries {
   var hideOverlays = false
 
   val maxIconSize = ((800 dp) :: displaySize).min / 4
 
   abstract class MarkerItem(val timestamp: Int) {
     var marker: Option[Marker] = None
-    val coords = story.getLocation(timestamp)
+    val coords = chapter.locationAt(timestamp)
     var doi: Float = 0
 
     def createMarker() {
@@ -77,47 +79,47 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
   }
 
   // Image marker
-  class ImageMarkerItem(data: Story.ImageData) extends MarkerItem(data.timestamp) with LayoutDsl with Tweaks with ExtraTweaks {
-    private val icon = data.get(maxIconSize)
-
-    override def addToMarkerLists(shown: List[MarkerItem], hidden: List[MarkerItem], hide: Boolean = false): (List[MarkerItem], List[MarkerItem]) = {
-      if (icon.value.get.isSuccess) super.addToMarkerLists(shown, hidden, hide) else (shown, this :: hidden)
-    }
-
-    override def addToLoadingList(list: List[Future[Unit]]): List[Future[Unit]] = {
-      icon.map(_ ⇒ ()) :: list
-    }
-
-    override def getIcon(scale: Boolean): Bitmap = if (!scale) {
-      icon.value.get.get
-    } else {
-      BitmapUtils.createScaledTransparentBitmap(icon.value.get.get, (maxIconSize * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, true)
-    }
-
-    override def onClick() {
-      // show the image in a pop-up window
-      //val progress = spinnerDialog("", "Loading image...") // TODO: strings.xml
-      data.get(displaySize.max) foreachUi {
-        case bitmap if bitmap != null ⇒
-          //progress.dismiss()
-          val view = w[ImageView] ~>
-            lpOf[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER) ~>
-            Image.bitmap(bitmap) ~> Image.adjustBounds ~>
-            (_.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE))
-          val attacher = new PhotoViewAttacher(view)
-          attacher.update()
-          new Dialog(ctx, android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
-            setContentView(l[FrameLayout](view))
-            setOnDismissListener({ dialog: DialogInterface ⇒
-              bitmap.recycle()
-            })
-            show()
-          }
-        case _ ⇒
-        //progress.dismiss()
-      }
-    }
-  }
+  //  class ImageMarkerItem(data: Story.Image) extends MarkerItem(data.timestamp) with LayoutDsl with Tweaks with ExtraTweaks {
+  //    private val icon = data.get(maxIconSize)
+  //
+  //    override def addToMarkerLists(shown: List[MarkerItem], hidden: List[MarkerItem], hide: Boolean = false): (List[MarkerItem], List[MarkerItem]) = {
+  //      if (icon.value.get.isSuccess) super.addToMarkerLists(shown, hidden, hide) else (shown, this :: hidden)
+  //    }
+  //
+  //    override def addToLoadingList(list: List[Future[Unit]]): List[Future[Unit]] = {
+  //      icon.map(_ ⇒ ()) :: list
+  //    }
+  //
+  //    override def getIcon(scale: Boolean): Bitmap = if (!scale) {
+  //      icon.value.get.get
+  //    } else {
+  //      BitmapUtils.createScaledTransparentBitmap(icon.value.get.get, (maxIconSize * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, true)
+  //    }
+  //
+  //    override def onClick() {
+  //      // show the image in a pop-up window
+  //      //val progress = spinnerDialog("", "Loading image...") // TODO: strings.xml
+  //      data.get(displaySize.max) foreachUi {
+  //        case bitmap if bitmap != null ⇒
+  //          //progress.dismiss()
+  //          val view = w[ImageView] ~>
+  //            lpOf[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER) ~>
+  //            Image.bitmap(bitmap) ~> Image.adjustBounds ~>
+  //            (_.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE))
+  //          val attacher = new PhotoViewAttacher(view)
+  //          attacher.update()
+  //          new Dialog(ctx, android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
+  //            setContentView(l[FrameLayout](view))
+  //            setOnDismissListener({ dialog: DialogInterface ⇒
+  //              bitmap.recycle()
+  //            })
+  //            show()
+  //          }
+  //        case _ ⇒
+  //        //progress.dismiss()
+  //      }
+  //    }
+  //  }
 
   object IconMarkerItem {
     var iconPool = Map[Int, Bitmap]()
@@ -128,7 +130,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
       iconPool(resourceId)
     }
   }
-  abstract class IconMarkerItem(data: Story.TimedData, resourceId: Int) extends MarkerItem(data.timestamp) {
+  abstract class IconMarkerItem(data: Story.Media, resourceId: Int) extends MarkerItem(data.timestamp) {
     private val icon = IconMarkerItem.loadIcon(resourceId)
 
     override def getIcon(scale: Boolean): Bitmap = icon /*if (!scale) {
@@ -139,30 +141,30 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
   }
 
   // Audio marker
-  class AudioMarkerItem(data: Story.AudioData, resourceId: Int) extends IconMarkerItem(data, resourceId) {
+  class AudioMarkerItem(data: Story.Audio, resourceId: Int) extends IconMarkerItem(data, resourceId) {
     private var mediaPlayer: MediaPlayer = null
 
-    override def onClick() {
-      mediaPlayer = new MediaPlayer()
-      data.get foreachUi {
-        case file if file != null ⇒
-          try {
-            mediaPlayer.setDataSource(file.getAbsolutePath)
-            mediaPlayer.prepare()
-            mediaPlayer.start()
-          } catch {
-            case e: Throwable ⇒ e.printStackTrace()
-          }
-        case _ ⇒
-      }
-    }
+    //    override def onClick() {
+    //      mediaPlayer = new MediaPlayer()
+    //      data.get foreachUi {
+    //        case file if file != null ⇒
+    //          try {
+    //            mediaPlayer.setDataSource(file.getAbsolutePath)
+    //            mediaPlayer.prepare()
+    //            mediaPlayer.start()
+    //          } catch {
+    //            case e: Throwable ⇒ e.printStackTrace()
+    //          }
+    //        case _ ⇒
+    //      }
+    //    }
   }
 
-  class SoundMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.sound)
-  class VoiceMarkerItem(data: Story.AudioData) extends AudioMarkerItem(data, R.drawable.voice_note)
+  class SoundMarkerItem(data: Story.Sound) extends AudioMarkerItem(data, R.drawable.sound)
+  class VoiceMarkerItem(data: Story.VoiceNote) extends AudioMarkerItem(data, R.drawable.voice_note)
 
   // Text note marker
-  class TextMarkerItem(data: Story.TextData) extends IconMarkerItem(data, R.drawable.text_note) with ExtraTweaks {
+  class TextMarkerItem(data: Story.TextNote) extends IconMarkerItem(data, R.drawable.text_note) with ExtraTweaks {
     override def onClick() {
       val bld = new AlertDialog.Builder(ctx)
       val textView = w[TextView] ~>
@@ -173,7 +175,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
   }
 
   // Foursquare venue marker
-  class VenueMarkerItem(data: Story.FoursquareData) extends IconMarkerItem(data, R.drawable.foursquare_bigger) with ExtraTweaks {
+  class VenueMarkerItem(data: Story.Venue) extends IconMarkerItem(data, R.drawable.foursquare_bigger) with ExtraTweaks {
     override def onClick() {
       val bld = new AlertDialog.Builder(ctx)
       val view = l[VerticalLinearLayout](
@@ -181,7 +183,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
         w[Button] ~> text("Open in Foursquare®") ~> On.click {
           val intent = new Intent(Intent.ACTION_VIEW)
           intent.setData(Uri.parse(s"https://foursquare.com/v/${data.id}"))
-          activity.startActivityForResult(intent, 0)
+          activity().startActivityForResult(intent, 0)
         }
       )
       bld.setView(view).create().show()
@@ -189,38 +191,35 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
   }
 
   // Heartbeat marker
-  class HeartbeatMarkerItem(data: Story.HeartbeatData) extends IconMarkerItem(data, R.drawable.heart) {
+  class HeartbeatMarkerItem(data: Story.Heartbeat) extends IconMarkerItem(data, R.drawable.heart) {
     override def onClick() {
-      ctx.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator].vibrate(data.getVibrationPattern(5), -1)
+      ctx.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator].vibrate(data.vibrationPattern(5), -1)
     }
   }
 
   object GroupMarkerItemFactory {
+    import MarkerManager.distance
     def apply(item1: MarkerItem, item2: MarkerItem): GroupMarkerItem = {
-      val (children: List[MarkerItem], closest: Double, bounds: LatLngBounds) = {
-        // see if one of the items is a grouping marker, and the other is not
-        // and the grouping one can absorb the non-grouping one
-        val List(group, other) = List(item1, item2).sortBy(!_.isInstanceOf[GroupMarkerItem])
-        if (group.isInstanceOf[GroupMarkerItem] && !other.isInstanceOf[GroupMarkerItem] && (
-          group.asInstanceOf[GroupMarkerItem].children forall { item ⇒
-            MarkerManager.distance(item.coords, other.coords) <= 2 * group.asInstanceOf[GroupMarkerItem].closest
-          })) {
-          (
-            other :: group.asInstanceOf[GroupMarkerItem].children,
-            group.asInstanceOf[GroupMarkerItem].closest,
-            group.asInstanceOf[GroupMarkerItem].bounds
-          )
-        } else {
-          (
-            List(group, other),
-            MarkerManager.distance(group.coords, other.coords), {
-              val boundsBuilder = LatLngBounds.builder()
-              boundsBuilder.include(group.coords)
-              boundsBuilder.include(other.coords)
-              boundsBuilder.build()
-            }
-          )
-        }
+      def mergeBounds(coords1: LatLng, coords2: LatLng) = LatLngBounds.builder.include(coords1).include(coords2).build()
+      val (children: List[MarkerItem], closest: Double, bounds: LatLngBounds) = (item1, item2) match {
+        // if one of the items is a grouping marker, and the other is not
+        // the grouping one can absorb the non-grouping one
+        // format: OFF
+        case (group1: GroupMarkerItem, group2: GroupMarkerItem) ⇒ (
+          List(group1, group2),
+          distance(group1.coords, group2.coords),
+          mergeBounds(group1.coords, group2.coords)
+        )
+        case (group: GroupMarkerItem, single) if group.children.forall(item ⇒ distance(item.coords, single.coords) <= 2*group.closest) ⇒
+          (single :: group.children, group.closest, group.bounds)
+        case (single, group: GroupMarkerItem) if group.children.forall(item ⇒ distance(item.coords, single.coords) <= 2*group.closest) ⇒
+          (single :: group.children, group.closest, group.bounds)
+        case (single1, single2) ⇒ (
+          List(single1, single2),
+          distance(single1.coords, single2.coords),
+          mergeBounds(single1.coords, single2.coords)
+        )
+        // format: ON
       }
       new GroupMarkerItem(children, closest, bounds)
     }
@@ -236,16 +235,16 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
 
     lazy val icon = {
       // group and count markers of each type
-      val Image = classOf[ImageMarkerItem]
-      val bitmaps = (leafList.groupBy(_.getClass).flatMap {
-        case (Image, items) ⇒ items.map(_.getIcon(scale = false))
+      //val Image = classOf[ImageMarkerItem]
+      val bitmaps = leafList.groupBy(_.getClass).toList.flatMap {
+        //case (Image, items) ⇒ items.map(_.getIcon(scale = false))
         case (c, head :: items) ⇒ if (items.length > 0) {
           BitmapUtils.createCountedBitmap(head.getIcon(scale = false), items.length + 1) :: Nil
         } else {
           head.getIcon(scale = false) :: Nil
         }
         case (_, Nil) ⇒ Nil // make compiler happy
-      }).toList
+      }
       MagicGrid.createSquarishGrid(bitmaps, maxIconSize)
     }
     lazy val iconSize = Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize)
@@ -304,21 +303,18 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
   var markerDispatch = Map[Marker, MarkerItem]()
 
   lazy val rootMarkerItem: Option[MarkerItem] = {
-    def makeMarkers[A <: Story.TimedData](d: java.util.List[A], m: A ⇒ MarkerItem) = d.toVector.map(m)
-    // format: OFF
-    val markerItems =
-      Option(story.photos).map(x ⇒ makeMarkers(x, new ImageMarkerItem(_: Story.ImageData))).getOrElse(Vector.empty) ++
-      Option(story.sounds).map(x ⇒ makeMarkers(x, new SoundMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
-      Option(story.voiceNotes).map(x ⇒ makeMarkers(x, new VoiceMarkerItem(_: Story.AudioData))).getOrElse(Vector.empty) ++
-      Option(story.textNotes).map(x ⇒ makeMarkers(x, new TextMarkerItem(_: Story.TextData))).getOrElse(Vector.empty) ++
-      Option(story.heartbeat).map(x ⇒ makeMarkers(x, new HeartbeatMarkerItem(_: Story.HeartbeatData))).getOrElse(Vector.empty) ++
-      Option(story.venues).map(x ⇒ makeMarkers(x, new VenueMarkerItem(_: Story.FoursquareData))).getOrElse(Vector.empty)
-    // format: ON
-
+    val markerItems: Vector[MarkerItem] = chapter.media.toVector.flatMap {
+      case m: Story.Sound ⇒ new SoundMarkerItem(m) +: Vector.empty
+      case m: Story.VoiceNote ⇒ new VoiceMarkerItem(m) +: Vector.empty
+      case m: Story.TextNote ⇒ new TextMarkerItem(m) +: Vector.empty
+      case m: Story.Heartbeat ⇒ new HeartbeatMarkerItem(m) +: Vector.empty
+      case m: Story.Venue ⇒ new VenueMarkerItem(m) +: Vector.empty
+      case _ ⇒ Vector.empty
+    }
     markerItems.length match {
       case 0 ⇒ None
       case 1 ⇒ Some(markerItems(0))
-      case _ ⇒ Some(clusterRounds(markerItems.sortBy(_.timestamp), story.duration.toDouble / 4))
+      case _ ⇒ Some(clusterRounds(markerItems.sortBy(_.timestamp), chapter.duration.toDouble / 4))
     }
   }
 
@@ -347,7 +343,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
       }
 
       // search for the closest clusters
-      val closest = (distanceTable.par.minBy(_._2))._1
+      val closest = distanceTable.par.minBy(_._2)._1
 
       // remove them
       markerItems = markerItems diff List(closest._1, closest._2)
@@ -363,13 +359,15 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
       markerItems = left ++ Vector(group) ++ right
 
       // update distance table
+      // format: OFF
       distanceTable ++=
-        ((right takeWhile { _.timestamp < group.timestamp + clusterRadius }) /*.par*/ map { item ⇒
+        ((right takeWhile { _.timestamp < group.timestamp + clusterRadius }) map { item ⇒
           (group, item) → MarkerManager.distance(group.coords, item.coords)
         } toMap) ++
-        ((left dropWhile { _.timestamp < group.timestamp - clusterRadius }) /*.par*/ map { item ⇒
+        ((left dropWhile { _.timestamp < group.timestamp - clusterRadius }) map { item ⇒
           (item, group) → MarkerManager.distance(item.coords, group.coords)
         } toMap)
+      // format: ON
     }
     markerItems(0)
   }
@@ -390,7 +388,7 @@ class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int],
     val center = markerItems map { item ⇒
       (item, MarkerManager.chebyshevDistance(p.toScreenLocation(item.coords), _center))
     } filter {
-      case ((_: ImageMarkerItem | _: GroupMarkerItem), d) if d < radius ⇒ true
+      //case ((_: ImageMarkerItem | _: GroupMarkerItem), d) if d < radius ⇒ true
       case _ ⇒ false
     } match {
       case l if l.length == 0 ⇒ _center

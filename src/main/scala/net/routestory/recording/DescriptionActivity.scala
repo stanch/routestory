@@ -7,15 +7,14 @@ import android.view.{ ViewGroup, KeyEvent, View }
 import android.widget._
 import net.routestory.R
 import net.routestory.parts.{ Styles, HapticButton, RouteStoryActivity }
-import org.ektorp.ViewQuery
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.collection.JavaConversions._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import net.routestory.parts.Styles._
 import ViewGroup.LayoutParams._
 import android.text.InputType
 import scala.async.Async.{ async, await }
 import org.macroid.contrib.ListAdapter
+import net.routestory.needs.NeedTags
 
 class DescriptionActivity extends RouteStoryActivity {
   var title: EditText = _
@@ -63,11 +62,9 @@ class DescriptionActivity extends RouteStoryActivity {
   override def onStart() {
     super.onStart()
     async {
-      val query = new ViewQuery().designDocId("_design/Story").viewName("tags").group(true)
-      val tagz = await(app.getPlainQueryResults(remote = true, query))
-      val tagArray = tagz.getRows.map(_.getKey)
+      val tagz = await(NeedTags().go).map(_.tag)
       Ui {
-        val adapter = ListAdapter.text(tagArray)(Tweak.blank, t ⇒ text(t))
+        val adapter = ListAdapter.text(tagz)(Tweak.blank, t ⇒ text(t))
         tags.setAdapter(adapter)
         tags.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)
       }

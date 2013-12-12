@@ -1,8 +1,7 @@
 package net.routestory.explore
 
 import android.support.v4.app.Fragment
-import net.routestory.lounge2.Puffy
-import net.routestory.model2.StoryPreview
+import net.routestory.model.StoryPreview
 import net.routestory.parts.FragmentData
 import rx.{ Obs, Rx }
 import scala.concurrent.Future

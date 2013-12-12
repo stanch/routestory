@@ -52,25 +52,25 @@ class DetailsFragment extends RouteStoryFragment {
       val display = getActivity.getWindowManager.getDefaultDisplay
       val width = display.getWidth()
 
-      Option(s.author) map { a ⇒
+      s.author map { a ⇒
         authorPicture ~> { x ⇒
           x.setScaleType(ImageView.ScaleType.FIT_START)
           x.setAdjustViewBounds(true)
         }
         authorName ~> text(a.name)
-        a.pictureCache.get foreach {
-          picture ⇒ Option(picture).map(b ⇒ authorPicture ~> (_.setImageBitmap(b))).getOrElse(authorPicture ~> hide)
-        }
+        //        a.pictureCache.get foreach {
+        //          picture ⇒ Option(picture).map(b ⇒ authorPicture ~> (_.setImageBitmap(b))).getOrElse(authorPicture ~> hide)
+        //        }
       } getOrElse {
         authorName ~> text("Me")
         authorPicture ~> hide
       }
 
-      val d = Option(s.description).filter(_.length > 0).getOrElse("No description.")
+      val d = s.meta.description.filter(!_.isEmpty).getOrElse("No description.")
       description ~> text(d)
 
-      Option(s.tags).filter(_.length > 0) map { t ⇒
-        PreviewRow.fillTags(tagRows, width - 20, t.map((_, None)).toList, WeakReference(getActivity))
+      Option(s.meta.tags).filter(!_.isEmpty) map { t ⇒
+        PreviewRow.fillTags(tagRows, width - 20, t.map((_, None)), WeakReference(getActivity))
       } getOrElse {
         tagStuff ~> hide
       }

@@ -11,7 +11,7 @@ import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import scala.ref.WeakReference
 import net.routestory.needs.NeedTags
-import net.routestory.model2.Tag
+import net.routestory.model.Tag
 
 class TagsFragment extends RouteStoryFragment {
   var rows = slot[LinearLayout]

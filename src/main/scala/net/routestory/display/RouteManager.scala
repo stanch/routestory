@@ -2,10 +2,8 @@ package net.routestory.display
 
 import net.routestory.model.Story
 import android.graphics.Color
-
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model._
-
 import scala.collection.JavaConversions._
 
 object RouteManager {
@@ -17,49 +15,36 @@ object RouteManager {
   }
 }
 
-class RouteManager(map: GoogleMap, story: Story) {
+class RouteManager(map: GoogleMap) {
   var route: Option[Polyline] = None
 
-  def isEmpty = route.exists(_.getPoints.size > 0)
-
-  def init(): RouteManager = if (story.locations.isEmpty) {
-    route = None
-    this
-  } else {
-    val routeOptions = new PolylineOptions
-    story.locations foreach { l ⇒
-      routeOptions.add(l.asLatLng)
-    }
-    routeOptions.width(7)
-    routeOptions.color(Color.parseColor("#AD9A3D"))
-    route = Some(map.addPolyline(routeOptions))
-    this
-  }
-
-  def getBounds = route map { r ⇒
-    val boundsBuilder = LatLngBounds.builder()
-    r.getPoints foreach { point ⇒
-      boundsBuilder.include(point)
-    }
-    boundsBuilder.build()
-  }
-
-  def getPoints = route.map(_.getPoints)
-
-  def getStart = getPoints.map(_.head)
-
-  def getEnd = getPoints.map(_.last)
-
-  def getStartBearing = getPoints.map { p ⇒
-    if (p.size < 2) 0f else RouteManager.getBearing(p(0), p(1))
-  }
-
-  def update() {
-    route.getOrElse(init())
-    route.foreach(_.setPoints(story.locations.map(_.asLatLng)))
+  def add(chapter: Story.Chapter) = route match {
+    case Some(line) ⇒ line.setPoints(chapter.locations.map(_.coordinates))
+    case None ⇒
+      val routeOptions = new PolylineOptions
+      chapter.locations.map(_.coordinates).foreach(routeOptions.add)
+      routeOptions.width(7)
+      routeOptions.color(Color.parseColor("#AD9A3D"))
+      route = Some(map.addPolyline(routeOptions))
   }
 
   def remove() {
     route.foreach(_.remove())
+  }
+
+  def bounds = route map { r ⇒
+    val boundsBuilder = LatLngBounds.builder()
+    r.getPoints.foreach(boundsBuilder.include)
+    boundsBuilder.build()
+  }
+
+  def points = route.map(_.getPoints)
+
+  def start = points.map(_.head)
+
+  def end = points.map(_.last)
+
+  def startBearing = points.map { p ⇒
+    if (p.size < 2) 0f else RouteManager.getBearing(p(0), p(1))
   }
 }

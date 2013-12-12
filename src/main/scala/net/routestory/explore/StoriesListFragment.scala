@@ -16,8 +16,7 @@ import android.util.Log
 import scala.async.Async.{ async, await }
 import org.macroid.contrib.ExtraTweaks
 import org.macroid.contrib.ListAdapter
-import net.routestory.lounge2.Puffy
-import net.routestory.model2.StoryPreview
+import net.routestory.model.StoryPreview
 import scala.ref.WeakReference
 import org.macroid.MediaQueries
 

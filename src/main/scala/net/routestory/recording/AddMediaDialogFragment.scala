@@ -70,7 +70,7 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
       val activity = getActivity.asInstanceOf[RecordActivity]
       activity.trackAudio()
       if (resultCode == Activity.RESULT_OK) {
-        activity.addPhoto(mPhotoPath)
+        //activity.addPhoto(mPhotoPath)
       }
     }
   }
@@ -94,7 +94,7 @@ object AddMediaDialogFragment {
 
 class AddSomethingDialogFragment extends DialogFragment {
   lazy val activity = getActivity.asInstanceOf[RecordActivity]
-  lazy val coords = activity.routeManager.getEnd.get
+  lazy val coords = activity.routeManager.end.get
 
   override def onDismiss(dialog: DialogInterface) {
     super.onDismiss(dialog)
@@ -129,7 +129,7 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurren
           val v = Option(itemView).getOrElse(w[TextView] ~> TextSize.large ~> padding(all = (3 sp)) ~> id(Id.text))
           findView[TextView](v, Id.text) ~> text(item._2)
           v ~> On.click {
-            activity.addVenue(item._1, item._2, item._3, item._4)
+            //activity.addVenue(item._1, item._2, item._3, item._4)
             dismiss()
           }
         }
@@ -153,7 +153,7 @@ class NoteDialogFragment extends AddSomethingDialogFragment {
     }
     new AlertDialog.Builder(activity) {
       setView(input)
-      setPositiveButton(android.R.string.ok, Some(input.getText.toString).filter(_.length > 0).foreach(activity.addNote))
+      //setPositiveButton(android.R.string.ok, Some(input.getText.toString).filter(_.length > 0).foreach(activity.addNote))
       setNegativeButton(android.R.string.cancel, ())
     }.create()
   }
@@ -204,7 +204,7 @@ class VoiceDialogFragment extends AddSomethingDialogFragment with LayoutDsl with
           stop()
         }
         if (mRecorded) {
-          activity.addVoice(mOutputPath)
+          //activity.addVoice(mOutputPath)
         }
       })
       setNegativeButton(android.R.string.cancel, {
@@ -239,7 +239,7 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
 
     new AlertDialog.Builder(ctx) {
       setView(layout)
-      setPositiveButton(android.R.string.ok, Some(beats.now).filter(_ > 0).foreach(activity.addHeartbeat))
+      //setPositiveButton(android.R.string.ok, Some(beats.now).filter(_ > 0).foreach(activity.addHeartbeat))
       setNegativeButton(android.R.string.cancel, ())
     }.create()
   }
