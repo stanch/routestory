@@ -2,6 +2,9 @@ package net.routestory.model
 
 import com.google.android.gms.maps.model.LatLng
 import play.api.libs.json.JsValue
+import scala.concurrent.ExecutionContext
+import android.content.Context
+import net.routestory.needs.NeedMedia
 
 object Story {
   sealed trait Timed {
@@ -16,6 +19,10 @@ object Story {
 
   sealed trait ExternalMedia extends Media {
     val url: String
+  }
+
+  implicit class DownloadableExternalMedia(m: ExternalMedia)(implicit ctx: Context, ec: ExecutionContext) {
+    def fetch = NeedMedia(m.url).go
   }
 
   sealed trait Audio extends ExternalMedia

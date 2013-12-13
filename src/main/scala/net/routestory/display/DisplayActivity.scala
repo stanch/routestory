@@ -27,6 +27,7 @@ import org.macroid.util.Text
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import net.routestory.explore.ExploreActivity
 import net.routestory.needs.NeedStory
+import java.util.concurrent.Executors
 
 object DisplayActivity {
   object NfcIntent {
@@ -66,6 +67,14 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
   }
 
   lazy val story = NeedStory(id).go
+  lazy val media = story map { s ⇒
+    // avoid clogging ForkJoinPool with IO
+    implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
+    s.chapters(0).media flatMap {
+      case m: Story.ExternalMedia ⇒ m.fetch :: Nil
+      case _ ⇒ Nil
+    }
+  }
 
   //  lazy val media = {
   //    // avoid clogging ForkJoinPool with blocking IO
@@ -98,7 +107,7 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
 
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
-    progress ~@> waitProgress(story) // ~@> media.map(waitProgress)
+    progress ~@> waitProgress(story) ~@> media.map(waitProgress)
 
     story mapUi { s ⇒
       bar.setTitle(s.meta.title.filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))

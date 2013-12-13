@@ -5,6 +5,10 @@ import org.needs.{ rest, http, Endpoint }
 import android.util.Log
 import org.needs.http.HttpEndpoint
 import org.needs.json.JsonEndpoint
+import org.needs.file.FileEndpoint
+import java.io.File
+import scala.concurrent.{ Future, ExecutionContext }
+import android.content.Context
 
 object Client {
   lazy val client = new AsyncHttpClient
@@ -14,6 +18,10 @@ trait EndpointLogging { self: Endpoint ⇒
   override protected def logFetching() {
     Log.d("Needs", s"Downloading $this")
   }
+}
+
+trait Local { self: Endpoint ⇒
+  override val priority = Seq(1, 0)
 }
 
 trait RemoteEndpointBase extends http.AndroidJsonClient with EndpointLogging { self: HttpEndpoint with JsonEndpoint ⇒
@@ -28,3 +36,22 @@ case class RemoteAuthor(id: String)
 
 case class RemoteStory(id: String)
   extends SingleResource("http://routestory.herokuapp.com/api/stories")
+
+abstract class CachedFileBase(url: String, ctx: Context) extends FileEndpoint with EndpointLogging {
+  def create = new File(s"${ctx.getExternalCacheDir.getAbsolutePath}/${url.replace("/", "-")}")
+}
+
+case class RemoteMedia(url: String)(implicit ctx: Context)
+  extends CachedFileBase(url, ctx) with http.HttpEndpoint with http.AndroidFileClient {
+  // TODO: WTF? loopj is a piece of crap? can’t we reuse the global one?
+  val asyncHttpClient = new AsyncHttpClient //Client.client
+  protected def fetch(implicit ec: ExecutionContext) =
+    client(s"http://routestory.herokuapp.com/api/stories/$url")
+}
+
+case class LocalMedia(url: String)(implicit ctx: Context)
+  extends CachedFileBase(url, ctx) with Local {
+  case object CacheMiss extends Exception
+  protected def fetch(implicit ec: ExecutionContext) =
+    Option(create).filter(_.exists()).map(Future.successful).getOrElse(Future.failed(CacheMiss))
+}

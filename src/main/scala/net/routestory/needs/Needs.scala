@@ -5,6 +5,8 @@ import net.routestory.model._
 import scala.concurrent.{ Future, ExecutionContext }
 import org.needs.http.HttpEndpoint
 import JsonFormats._
+import java.io.File
+import android.content.Context
 
 case class NeedAuthor(id: String) extends Need[Author] with rest.Probing[Author] {
   use { RemoteAuthor(id) }
@@ -39,4 +41,13 @@ case class NeedTagged(tag: String, limit: Int = 4, bookmark: Option[String] = No
 case class NeedTags() extends json.SelfFulfillingNeed[List[Tag]] with HttpEndpoint with RemoteEndpointBase {
   def fetch(implicit ec: ExecutionContext) =
     client("http://routestory.herokuapp.com/api/tags")
+}
+
+case class NeedMedia(url: String)(implicit ctx: Context) extends Need[File] {
+  use { RemoteMedia(url) }
+  use { LocalMedia(url) }
+  from {
+    case e @ LocalMedia(`url`) ⇒ e.probe
+    case e @ RemoteMedia(`url`) ⇒ e.probe
+  }
 }

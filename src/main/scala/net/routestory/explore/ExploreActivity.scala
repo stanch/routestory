@@ -8,6 +8,7 @@ import net.routestory.R
 import android.view.{ MenuItem, Menu }
 import android.content.Intent
 import net.routestory.recording.RecordActivity
+import net.routestory.needs.NeedMedia
 
 class ExploreActivity extends RouteStoryActivity with FragmentPaging {
   override def onCreate(savedInstanceState: Bundle) {
@@ -29,6 +30,9 @@ class ExploreActivity extends RouteStoryActivity with FragmentPaging {
       "Latest" → f[LatestFragment].pass("number" → 10).factory,
       "Popular tags" → f[TagsFragment].factory
     )))
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    NeedMedia("story-zwAsEW54BBCt6kTCvmoaNA/audio/2.aac").go
   }
 
   override def onCreateOptionsMenu(menu: Menu) = {
