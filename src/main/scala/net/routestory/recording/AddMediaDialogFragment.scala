@@ -23,7 +23,7 @@ import net.routestory.parts.Styles._
 import java.net.{ HttpURLConnection, URL }
 import scala.concurrent.future
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, GravityGridLayout, VerticalLinearLayout }
-import org.macroid.util.Thunk
+import org.macroid.util.{ Effector, Thunk }
 import scala.collection.JavaConversions._
 import org.macroid.contrib.ExtraTweaks
 import org.codehaus.jackson.map.ObjectMapper
@@ -32,6 +32,7 @@ import rx.{ Rx, Var }
 import scala.async.Async.{ async, await }
 import scala.Dynamic
 import org.codehaus.jackson.JsonNode
+import com.google.android.gms.maps.model.LatLng
 
 class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
   import AddMediaDialogFragment._
@@ -40,23 +41,23 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val activity = getActivity.asInstanceOf[RecordActivity]
 
-    def clicker(factory: Thunk[DialogFragment], tag: String) = activity.untrackAudio() foreachUi { _ ⇒
+    def clicker(factory: Thunk[DialogFragment], tag: String) = Thunk {
       dismiss()
       factory().show(activity.getSupportFragmentManager, tag)
     }
 
-    def cameraClicker = activity.untrackAudio() foreachUi { _ ⇒
+    val cameraClicker = Thunk {
       val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
       intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
       startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
     }
 
     val buttons = List(
-      (R.drawable.photo, "Take a picture", Thunk(cameraClicker)),
-      (R.drawable.text_note, "Add a text note", Thunk(clicker(f[NoteDialogFragment].factory, Tag.noteDialog))),
-      (R.drawable.voice_note, "Make a voice note", Thunk(clicker(f[VoiceDialogFragment].factory, Tag.voiceDialog))),
-      (R.drawable.heart, "Record heartbeat", Thunk(clicker(f[MeasurePulseDialogFragment].factory, Tag.pulseDialog))),
-      (R.drawable.foursquare, "Mention a venue", Thunk(clicker(f[FoursquareDialogFragment].factory, Tag.fsqDialog)))
+      (R.drawable.photo, "Take a picture", cameraClicker),
+      (R.drawable.text_note, "Add a text note", clicker(f[NoteDialogFragment].factory, Tag.noteDialog)),
+      (R.drawable.voice_note, "Make a voice note", clicker(f[VoiceDialogFragment].factory, Tag.voiceDialog)),
+      (R.drawable.heart, "Record heartbeat", clicker(f[MeasurePulseDialogFragment].factory, Tag.pulseDialog)),
+      (R.drawable.foursquare, "Mention a venue", clicker(f[FoursquareDialogFragment].factory, Tag.fsqDialog))
     )
 
     val view = w[ListView] ~> (_.setAdapter(new MediaListAdapter(buttons)))
@@ -68,7 +69,6 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
     if (requestCode == RecordActivity.REQUEST_CODE_TAKE_PICTURE) {
       dismiss()
       val activity = getActivity.asInstanceOf[RecordActivity]
-      activity.trackAudio()
       if (resultCode == Activity.RESULT_OK) {
         //activity.addPhoto(mPhotoPath)
       }
@@ -94,15 +94,14 @@ object AddMediaDialogFragment {
 
 class AddSomethingDialogFragment extends DialogFragment {
   lazy val activity = getActivity.asInstanceOf[RecordActivity]
-  lazy val coords = activity.routeManager.end.get
+  lazy val coords: LatLng = ???
 
   override def onDismiss(dialog: DialogInterface) {
     super.onDismiss(dialog)
-    activity.trackAudio()
   }
 }
 
-class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurrency with BasicViewSearch with MediaQueries with FragmentContext {
+class FoursquareDialogFragment extends AddSomethingDialogFragment with UiThreading with BasicViewSearch with MediaQueries with FragmentContext {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val client_id = "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05"
     val client_secret = "SIPSHLBOLADA2HW3RT44GE14OGBDNSM0VPBN4MSEWH2E4VLN"
@@ -123,7 +122,7 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with Concurren
         (v.get("id").asText, v.get("name").asText, loc.get("lat").asDouble, loc.get("lng").asDouble)
       }
       await(progress ~@> Effects.fadeOut)
-      Ui(list.setAdapter(new ArrayAdapter(activity, 0, vs.toArray) {
+      ui(list.setAdapter(new ArrayAdapter(activity, 0, vs.toArray) {
         override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
           val item = getItem(position)
           val v = Option(itemView).getOrElse(w[TextView] ~> TextSize.large ~> padding(all = (3 sp)) ~> id(Id.text))
@@ -222,6 +221,13 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
     if (taps().length < 5) 0 else {
       val interval = taps().sliding(2).map { case List(a, b) ⇒ a - b }.sum.toInt / 4
       60000 / interval
+    }
+  }
+
+  var refs: List[Any] = Nil
+  implicit object rxEffector extends Effector[Rx] {
+    def foreach[A](fa: Rx[A])(f: A ⇒ Any) = {
+      refs ::= fa.foreach(f andThen (_ ⇒ ()))
     }
   }
 

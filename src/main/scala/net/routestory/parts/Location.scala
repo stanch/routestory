@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.content.Context
 import java.util.Locale
 
-object Location extends org.macroid.Concurrency {
+object Location extends org.macroid.UiThreading {
   def getBbox(loc: Loc) = {
     // see [http://janmatuschek.de/LatitudeLongitudeBoundingCoordinates]
     val conv = Math.PI / 180
@@ -32,7 +32,7 @@ object Location extends org.macroid.Concurrency {
       override def onProviderEnabled(provider: String) {}
       override def onProviderDisabled(provider: String) {}
     }
-    runOnUiThread {
+    ui {
       locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0, locationListener)
       locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListener)
     }

@@ -58,7 +58,7 @@ class FlatFragment extends RouteStoryFragment {
       //val m = await(media)
       //await(Future.sequence(m)) // preload not to cache twice
       await(Future.sequence(mm.loadingItems))
-      Ui {
+      ui {
         mm.update()
         map.setOnMarkerClickListener(mm.onMarkerClick _)
       }
@@ -85,7 +85,7 @@ class FlatFragment extends RouteStoryFragment {
       async {
         val mm = await(markerManager)
         await(rm)
-        Ui {
+        ui {
           map.moveCamera(CameraUpdateFactory.newLatLngBounds(routeManager.bounds.get, 30 dp))
           map.setOnCameraChangeListener { p: CameraPosition ⇒ mm.update() }
         }

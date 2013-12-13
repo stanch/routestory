@@ -69,14 +69,14 @@ class StoriesListFragment extends ListFragment
   }
 
   def update(data: Future[List[StoryPreview]]) = async {
-    if (showReload || Option(getListAdapter).exists(_.isEmpty)) await(Ui(setListShown(false)))
+    if (showReload || Option(getListAdapter).exists(_.isEmpty)) await(ui(setListShown(false)))
     Log.d("StoryList", s"Received future $data from $observer")
     val s = await(data mapUi {
       x ⇒ setEmptyText(emptyText); x
     } recoverUi {
       case t if !t.isInstanceOf[UninitializedError] ⇒ t.printStackTrace(); setEmptyText(errorText); Nil
     })
-    Ui {
+    ui {
       adapter map { a ⇒
         a.clear()
       } getOrElse {

@@ -9,6 +9,7 @@ import JsonFormats._
 
 case class Latest(total: Int, stories: List[StoryPreview])
 object Latest {
+  import storyPreviewReadsLatest._
   implicit val reads = Fulfillable.reads[Latest] {
     (__ \ 'total_rows).read[Int] and
     (__ \ 'rows).read[List[Fulfillable[StoryPreview]]].map(Fulfillable.jumpList)
@@ -17,6 +18,7 @@ object Latest {
 
 case class Searched(total: Int, bookmark: String, stories: List[StoryPreview])
 object Searched {
+  import storyPreviewReadsSearched._
   implicit val reads = Fulfillable.reads[Searched] {
     (__ \ 'total_rows).read[Int] and
     (__ \ 'bookmark).read[String] and

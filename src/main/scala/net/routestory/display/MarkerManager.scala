@@ -23,7 +23,7 @@ import net.routestory.parts.Implicits._
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import org.macroid.{ MediaQueries, Tweaks, LayoutDsl, Concurrency }
+import org.macroid.{ MediaQueries, Tweaks, LayoutDsl, UiThreading }
 import org.macroid.contrib.ExtraTweaks
 import ViewGroup.LayoutParams._
 import uk.co.senab.photoview.PhotoViewAttacher
@@ -35,7 +35,7 @@ import net.routestory.model.Story.Chapter
 import scala.ref.WeakReference
 import net.routestory.model.Story
 
-class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int], chapter: Chapter, activity: WeakReference[Activity])(implicit ctx: Context) extends Concurrency with MediaQueries {
+class MarkerManager(googleMap: GoogleMap, mapView: View, displaySize: List[Int], chapter: Chapter, activity: WeakReference[Activity])(implicit ctx: Context) extends UiThreading with MediaQueries {
   var hideOverlays = false
 
   val maxIconSize = ((800 dp) :: displaySize).min / 4

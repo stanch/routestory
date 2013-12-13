@@ -87,11 +87,22 @@ object JsonFormats {
 
   /* Story preview */
 
-  implicit val storyPreviewReads = Fulfillable.reads[StoryPreview] {
-    (__ \ 'id).read[String] and
-    (__ \ 'value \ 'title).read[Option[String]] and
-    ((__ \ 'value \ 'tags).read[List[String]] orElse (__ \ 'value \ 'tags).read[String].map(_ :: Nil)) and
-    (__ \ 'value \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
+  object storyPreviewReadsLatest {
+    implicit val storyPreviewReads = Fulfillable.reads[StoryPreview] {
+      (__ \ 'id).read[String] and
+      (__ \ 'value \ 'title).read[Option[String]] and
+      (__ \ 'value \ 'tags).read[List[String]] and
+      (__ \ 'value \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
+    }
+  }
+
+  object storyPreviewReadsSearched {
+    implicit val storyPreviewReads = Fulfillable.reads[StoryPreview] {
+      (__ \ 'id).read[String] and
+      (__ \ 'fields \ 'title).read[Option[String]] and
+      ((__ \ 'fields \ 'tags).read[List[String]] orElse (__ \ 'fields \ 'tags).read[String].map(_ :: Nil)) and
+      (__ \ 'fields \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
+    }
   }
 
   /* Author */

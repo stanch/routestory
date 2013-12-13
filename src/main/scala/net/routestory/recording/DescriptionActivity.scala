@@ -63,7 +63,7 @@ class DescriptionActivity extends RouteStoryActivity {
     super.onStart()
     async {
       val tagz = await(NeedTags().go).map(_.tag)
-      Ui {
+      ui {
         val adapter = ListAdapter.text(tagz)(Tweak.blank, t ⇒ text(t))
         tags.setAdapter(adapter)
         tags.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)

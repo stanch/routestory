@@ -35,19 +35,12 @@ import scala.async.Async.{ async, await }
 import com.google.android.gms.common._
 import scala.util.{ Success, Try }
 import com.google.android.gms.location.{ LocationRequest, LocationClient, LocationListener }
+import akka.actor.{ Actor, ActorSystem }
+import org.macroid.UiThreading
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
-  val REQUEST_CODE_TITLE_AND_TAG = 1
-  val REQUEST_CONNECTION_FAILURE_RESOLUTION = 2
-}
-
-class AudioHandler(activity: WeakReference[RecordActivity]) extends Handler {
-  override def handleMessage(msg: Message) {
-    val path = msg.getData.getString("path")
-    val time = msg.getData.getLong("time")
-    activity.get.get.audioPieces ::= (time, path)
-  }
+  val REQUEST_CONNECTION_FAILURE_RESOLUTION = 1
 }
 
 trait LocationHandler
@@ -57,7 +50,8 @@ trait LocationHandler
 
   import RecordActivity._
 
-  val locationClient: LocationClient
+  lazy val locationClient = new LocationClient(this, this, this)
+
   def trackLocation() {
     locationClient.connect()
   }
@@ -89,21 +83,12 @@ trait LocationHandler
 }
 
 class RecordActivity extends RouteStoryActivity with LocationHandler {
-  var chapter = Story.Chapter(0, 0, Nil, Nil)
-  var media = Map[String, (String, String)]()
-  var audioPieces = List[(Long, String)]()
+  lazy val actorSystem = ActorSystem("RecordingActorSystem")
 
   val firstLocationPromise = Promise[Unit]()
-  lazy val locationClient = new LocationClient(this, this, this)
+  var progress = slot[ProgressBar]
 
   lazy val map = findFrag[SupportMapFragment](Tag.recordingMap).get.getMap
-  lazy val routeManager = new RouteManager(map)
-  var manMarker: Option[Marker] = None
-
-  var audioTrackerThread: Option[Thread] = None
-  var toogleAudio: Boolean = false
-
-  var progress = slot[ProgressBar]
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -125,8 +110,65 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
     bar.setDisplayShowHomeEnabled(true)
   }
 
-  def trackAudio(): Unit = ???
-  def untrackAudio(): Future[Unit] = ???
+  override def onStop() {
+    actorSystem.shutdown()
+  }
 
-  def onLocationChanged(location: Location) {}
+  def onLocationChanged(location: Location) {
+
+  }
+}
+
+object Cartographer {
+  case class Position(coords: LatLng)
+  case class Update(chapter: Story.Chapter)
+}
+class Cartographer(map: GoogleMap) extends Actor with UiThreading {
+  import Cartographer._
+  lazy val routeManager = new RouteManager(map)
+  var manMarker: Option[Marker] = None
+  def receive = {
+    case Update(chapter) ⇒ ui {
+      routeManager.add(chapter)
+    }
+    case Position(coords) ⇒ ui {
+      // move map, etc
+    }
+  }
+}
+
+object Typewriter {
+  case class Piece(media: Story.Media)
+  case object Backup
+}
+class Typewriter(firstSketch: Story.Chapter) extends Actor {
+  import Typewriter._
+  var chapter = firstSketch
+  def receive = {
+    case Piece(m @ Story.TextNote(ts, text)) ⇒
+      chapter = chapter.copy(media = m :: chapter.media)
+    case Backup ⇒
+    // save chapter to disk
+  }
+}
+
+object FakeAudioRecorder {
+  case object Start
+  case object Stop
+  case object Stopped
+  case object Record
+}
+class FakeAudioRecorder extends Actor {
+  import FakeAudioRecorder._
+  var enabled = false
+  def receive = {
+    case Start ⇒
+      enabled = true
+    case Stop ⇒
+      enabled = false
+      sender ! Stopped
+    case Record if enabled ⇒
+    // spawn a process to record stuff
+    case _ ⇒
+  }
 }
