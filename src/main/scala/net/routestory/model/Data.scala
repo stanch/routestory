@@ -5,6 +5,7 @@ import play.api.libs.json.JsValue
 import scala.concurrent.ExecutionContext
 import android.content.Context
 import net.routestory.needs.NeedMedia
+import net.routestory.parts.BitmapUtils
 
 object Story {
   sealed trait Timed {
@@ -19,17 +20,16 @@ object Story {
 
   sealed trait ExternalMedia extends Media {
     val url: String
-  }
-
-  implicit class DownloadableExternalMedia(m: ExternalMedia)(implicit ctx: Context, ec: ExecutionContext) {
-    def fetch = NeedMedia(m.url).go
+    def fetch(implicit ctx: Context, ec: ExecutionContext) = NeedMedia(url).go
   }
 
   sealed trait Audio extends ExternalMedia
   case class Sound(timestamp: Int, url: String) extends Audio
   case class VoiceNote(timestamp: Int, url: String) extends Audio
 
-  sealed trait Image extends ExternalMedia
+  sealed trait Image extends ExternalMedia {
+    def fetchAndLoad(maxSize: Int)(implicit ctx: Context, ec: ExecutionContext) = fetch.map(BitmapUtils.decodeFile(_, maxSize))
+  }
   case class Photo(timestamp: Int, url: String) extends Image
 
   case class TextNote(timestamp: Int, text: String) extends Media

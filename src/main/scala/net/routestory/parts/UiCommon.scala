@@ -1,7 +1,7 @@
 package net.routestory.parts
 
 import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivity }
-import net.routestory.{ SettingsActivity, R, AccountActivity, RouteStoryApp }
+import net.routestory.{ SettingsActivity, R, RouteStoryApp }
 import org.macroid._
 import android.view._
 import android.content.{ Context, Intent }
@@ -60,7 +60,6 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Toas
       ("Explore", clicker[ExploreActivity]),
       ("Create a story", clicker[RecordActivity]),
       ("My stories", clicker[MyStoriesActivity]),
-      ("Profile", clicker[AccountActivity]),
       ("Settings", clicker[SettingsActivity])
     )
     val adapter = ListAdapter.text(data)(

@@ -1,20 +1,12 @@
 package net.routestory.recording
 
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ Promise, Future, future }
 
 import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model._
 
-import android.app.AlertDialog
-import android.app.ProgressDialog
-import android.content.Intent
-import android.graphics.Bitmap
-import android.location.Location
+import android.location.{ Location ⇒ AndroidLocation }
 import android.os.{ Message, Handler, Bundle }
 import android.view._
 import android.widget.{ ProgressBar, LinearLayout }
@@ -29,13 +21,11 @@ import ViewGroup.LayoutParams._
 import scala.ref.WeakReference
 import android.util.Log
 import net.routestory.parts.Styles._
-import net.routestory.parts.Implicits._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
-import scala.async.Async.{ async, await }
 import com.google.android.gms.common._
 import scala.util.{ Success, Try }
 import com.google.android.gms.location.{ LocationRequest, LocationClient, LocationListener }
-import akka.actor.{ Actor, ActorSystem }
+import akka.actor.{ Props, Actor, ActorSystem }
 import org.macroid.UiThreading
 
 object RecordActivity {
@@ -84,6 +74,8 @@ trait LocationHandler
 
 class RecordActivity extends RouteStoryActivity with LocationHandler {
   lazy val actorSystem = ActorSystem("RecordingActorSystem")
+  implicit lazy val uiActor = actorSystem.actorOf(Props[UiActor])
+  lazy val cartographer = actorSystem.actorOf(Props(new Cartographer(map)))
 
   val firstLocationPromise = Promise[Unit]()
   var progress = slot[ProgressBar]
@@ -110,17 +102,28 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
     bar.setDisplayShowHomeEnabled(true)
   }
 
+  override def onStart() {
+    super.onStart()
+    trackLocation()
+  }
+
   override def onStop() {
+    super.onStop()
+    looseLocation()
     actorSystem.shutdown()
   }
 
-  def onLocationChanged(location: Location) {
-
+  def onLocationChanged(location: AndroidLocation) {
+    cartographer ! Cartographer.Location(new LatLng(location.getLatitude, location.getLongitude))
   }
 }
 
+class UiActor extends Actor {
+  def receive = Actor.emptyBehavior
+}
+
 object Cartographer {
-  case class Position(coords: LatLng)
+  case class Location(coords: LatLng)
   case class Update(chapter: Story.Chapter)
 }
 class Cartographer(map: GoogleMap) extends Actor with UiThreading {
@@ -131,22 +134,36 @@ class Cartographer(map: GoogleMap) extends Actor with UiThreading {
     case Update(chapter) ⇒ ui {
       routeManager.add(chapter)
     }
-    case Position(coords) ⇒ ui {
-      // move map, etc
+    case Location(coords) ⇒ ui {
+      // update map
+      //mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder().target(pt).tilt(45).zoom(19).build())) // TODO: zoom adaptivity
+      manMarker map { m ⇒
+        m.setPosition(coords)
+      } getOrElse {
+        manMarker = Some(map.addMarker(new MarkerOptions()
+          .position(coords)
+          .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
+        ))
+      }
+      map.animateCamera(CameraUpdateFactory.newLatLng(coords))
     }
   }
 }
 
 object Typewriter {
   case class Piece(media: Story.Media)
+  case class Location(coords: LatLng)
   case object Backup
 }
-class Typewriter(firstSketch: Story.Chapter) extends Actor {
+class Typewriter(firstSketch: Option[Story.Chapter]) extends Actor {
   import Typewriter._
-  var chapter = firstSketch
+  def ts = (System.currentTimeMillis / 1000L - chapter.start).toInt
+  var chapter = firstSketch.getOrElse(Story.Chapter(System.currentTimeMillis / 1000L, 0, Nil, Nil))
   def receive = {
     case Piece(m @ Story.TextNote(ts, text)) ⇒
       chapter = chapter.copy(media = m :: chapter.media)
+    case Location(coords) ⇒
+      chapter = chapter.copy(locations = Story.Location(ts, coords) :: chapter.locations)
     case Backup ⇒
     // save chapter to disk
   }

@@ -84,6 +84,7 @@ class FlatFragment extends RouteStoryFragment {
     map.setOnCameraChangeListener { p: CameraPosition ⇒
       async {
         val mm = await(markerManager)
+        await(Future.sequence(mm.loadingItems))
         await(rm)
         ui {
           map.moveCamera(CameraUpdateFactory.newLatLngBounds(routeManager.bounds.get, 30 dp))
