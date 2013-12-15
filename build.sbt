@@ -28,6 +28,7 @@ libraryDependencies ++= Seq(
   "com.scalarx" %% "scalarx" % "0.1" exclude ("com.typesafe.akka", "akka-actor"),
   "com.typesafe.play" %% "play-json" % "2.2.0",
   "com.typesafe.akka" %% "akka-actor" % "2.2.3",
+  "com.typesafe.akka" %% "akka-slf4j" % "2.2.3",
   "org.scala-lang.modules" %% "scala-async" % "0.9.0-M4",
   "org.apache.commons" % "commons-io" % "1.3.2"
 )
@@ -48,5 +49,19 @@ proguardOptions ++= Seq(
   "-keepnames class com.codehaus.jackson.** { *; }",
   "-keep class com.couchbase.cblite.router.CBLRouter { *; }",
   "-keep class com.couchbase.touchdb.TDCollateJSON { *; }",
+  "-keep class akka.actor.LightArrayRevolverScheduler { *; }",
+  "-keep class akka.actor.LocalActorRefProvider { *; }",
+  "-keep class akka.actor.CreatorFunctionConsumer { *; }",
+  "-keep class akka.actor.TypedCreatorFunctionConsumer { *; }",
+  "-keep class akka.dispatch.BoundedDequeBasedMessageQueueSemantics { *; }",
+  "-keep class akka.dispatch.UnboundedMessageQueueSemantics { *; }",
+  "-keep class akka.dispatch.UnboundedDequeBasedMessageQueueSemantics { *; }",
+  "-keep class akka.dispatch.DequeBasedMessageQueueSemantics { *; }",
+  "-keep class akka.actor.LocalActorRefProvider$Guardian { *; }",
+  "-keep class akka.actor.LocalActorRefProvider$SystemGuardian { *; }",
+  "-keep class akka.dispatch.UnboundedMailbox { *; }",
+  "-keep class akka.actor.DefaultSupervisorStrategy { *; }",
+  "-keep class akka.event.slf4j.Slf4jLogger { *; }",
+  "-keep class akka.event.Logging$LogExt { *; }",
   "-keepclasseswithmembers class * { native <methods>; }"
 )

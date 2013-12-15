@@ -6,6 +6,7 @@ import android.content.Context._
 import android.net.ConnectivityManager
 import rx.{ Obs, Var }
 import android.util.Log
+import com.typesafe.config.ConfigFactory
 
 class RouteStoryApp extends Application {
   implicit val ctx = this
@@ -13,6 +14,8 @@ class RouteStoryApp extends Application {
   lazy val authTokenSaver = authToken.foreach(writePrefs("authToken", _), skipInitial = true)
   lazy val authorId = Var(readPrefs("authorId"))
   lazy val authorIdSaver = authorId.foreach(writePrefs("authorId", _), skipInitial = true)
+
+  val config = ConfigFactory.load()
 
   override def onCreate() {
     super.onCreate()

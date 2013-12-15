@@ -25,8 +25,9 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 import com.google.android.gms.common._
 import scala.util.{ Success, Try }
 import com.google.android.gms.location.{ LocationRequest, LocationClient, LocationListener }
-import akka.actor.{ Props, Actor, ActorSystem }
+import akka.actor.{ LightArrayRevolverScheduler, Props, Actor, ActorSystem }
 import org.macroid.UiThreading
+import com.typesafe.config.ConfigFactory
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -41,6 +42,7 @@ trait LocationHandler
   import RecordActivity._
 
   lazy val locationClient = new LocationClient(this, this, this)
+  val firstLocationPromise = Promise[Unit]()
 
   def trackLocation() {
     locationClient.connect()
@@ -51,6 +53,7 @@ trait LocationHandler
 
   def onConnected(bundle: Bundle) {
     toast("Connected!") ~> fry
+    firstLocationPromise.trySuccess(())
     val request = LocationRequest.create()
       .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
       .setInterval(5000) // 5 seconds
@@ -73,14 +76,12 @@ trait LocationHandler
 }
 
 class RecordActivity extends RouteStoryActivity with LocationHandler {
-  lazy val actorSystem = ActorSystem("RecordingActorSystem")
-  implicit lazy val uiActor = actorSystem.actorOf(Props[UiActor])
-  lazy val cartographer = actorSystem.actorOf(Props(new Cartographer(map)))
-
-  val firstLocationPromise = Promise[Unit]()
+  lazy val map = findFrag[SupportMapFragment](Tag.recordingMap).get.getMap
   var progress = slot[ProgressBar]
 
-  lazy val map = findFrag[SupportMapFragment](Tag.recordingMap).get.getMap
+  lazy val actorSystem = ActorSystem("RecordingActorSystem", app.config, app.getClassLoader)
+  implicit lazy val uiActor = actorSystem.actorOf(UiActor.props)
+  lazy val cartographer = actorSystem.actorOf(Cartographer.props(map))
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -118,6 +119,9 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   }
 }
 
+object UiActor {
+  def props = Props[UiActor]
+}
 class UiActor extends Actor {
   def receive = Actor.emptyBehavior
 }
@@ -125,6 +129,7 @@ class UiActor extends Actor {
 object Cartographer {
   case class Location(coords: LatLng)
   case class Update(chapter: Story.Chapter)
+  def props(map: GoogleMap) = Props(new Cartographer(map))
 }
 class Cartographer(map: GoogleMap) extends Actor with UiThreading {
   import Cartographer._
@@ -154,6 +159,7 @@ object Typewriter {
   case class Piece(media: Story.Media)
   case class Location(coords: LatLng)
   case object Backup
+  def props = Props[Typewriter]
 }
 class Typewriter(firstSketch: Option[Story.Chapter]) extends Actor {
   import Typewriter._
