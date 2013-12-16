@@ -54,7 +54,7 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
 
     val buttons = List(
       (R.drawable.photo, "Take a picture", cameraClicker),
-      (R.drawable.text_note, "Add a text note", clicker(f[NoteDialogFragment].factory, Tag.noteDialog)),
+      (R.drawable.text_note, "Add a text note", clicker(f[TextNoteDialogFragment].factory, Tag.noteDialog)),
       (R.drawable.voice_note, "Make a voice note", clicker(f[VoiceDialogFragment].factory, Tag.voiceDialog)),
       (R.drawable.heart, "Record heartbeat", clicker(f[MeasurePulseDialogFragment].factory, Tag.pulseDialog)),
       (R.drawable.foursquare, "Mention a venue", clicker(f[FoursquareDialogFragment].factory, Tag.fsqDialog))
@@ -83,7 +83,7 @@ object AddMediaDialogFragment {
       val v = Option(itemView) getOrElse {
         l[HorizontalLinearLayout](
           w[ImageView] ~> id(Id.image), w[TextView] ~> id(Id.text) ~> TextSize.large
-        ) ~> padding(top = (12 dp), bottom = (12 dp), left = (8 dp))
+        ) ~> padding(top = 12 dp, bottom = 12 dp, left = 8 dp)
       }
       findView[ImageView](v, Id.image) ~> (_.setImageResource(item._1))
       findView[TextView](v, Id.text) ~> text(item._2)
@@ -143,7 +143,7 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with UiThreadi
   }
 }
 
-class NoteDialogFragment extends AddSomethingDialogFragment {
+class TextNoteDialogFragment extends AddSomethingDialogFragment {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val input = new EditText(activity) {
       setHint(R.string.message_typenotehere)
@@ -152,7 +152,9 @@ class NoteDialogFragment extends AddSomethingDialogFragment {
     }
     new AlertDialog.Builder(activity) {
       setView(input)
-      //setPositiveButton(android.R.string.ok, Some(input.getText.toString).filter(_.length > 0).foreach(activity.addNote))
+      setPositiveButton(android.R.string.ok, Some(input.getText.toString).filter(!_.isEmpty).foreach { text ⇒
+        activity.typewriter ! Typewriter.TextNote(text)
+      })
       setNegativeButton(android.R.string.cancel, ())
     }.create()
   }

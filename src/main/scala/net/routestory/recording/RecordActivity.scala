@@ -26,8 +26,9 @@ import com.google.android.gms.common._
 import scala.util.{ Success, Try }
 import com.google.android.gms.location.{ LocationRequest, LocationClient, LocationListener }
 import akka.actor.{ LightArrayRevolverScheduler, Props, Actor, ActorSystem }
-import org.macroid.UiThreading
+import org.macroid.{ Toasts, UiThreading }
 import com.typesafe.config.ConfigFactory
+import android.content.Context
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -80,8 +81,9 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   var progress = slot[ProgressBar]
 
   lazy val actorSystem = ActorSystem("RecordingActorSystem", app.config, app.getClassLoader)
-  implicit lazy val uiActor = actorSystem.actorOf(UiActor.props)
-  lazy val cartographer = actorSystem.actorOf(Cartographer.props(map))
+  implicit lazy val uiActor = actorSystem.actorOf(UiActor.props, "ui")
+  lazy val cartographer = actorSystem.actorOf(Cartographer.props(map), "cartographer")
+  lazy val typewriter = actorSystem.actorOf(Typewriter.props(None), "typewriter")
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -115,7 +117,8 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   }
 
   def onLocationChanged(location: AndroidLocation) {
-    cartographer ! Cartographer.Location(new LatLng(location.getLatitude, location.getLongitude))
+    cartographer ! Cartographer.Location(new LatLng(location.getLatitude, location.getLongitude), location.getBearing)
+    typewriter ! Typewriter.Location(new LatLng(location.getLatitude, location.getLongitude))
   }
 }
 
@@ -126,22 +129,25 @@ class UiActor extends Actor {
   def receive = Actor.emptyBehavior
 }
 
+/* This actor updates the map */
 object Cartographer {
-  case class Location(coords: LatLng)
+  case class Location(coords: LatLng, bearing: Float)
   case class Update(chapter: Story.Chapter)
   def props(map: GoogleMap) = Props(new Cartographer(map))
 }
 class Cartographer(map: GoogleMap) extends Actor with UiThreading {
   import Cartographer._
+
   lazy val routeManager = new RouteManager(map)
   var manMarker: Option[Marker] = None
+
   def receive = {
     case Update(chapter) ⇒ ui {
       routeManager.add(chapter)
     }
-    case Location(coords) ⇒ ui {
-      // update map
-      //mMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.builder().target(pt).tilt(45).zoom(19).build())) // TODO: zoom adaptivity
+
+    case Location(coords, bearing) ⇒ ui {
+      // update the map
       manMarker map { m ⇒
         m.setPosition(coords)
       } getOrElse {
@@ -150,28 +156,44 @@ class Cartographer(map: GoogleMap) extends Actor with UiThreading {
           .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
         ))
       }
-      map.animateCamera(CameraUpdateFactory.newLatLng(coords))
+      map.animateCamera(CameraUpdateFactory.newCameraPosition {
+        CameraPosition.builder(map.getCameraPosition).target(coords).tilt(45).zoom(19).bearing(bearing).build()
+      })
     }
   }
 }
 
+/* This actor maintains the chapter being recorded */
 object Typewriter {
-  case class Piece(media: Story.Media)
   case class Location(coords: LatLng)
+  case class TextNote(text: String)
   case object Backup
-  def props = Props[Typewriter]
+  def props(firstSketch: Option[Story.Chapter])(implicit ctx: Context) = Props(new Typewriter(firstSketch))
 }
-class Typewriter(firstSketch: Option[Story.Chapter]) extends Actor {
+class Typewriter(firstSketch: Option[Story.Chapter])(implicit ctx: Context) extends Actor with Toasts {
   import Typewriter._
+
+  def cartographer = context.actorSelection("../cartographer")
   def ts = (System.currentTimeMillis / 1000L - chapter.start).toInt
   var chapter = firstSketch.getOrElse(Story.Chapter(System.currentTimeMillis / 1000L, 0, Nil, Nil))
-  def receive = {
-    case Piece(m @ Story.TextNote(ts, text)) ⇒
-      chapter = chapter.copy(media = m :: chapter.media)
+
+  val addingStuff: Receive = {
+    // add a text note
+    case TextNote(text) ⇒
+      chapter = chapter.copy(media = Story.TextNote(ts, text) :: chapter.media)
+
+    // add a location
     case Location(coords) ⇒
       chapter = chapter.copy(locations = Story.Location(ts, coords) :: chapter.locations)
-    case Backup ⇒
+  }
+
+  def receive = (addingStuff andThen { _ ⇒
+    toast(chapter.toString) ~> long ~> fry
+    cartographer ! Cartographer.Update(chapter)
+  }) orElse {
     // save chapter to disk
+    case Backup ⇒
+      ???
   }
 }
 

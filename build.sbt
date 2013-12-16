@@ -49,6 +49,11 @@ proguardOptions ++= Seq(
   "-keepnames class com.codehaus.jackson.** { *; }",
   "-keep class com.couchbase.cblite.router.CBLRouter { *; }",
   "-keep class com.couchbase.touchdb.TDCollateJSON { *; }",
+  "-keepclasseswithmembers class * { native <methods>; }"
+)
+
+// akka
+proguardOptions ++= Seq(
   "-keep class akka.actor.LightArrayRevolverScheduler { *; }",
   "-keep class akka.actor.LocalActorRefProvider { *; }",
   "-keep class akka.actor.CreatorFunctionConsumer { *; }",
@@ -62,6 +67,5 @@ proguardOptions ++= Seq(
   "-keep class akka.dispatch.UnboundedMailbox { *; }",
   "-keep class akka.actor.DefaultSupervisorStrategy { *; }",
   "-keep class akka.event.slf4j.Slf4jLogger { *; }",
-  "-keep class akka.event.Logging$LogExt { *; }",
-  "-keepclasseswithmembers class * { native <methods>; }"
+  "-keep class akka.event.Logging$LogExt { *; }"
 )
