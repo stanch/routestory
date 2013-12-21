@@ -36,7 +36,7 @@ import com.google.android.gms.maps.model.LatLng
 
 class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
   import AddMediaDialogFragment._
-  lazy val mPhotoPath = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
+  lazy val photoUrl = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val activity = getActivity.asInstanceOf[RecordActivity]
@@ -48,7 +48,7 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
 
     val cameraClicker = Thunk {
       val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mPhotoPath)))
+      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(photoUrl)))
       startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
     }
 
@@ -70,7 +70,7 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
       dismiss()
       val activity = getActivity.asInstanceOf[RecordActivity]
       if (resultCode == Activity.RESULT_OK) {
-        //activity.addPhoto(mPhotoPath)
+        activity.typewriter ! Typewriter.Photo(photoUrl)
       }
     }
   }
@@ -247,7 +247,9 @@ class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutD
 
     new AlertDialog.Builder(ctx) {
       setView(layout)
-      //setPositiveButton(android.R.string.ok, Some(beats.now).filter(_ > 0).foreach(activity.addHeartbeat))
+      setPositiveButton(android.R.string.ok, Some(beats.now).filter(_ > 0).foreach { bpm ⇒
+        activity.typewriter ! Typewriter.Heartbeat(bpm)
+      })
       setNegativeButton(android.R.string.cancel, ())
     }.create()
   }

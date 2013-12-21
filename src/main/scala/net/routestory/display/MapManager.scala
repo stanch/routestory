@@ -1,24 +1,15 @@
 package net.routestory.display
 
-import net.routestory.model.Story
+import net.routestory.model.Story.Chapter
+import com.google.android.gms.maps.model.{ LatLngBounds, PolylineOptions, Polyline }
 import android.graphics.Color
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model._
 import scala.collection.JavaConversions._
 
-object RouteManager {
-  def getBearing(p1: LatLng, p2: LatLng) = {
-    val (lat1, lat2, dlng) = (p1.latitude.toRadians, p2.latitude.toRadians, (p2.longitude - p1.longitude).toRadians)
-    val y = Math.sin(dlng) * Math.cos(lat2)
-    val x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dlng)
-    Math.atan2(y, x).toDegrees.toFloat
-  }
-}
-
-class RouteManager(map: GoogleMap) {
+class MapManager(map: GoogleMap) {
   var route: Option[Polyline] = None
 
-  def add(chapter: Story.Chapter) = route match {
+  def addRoute(chapter: Chapter) = route match {
     case Some(line) ⇒ line.setPoints(chapter.locations.map(_.coordinates))
     case None ⇒
       val routeOptions = new PolylineOptions
@@ -28,8 +19,9 @@ class RouteManager(map: GoogleMap) {
       route = Some(map.addPolyline(routeOptions))
   }
 
-  def remove() {
+  def removeRoute() {
     route.foreach(_.remove())
+    route = None
   }
 
   def bounds = route map { r ⇒
@@ -45,6 +37,7 @@ class RouteManager(map: GoogleMap) {
   def end = points.map(_.last)
 
   def startBearing = points.map { p ⇒
-    if (p.size < 2) 0f else RouteManager.getBearing(p(0), p(1))
+    import net.routestory.parts.Implicits._
+    if (p.size < 2) 0f else p(0).bearingTo(p(1))
   }
 }

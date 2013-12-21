@@ -47,12 +47,7 @@ object DisplayActivity {
   }
 }
 
-trait HazStory {
-  val story: Future[Story]
-  //val media: Future[List[Future[Boolean]]]
-}
-
-class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPaging {
+class DisplayActivity extends RouteStoryActivity with FragmentDataProvider[Future[Story]] with FragmentPaging {
   import DisplayActivity._
 
   private lazy val id = getIntent match {
@@ -68,19 +63,13 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
 
   lazy val story = NeedStory(id).go
   lazy val media = story map { s ⇒
-    // avoid clogging ForkJoinPool with IO
-    implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
     s.chapters(0).media flatMap {
       case m: Story.ExternalMedia ⇒ m.fetch :: Nil
       case _ ⇒ Nil
     }
   }
 
-  //  lazy val media = {
-  //    // avoid clogging ForkJoinPool with blocking IO
-  //    implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
-  //    story map { s ⇒ s.photos.map(_.preload).toList ::: s.sounds.map(_.preload).toList }
-  //  }
+  def getFragmentData(tag: String) = story
 
   var progress = slot[ProgressBar]
   var shareable = false
@@ -88,6 +77,8 @@ class DisplayActivity extends RouteStoryActivity with HazStory with FragmentPagi
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
+
+    media // start loading
 
     setContentView(drawer(
       l[VerticalLinearLayout](

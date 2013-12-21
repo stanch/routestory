@@ -2,10 +2,12 @@ package net.routestory.model
 
 import com.google.android.gms.maps.model.LatLng
 import play.api.libs.json.JsValue
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ Future, ExecutionContext }
 import android.content.Context
 import net.routestory.needs.NeedMedia
 import net.routestory.parts.BitmapUtils
+import java.io.File
+import java.util.concurrent.Executors
 
 object Story {
   sealed trait Timed {
@@ -18,9 +20,18 @@ object Story {
     def location(implicit chapter: Chapter) = chapter.locationAt(timestamp)
   }
 
+  lazy val externalMediaEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
+
   sealed trait ExternalMedia extends Media {
     val url: String
-    def fetch(implicit ctx: Context, ec: ExecutionContext) = NeedMedia(url).go
+
+    private var _fetched: Option[Future[File]] = None
+    def fetch(implicit ctx: Context) = _fetched.synchronized {
+      _fetched getOrElse {
+        _fetched = Some(NeedMedia(url).go(externalMediaEc))
+        _fetched.get
+      }
+    }
   }
 
   sealed trait Audio extends ExternalMedia
@@ -28,7 +39,8 @@ object Story {
   case class VoiceNote(timestamp: Int, url: String) extends Audio
 
   sealed trait Image extends ExternalMedia {
-    def fetchAndLoad(maxSize: Int)(implicit ctx: Context, ec: ExecutionContext) = fetch.map(BitmapUtils.decodeFile(_, maxSize))
+    def fetchAndLoad(maxSize: Int)(implicit ctx: Context) =
+      fetch.map(BitmapUtils.decodeFile(_, maxSize))(externalMediaEc)
   }
   case class Photo(timestamp: Int, url: String) extends Image
 

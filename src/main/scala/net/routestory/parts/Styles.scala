@@ -18,7 +18,7 @@ object Styles extends org.macroid.contrib.ExtraTweaks with MediaQueries {
       if (!noPadding) x ~> padding(top = 15 sp)
     }
 
-  def storyShift(implicit ctx: Context) = (10 dp)
+  def storyShift(implicit ctx: Context) = 10.dp
 
   def title(implicit ctx: Context): Tweak[TextView] =
     TextSize.large + TextStyle.bold + Bg.res(R.color.aquadark) +

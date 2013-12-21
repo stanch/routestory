@@ -11,22 +11,21 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model._
 import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.parts.RouteStoryFragment
+import net.routestory.parts.{ FragmentData, RouteStoryFragment }
 import net.routestory.parts.Implicits._
 import scala.concurrent.Future
 import android.widget.{ Button, FrameLayout }
 import ViewGroup.LayoutParams._
 import scala.async.Async.{ async, await }
 import scala.ref.WeakReference
+import net.routestory.model.Story
 
-class FlatFragment extends RouteStoryFragment {
-  lazy val story = getActivity.asInstanceOf[HazStory].story
-  //lazy val media = getActivity.asInstanceOf[HazStory].media
+class FlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
+  lazy val story = getFragmentData
   lazy val display = getActivity.getWindowManager.getDefaultDisplay
   lazy val mapView = findFrag[SupportMapFragment](Tag.overviewMap).get.getView
   lazy val map = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap
-  lazy val routeManager = new RouteManager(map)
-  lazy val markerManager = story.map(s ⇒ new MarkerManager(map, mapView, List(display.getWidth, display.getHeight), s.chapters(0), WeakReference(getActivity)))
+  lazy val markerManager = new FlatMapManager(map, mapView, List(display.getWidth, display.getHeight), WeakReference(getActivity))
 
   var toggleOverlays = slot[Button]
 
@@ -40,11 +39,11 @@ class FlatFragment extends RouteStoryFragment {
           text(R.string.hide_overlays) ~>
           wire(toggleOverlays) ~>
           lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL) ~>
-          On.click(markerManager foreachUi { mm ⇒
-            mm.hideOverlays = !mm.hideOverlays
-            toggleOverlays ~> text(if (mm.hideOverlays) R.string.show_overlays else R.string.hide_overlays)
-            mm.update()
-          })
+          On.click {
+            markerManager.hideOverlays = !markerManager.hideOverlays
+            toggleOverlays ~> text(if (markerManager.hideOverlays) R.string.show_overlays else R.string.hide_overlays)
+            markerManager.update()
+          }
       )
     )
   }
@@ -52,44 +51,13 @@ class FlatFragment extends RouteStoryFragment {
   override def onFirstStart() {
     map.setMapType(GoogleMap.MAP_TYPE_HYBRID)
 
-    /* Initialize marker manager */
-    async {
-      val mm = await(markerManager)
-      //val m = await(media)
-      //await(Future.sequence(m)) // preload not to cache twice
-      await(Future.sequence(mm.loadingItems))
-      ui {
-        mm.update()
-        map.setOnMarkerClickListener(mm.onMarkerClick _)
-      }
-    }
-
-    /* Put start and end markers */
-    // format: OFF
-    val rm = story mapUi { s ⇒
-      routeManager.add(s.chapters(0))
-      List(
-        routeManager.start.get → R.drawable.flag_start,
-        routeManager.end.get → R.drawable.flag_end
-      ) map { case (l, d) ⇒
-        map.addMarker(new MarkerOptions()
-          .position(l).anchor(0.3f, 1)
-          .icon(BitmapDescriptorFactory.fromResource(d)))
-      }
-      ()
-    }
-    // format: ON
-
-    /* Move map to bounds */
-    map.setOnCameraChangeListener { p: CameraPosition ⇒
-      async {
-        val mm = await(markerManager)
-        await(Future.sequence(mm.loadingItems))
-        await(rm)
-        ui {
-          map.moveCamera(CameraUpdateFactory.newLatLngBounds(routeManager.bounds.get, 30 dp))
-          map.setOnCameraChangeListener { p: CameraPosition ⇒ mm.update() }
-        }
+    story foreachUi { s ⇒
+      markerManager.add(s.chapters(0))
+      map.setOnMarkerClickListener(markerManager.onMarkerClick)
+      map.setOnCameraChangeListener { p: CameraPosition ⇒
+        markerManager.update()
+        map.moveCamera(CameraUpdateFactory.newLatLngBounds(markerManager.bounds.get, 30 dp))
+        map.setOnCameraChangeListener { p: CameraPosition ⇒ markerManager.update() }
       }
     }
   }

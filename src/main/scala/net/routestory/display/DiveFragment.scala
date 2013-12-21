@@ -1,14 +1,14 @@
 package net.routestory.display
 
 import net.routestory.R
-import net.routestory.parts.{ BitmapUtils, RouteStoryFragment }
+import net.routestory.parts.{ FragmentData, BitmapUtils, RouteStoryFragment }
 import android.media.MediaPlayer
 import android.os.{ Vibrator, Bundle, Handler, SystemClock }
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.{ SeekBar, Button, FrameLayout, ImageView }
+import android.widget._
 import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -23,24 +23,34 @@ import org.macroid.contrib.ExtraTweaks
 import net.routestory.parts.Implicits._
 import android.content.Context
 import net.routestory.model.Story.{ Chapter, Heartbeat, TextNote, Photo }
+import scala.concurrent.Future
+import net.routestory.model.Story
+import scala.Some
+import net.routestory.model.Story.TextNote
+import net.routestory.model.Story.Chapter
+import net.routestory.model.Story.Photo
+import net.routestory.model.Story.Heartbeat
 
 object DiveFragment {
   val photoDuration = 1500
   val photoFade = 300
 }
 
-class DiveFragment extends RouteStoryFragment with ExtraTweaks {
-  lazy val story = getActivity.asInstanceOf[HazStory].story
-  //lazy val media = getActivity.asInstanceOf[HazStory].media
+class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] with ExtraTweaks {
+  lazy val story = getFragmentData
   lazy val map = findFrag[SupportMapFragment](Tag.previewMap).get.getMap
-  lazy val routeManager = new RouteManager(map)
   lazy val display = getActivity.getWindowManager.getDefaultDisplay
+  lazy val maxImageSize = Math.min(display.getWidth, display.getHeight) / 4
+  lazy val routeManager = new RouteMapManager(map, maxImageSize)
   lazy val handler = new Handler
 
+  // playback vars
   val ratio = Var(10.5 / 1000) // account for s → ms
   val cue = Var(0.0)
   val playing = Var(false)
 
+  // widgets
+  var layout = slot[LinearLayout]
   var playBig = slot[Button]
   var imageView = slot[ImageView]
   var play = slot[Button]
@@ -76,42 +86,19 @@ class DiveFragment extends RouteStoryFragment with ExtraTweaks {
           wire(pause) ~> story.map(s ⇒ On.click { playing.update(false); stop(); }) ~> hide,
         w[SeekBar] ~> wire(seekBar) ~> lp(MATCH_PARENT, WRAP_CONTENT)
       ) ~> padding(left = 16 dp, right = 8 dp, top = 8 dp, bottom = 8 dp)
-    )
+    ) ~> wire(layout)
   }
 
   override def onFirstStart() {
     map.setMapType(GoogleMap.MAP_TYPE_NORMAL)
 
-    /* Display the man */
     story foreachUi { s ⇒
-      routeManager.add(s.chapters(0))
+      val chapter = s.chapters(0)
+      positionMap(chapter, 0, tiltZoom = true)
+      routeManager.add(chapter)
       manMarker = Some(map.addMarker(new MarkerOptions()
         .position(routeManager.start.get)
         .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))))
-    }
-
-    val display = getActivity.getWindowManager.getDefaultDisplay
-    val maxSize = Math.min(display.getWidth, display.getHeight) / 4
-
-    def addPhoto(location: LatLng, bitmap: Bitmap) = Option(bitmap).foreach(b ⇒ map.addMarker(new MarkerOptions()
-      .position(location)
-      .icon(BitmapDescriptorFactory.fromBitmap(BitmapUtils.createScaledTransparentBitmap(
-        b, Math.min(Math.max(b.getWidth, b.getHeight), maxSize), 0.8, false)))
-    ))
-
-    def addMarker(location: LatLng, icon: Int) = map.addMarker(new MarkerOptions()
-      .position(location)
-      .icon(BitmapDescriptorFactory.fromResource(icon))
-    )
-
-    story foreachUi { s ⇒
-      implicit val chapter = s.chapters(0)
-      positionMap(chapter, 0, tiltZoom = true)
-      chapter.media foreach {
-        case m: TextNote ⇒ addMarker(m.location, R.drawable.text_note)
-        case m: Heartbeat ⇒ addMarker(m.location, R.drawable.heart)
-        case _ ⇒
-      }
     }
   }
 
@@ -146,7 +133,7 @@ class DiveFragment extends RouteStoryFragment with ExtraTweaks {
 
   def positionMap(chapter: Chapter, ts: Long, animate: Boolean = true, tiltZoom: Boolean = false) {
     val now = chapter.locationAt(ts * ratio.now)
-    val bearing = List(3800, 4200).map(t ⇒ RouteManager.getBearing(now, chapter.locationAt((ts + t) * ratio.now))).sum / 2
+    val bearing = List(3800, 4200).map(t ⇒ now.bearingTo(chapter.locationAt((ts + t) * ratio.now))).sum / 2
     val position = CameraUpdateFactory.newCameraPosition(if (tiltZoom) {
       CameraPosition.builder().target(now).tilt(90).zoom(19).bearing(bearing).build()
     } else {
@@ -165,12 +152,14 @@ class DiveFragment extends RouteStoryFragment with ExtraTweaks {
     play ~> show
     imageView ~> hide
     handler.removeCallbacksAndMessages(null)
+    layout ~> (_.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE))
   }
 
   def start(chapter: Chapter) {
     playBig ~> hide
     play ~> hide
     pause ~> show
+    layout ~> (_.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE))
     val duration = Math.ceil(chapter.duration / ratio.now).toInt
     val from = Math.ceil(cue.now * duration)
     val start = SystemClock.uptimeMillis
@@ -201,12 +190,12 @@ class DiveFragment extends RouteStoryFragment with ExtraTweaks {
     // only show a photo if there’s time to fade it in and out
     (photos zip spans) foreach {
       case (photo, span) if span > 2 * photoFade ⇒
-      //        handler.postAtTime({
-      //          photo.get(Math.min(display.getWidth, display.getHeight)) foreach { bitmap ⇒
-      //            imageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(photoFade)
-      //            handler.postDelayed(imageView ~@> fadeOut(photoFade), List(span - 2 * photoFade, photoDuration).min)
-      //          }
-      //        }, start + (photo.timestamp / ratio.now - from).toInt)
+        handler.postAtTime({
+          photo.fetchAndLoad(Math.min(display.getWidth, display.getHeight)) foreach { bitmap ⇒
+            imageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(photoFade)
+            handler.postDelayed(imageView ~@> fadeOut(photoFade), List(span - 2 * photoFade, photoDuration).min)
+          }
+        }, start + (photo.timestamp / ratio.now - from).toInt)
       case _ ⇒
     }
 

@@ -8,15 +8,16 @@ import android.view.ViewGroup
 import android.widget.{ ScrollView, LinearLayout, TextView, ImageView }
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import net.routestory.parts.{ Styles, RouteStoryFragment }
+import net.routestory.parts.{ FragmentData, Styles, RouteStoryFragment }
 import net.routestory.parts.Styles._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import ViewGroup.LayoutParams._
 import net.routestory.explore.PreviewRow
 import scala.ref.WeakReference
+import net.routestory.model.Story
 
-class DetailsFragment extends RouteStoryFragment {
-  lazy val story = getActivity.asInstanceOf[HazStory].story
+class DetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
+  lazy val story = getFragmentData
 
   var authorPicture = slot[ImageView]
   var authorName = slot[TextView]
