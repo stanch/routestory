@@ -50,8 +50,7 @@ class DetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]
 
     story foreachUi { s ⇒
       // get screen width
-      val display = getActivity.getWindowManager.getDefaultDisplay
-      val width = display.getWidth()
+      val width = displaySize(0)
 
       s.author map { a ⇒
         authorPicture ~> { x ⇒

@@ -40,7 +40,7 @@ object Story {
 
   sealed trait Image extends ExternalMedia {
     def fetchAndLoad(maxSize: Int)(implicit ctx: Context) =
-      fetch.map(BitmapUtils.decodeFile(_, maxSize))(externalMediaEc)
+      fetch.map(BitmapUtils.decodeFile(_, maxSize))(externalMediaEc).collect { case b if b != null ⇒ b }(externalMediaEc)
   }
   case class Photo(timestamp: Int, url: String) extends Image
 

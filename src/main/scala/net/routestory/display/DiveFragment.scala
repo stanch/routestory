@@ -22,14 +22,11 @@ import rx.Var
 import org.macroid.contrib.ExtraTweaks
 import net.routestory.parts.Implicits._
 import android.content.Context
-import net.routestory.model.Story.{ Chapter, Heartbeat, TextNote, Photo }
 import scala.concurrent.Future
 import net.routestory.model.Story
-import scala.Some
-import net.routestory.model.Story.TextNote
-import net.routestory.model.Story.Chapter
-import net.routestory.model.Story.Photo
-import net.routestory.model.Story.Heartbeat
+import net.routestory.model.Story._
+import scala.ref.WeakReference
+import net.routestory.parts.Styles._
 
 object DiveFragment {
   val photoDuration = 1500
@@ -39,9 +36,7 @@ object DiveFragment {
 class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] with ExtraTweaks {
   lazy val story = getFragmentData
   lazy val map = findFrag[SupportMapFragment](Tag.previewMap).get.getMap
-  lazy val display = getActivity.getWindowManager.getDefaultDisplay
-  lazy val maxImageSize = Math.min(display.getWidth, display.getHeight) / 4
-  lazy val routeManager = new RouteMapManager(map, maxImageSize)
+  lazy val mapManager = new RouteMapManager(map, displaySize, WeakReference(getActivity))()
   lazy val handler = new Handler
 
   // playback vars
@@ -58,7 +53,6 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
   var seekBar = slot[SeekBar]
 
   var mediaPlayer: Option[MediaPlayer] = None
-  var manMarker: Option[Marker] = None
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     l[VerticalLinearLayout](
@@ -95,10 +89,8 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     story foreachUi { s ⇒
       val chapter = s.chapters(0)
       positionMap(chapter, 0, tiltZoom = true)
-      routeManager.add(chapter)
-      manMarker = Some(map.addMarker(new MarkerOptions()
-        .position(routeManager.start.get)
-        .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))))
+      mapManager.add(chapter)
+      mapManager.updateMan(mapManager.start.get)
     }
   }
 
@@ -144,7 +136,7 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
 
   def positionMan(chapter: Chapter, ts: Long) {
     val now = chapter.locationAt(ts * ratio.now)
-    manMarker.map(_.setPosition(now))
+    mapManager.updateMan(now)
   }
 
   def stop() {
@@ -159,7 +151,7 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     playBig ~> hide
     play ~> hide
     pause ~> show
-    layout ~> (_.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE))
+    layout ~> immerse
     val duration = Math.ceil(chapter.duration / ratio.now).toInt
     val from = Math.ceil(cue.now * duration)
     val start = SystemClock.uptimeMillis
@@ -191,7 +183,7 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     (photos zip spans) foreach {
       case (photo, span) if span > 2 * photoFade ⇒
         handler.postAtTime({
-          photo.fetchAndLoad(Math.min(display.getWidth, display.getHeight)) foreach { bitmap ⇒
+          photo.fetchAndLoad(displaySize.min) foreach { bitmap ⇒
             imageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(photoFade)
             handler.postDelayed(imageView ~@> fadeOut(photoFade), List(span - 2 * photoFade, photoDuration).min)
           }

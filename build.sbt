@@ -8,7 +8,7 @@ versionCode := 0
 
 scalaVersion := "2.10.3"
 
-platformName := "android-18"
+platformName := "android-19"
 
 compileOrder := CompileOrder.JavaThenScala
 
@@ -24,7 +24,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "org.macroid" %% "macroid" % "1.1.0-20131212",
-  "org.needs" %% "needs" % "1.0.0-20131212",
+  "org.needs" %% "needs" % "1.0.0-RC1",
   "com.scalarx" %% "scalarx" % "0.1" exclude ("com.typesafe.akka", "akka-actor"),
   "com.typesafe.play" %% "play-json" % "2.2.0",
   "com.typesafe.akka" %% "akka-actor" % "2.2.3",
@@ -35,10 +35,10 @@ libraryDependencies ++= Seq(
 // Android stuff
 libraryDependencies ++= Seq(
   "com.loopj.android" % "android-async-http" % "1.4.4",
-  "com.android.support" % "support-v13" % "18.0.0",
+  "com.android.support" % "support-v13" % "19.0.0",
   "com.github.chrisbanes.photoview" % "library" % "1.2.1",
   aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),
-  aarlib("com.google.android.gms" % "play-services" % "3.1.59"),
+  aarlib("com.google.android.gms" % "play-services" % "4.0.30"),
   apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4")
 )
 
@@ -49,6 +49,15 @@ proguardOptions ++= Seq(
   "-keep class com.couchbase.cblite.router.CBLRouter { *; }",
   "-keep class com.couchbase.touchdb.TDCollateJSON { *; }",
   "-keepclasseswithmembers class * { native <methods>; }"
+)
+
+// play services
+proguardOptions ++= Seq(
+  "-keep class * extends java.util.ListResourceBundle { protected Object[][] getContents(); }",
+  "-keep public class com.google.android.gms.common.internal.safeparcel.SafeParcelable { public static final *** NULL; }",
+  "-keepnames @com.google.android.gms.common.annotation.KeepName class *",
+  "-keepclassmembernames class * { @com.google.android.gms.common.annotation.KeepName *; }",
+  "-keepnames class * implements android.os.Parcelable { public static final ** CREATOR; }"
 )
 
 // akka

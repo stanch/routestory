@@ -25,11 +25,11 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 import com.google.android.gms.common._
 import scala.util.{ Success, Try }
 import com.google.android.gms.location.{ LocationRequest, LocationClient, LocationListener }
-import akka.actor.{ LightArrayRevolverScheduler, Props, Actor, ActorSystem }
+import akka.actor.{ Props, Actor, ActorSystem }
 import org.macroid.{ Toasts, UiThreading }
-import com.typesafe.config.ConfigFactory
 import android.content.Context
 import net.routestory.parts.Implicits._
+import android.app.Activity
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -55,7 +55,6 @@ trait LocationHandler
   }
 
   def onConnected(bundle: Bundle) {
-    firstLocationPromise.trySuccess(())
     val request = LocationRequest.create()
       .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
       .setInterval(5000) // 5 seconds
@@ -82,7 +81,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
 
   lazy val actorSystem = ActorSystem("RecordingActorSystem", app.config, app.getClassLoader)
   implicit lazy val uiActor = actorSystem.actorOf(Props.empty, "ui")
-  lazy val cartographer = actorSystem.actorOf(Cartographer.props(map), "cartographer")
+  lazy val cartographer = actorSystem.actorOf(Cartographer.props(map, displaySize, WeakReference(this)), "cartographer")
   lazy val typewriter = actorSystem.actorOf(Typewriter.props(None), "typewriter")
 
   override def onCreate(savedInstanceState: Bundle) {
@@ -115,10 +114,10 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   override def onStop() {
     super.onStop()
     looseLocation()
-    //actorSystem.shutdown()
   }
 
   def onLocationChanged(location: AndroidLocation) {
+    firstLocationPromise.trySuccess(())
     cartographer ! Cartographer.Location(location, location.getBearing)
     typewriter ! Typewriter.Location(location)
   }
@@ -128,29 +127,24 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
 object Cartographer {
   case class Location(coords: LatLng, bearing: Float)
   case class Update(chapter: Story.Chapter)
-  def props(map: GoogleMap)(implicit ctx: Context) = Props(new Cartographer(map))
+  def props(map: GoogleMap, displaySize: List[Int], activity: WeakReference[Activity])(implicit ctx: Context) =
+    Props(new Cartographer(map, displaySize, activity))
 }
-class Cartographer(map: GoogleMap)(implicit ctx: Context) extends Actor with UiThreading {
+class Cartographer(map: GoogleMap, displaySize: List[Int], activity: WeakReference[Activity])(implicit ctx: Context)
+  extends Actor with UiThreading {
   import Cartographer._
 
-  lazy val routeManager = new RouteMapManager(map, 100)
+  lazy val mapManager = new RouteMapManager(map, displaySize, activity)(displaySize.min / 8)
   var manMarker: Option[Marker] = None
 
   def receive = {
     case Update(chapter) ⇒ ui {
-      routeManager.add(chapter)
+      mapManager.add(chapter)
     }
 
     case Location(coords, bearing) ⇒ ui {
       // update the map
-      manMarker map { m ⇒
-        m.setPosition(coords)
-      } getOrElse {
-        manMarker = Some(map.addMarker(new MarkerOptions()
-          .position(coords)
-          .icon(BitmapDescriptorFactory.fromResource(R.drawable.man))
-        ))
-      }
+      mapManager.updateMan(coords)
       map.animateCamera(CameraUpdateFactory.newCameraPosition {
         CameraPosition.builder(map.getCameraPosition).target(coords).tilt(45).zoom(19).bearing(bearing).build()
       })
@@ -189,11 +183,7 @@ class Typewriter(firstSketch: Option[Story.Chapter])(implicit ctx: Context) exte
       chapter = chapter.copy(locations = Story.Location(ts, coords) :: chapter.locations)
   }
 
-  def receive = (addingStuff andThen { _ ⇒
-    Log.d("Typewriter", s"I’m still alive! Chapter: $chapter")
-    toast(chapter.toString) ~> long ~> fry
-    cartographer ! Cartographer.Update(chapter)
-  }) orElse {
+  def receive = addingStuff.andThen(_ ⇒ cartographer ! Cartographer.Update(chapter)) orElse {
     // save chapter to disk
     case Backup ⇒
       ???

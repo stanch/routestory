@@ -5,7 +5,7 @@ import org.needs.{ rest, http, Endpoint }
 import android.util.Log
 import org.needs.http.HttpEndpoint
 import org.needs.json.JsonEndpoint
-import org.needs.file.FileEndpoint
+import org.needs.file.{ LocalFileEndpoint, FileEndpoint }
 import java.io.File
 import scala.concurrent.{ Future, ExecutionContext }
 import android.content.Context
@@ -49,9 +49,11 @@ case class RemoteMedia(url: String)(implicit ctx: Context)
     client(s"http://routestory.herokuapp.com/api/stories/$url")
 }
 
-case class LocalMedia(url: String)(implicit ctx: Context)
-  extends CachedFileBase(url, ctx) with Local {
-  case object CacheMiss extends Exception
-  protected def fetch(implicit ec: ExecutionContext) =
-    Option(create).filter(_.exists()).map(Future.successful).getOrElse(Future.failed(CacheMiss))
+case class LocalCachedMedia(url: String)(implicit ctx: Context)
+  extends CachedFileBase(url, ctx) with LocalFileEndpoint with Local
+
+case class LocalTempMedia(url: String)
+  extends FileEndpoint with EndpointLogging with LocalFileEndpoint {
+  override val priority = Seq(2)
+  def create = new File(url)
 }

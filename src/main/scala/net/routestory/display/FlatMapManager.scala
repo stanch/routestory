@@ -7,7 +7,6 @@ import android.app.{ Activity, Dialog, AlertDialog }
 import android.content.{ Intent, Context, DialogInterface }
 import android.content.DialogInterface.OnClickListener
 import android.graphics.{ Color, Bitmap, BitmapFactory, Point }
-import android.media.MediaPlayer
 import android.view.{ Gravity, View, ViewGroup }
 import android.widget._
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -19,22 +18,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import org.macroid.{ MediaQueries, Tweaks, LayoutDsl, UiThreading }
 import org.macroid.contrib.ExtraTweaks
-import ViewGroup.LayoutParams._
-import uk.co.senab.photoview.PhotoViewAttacher
-import org.macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
 import org.macroid.contrib.ListAdapter
-import android.net.Uri
-import android.os.Vibrator
 import scala.ref.WeakReference
 import net.routestory.model.Story
-import scala.util.Try
-import scala.Some
 import net.routestory.model.Story.Chapter
 import scala.concurrent.future
 
 class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], activity: WeakReference[Activity])(implicit ctx: Context)
-  extends MapManager(map) with UiThreading with MediaQueries {
+  extends MapManager(map, displaySize, activity) with UiThreading with MediaQueries {
 
+  map.setOnMarkerClickListener(onMarkerClick)
   var hideOverlays = false
   val maxIconSize = ((800 dp) :: displaySize).min / 4
 
@@ -85,27 +78,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
     }
 
     override def onClick() {
-      // show the image in a pop-up window
-      //val progress = spinnerDialog("", "Loading image...") // TODO: strings.xml
-      data.fetchAndLoad(displaySize.max) foreachUi {
-        case bitmap if bitmap != null ⇒
-          //progress.dismiss()
-          val view = w[ImageView] ~>
-            lpOf[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER) ~>
-            Image.bitmap(bitmap) ~> Image.adjustBounds ~>
-            (_.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE))
-          val attacher = new PhotoViewAttacher(view)
-          attacher.update()
-          new Dialog(ctx, android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
-            setContentView(l[FrameLayout](view))
-            setOnDismissListener({ dialog: DialogInterface ⇒
-              bitmap.recycle()
-            })
-            show()
-          }
-        case _ ⇒
-        //progress.dismiss()
-      }
+      onImageClick(data)
     }
   }
 
@@ -129,17 +102,8 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
   class AudioMarkerItem(chapter: Chapter, data: Story.Audio, resourceId: Int)
     extends IconMarkerItem(chapter, data, resourceId) {
 
-    private var mediaPlayer: MediaPlayer = null
-
     override def onClick() {
-      mediaPlayer = new MediaPlayer
-      data.fetch foreachUi { file ⇒
-        Try {
-          mediaPlayer.setDataSource(file.getAbsolutePath)
-          mediaPlayer.prepare()
-          mediaPlayer.start()
-        }
-      }
+      onAudioClick(data)
     }
   }
 
@@ -151,11 +115,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
     extends IconMarkerItem(chapter, data, R.drawable.text_note) with ExtraTweaks {
 
     override def onClick() {
-      val bld = new AlertDialog.Builder(ctx)
-      val textView = w[TextView] ~>
-        text(data.text) ~> TextSize.medium ~> Styles.p8dding ~>
-        (_.setMaxWidth((displaySize(0) * 0.75).toInt))
-      bld.setView(textView).create().show()
+      onTextNoteClick(data)
     }
   }
 
@@ -164,16 +124,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
     extends IconMarkerItem(chapter, data, R.drawable.foursquare_bigger) with ExtraTweaks {
 
     override def onClick() {
-      val bld = new AlertDialog.Builder(ctx)
-      val view = l[VerticalLinearLayout](
-        w[TextView] ~> text(data.name) ~> TextSize.large ~> padding(left = 3 sp),
-        w[Button] ~> text("Open in Foursquare®") ~> On.click {
-          val intent = new Intent(Intent.ACTION_VIEW)
-          intent.setData(Uri.parse(s"https://foursquare.com/v/${data.id}"))
-          activity().startActivityForResult(intent, 0)
-        }
-      )
-      bld.setView(view).create().show()
+      onVenueClick(data)
     }
   }
 
@@ -182,7 +133,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
     extends IconMarkerItem(chapter, data, R.drawable.heart) {
 
     override def onClick() {
-      ctx.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator].vibrate(data.vibrationPattern(5), -1)
+      onHeartbeatClick(data)
     }
   }
 
@@ -419,7 +370,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
     markerDispatch.keys.foreach(_.remove())
   }
 
-  val onMarkerClick = { marker: Marker ⇒ markerDispatch.get(marker).exists { x ⇒ x.onClick(); true } }
+  lazy val onMarkerClick = { marker: Marker ⇒ markerDispatch.get(marker).exists { x ⇒ x.onClick(); true } }
 }
 
 object FlatMapManager {

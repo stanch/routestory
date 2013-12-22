@@ -45,9 +45,11 @@ case class NeedTags() extends json.SelfFulfillingNeed[List[Tag]] with HttpEndpoi
 
 case class NeedMedia(url: String)(implicit ctx: Context) extends Need[File] {
   use { RemoteMedia(url) }
-  use { LocalMedia(url) }
+  use { LocalCachedMedia(url) }
+  use { LocalTempMedia(url) }
   from {
-    case e @ LocalMedia(`url`) ⇒ e.probe
+    case e @ LocalTempMedia(`url`) ⇒ e.probe
+    case e @ LocalCachedMedia(`url`) ⇒ e.probe
     case e @ RemoteMedia(`url`) ⇒ e.probe
   }
 }

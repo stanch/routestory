@@ -22,10 +22,9 @@ import net.routestory.model.Story
 
 class FlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
   lazy val story = getFragmentData
-  lazy val display = getActivity.getWindowManager.getDefaultDisplay
   lazy val mapView = findFrag[SupportMapFragment](Tag.overviewMap).get.getView
   lazy val map = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap
-  lazy val markerManager = new FlatMapManager(map, mapView, List(display.getWidth, display.getHeight), WeakReference(getActivity))
+  lazy val mapManager = new FlatMapManager(map, mapView, displaySize, WeakReference(getActivity))
 
   var toggleOverlays = slot[Button]
 
@@ -40,9 +39,9 @@ class FlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
           wire(toggleOverlays) ~>
           lp(WRAP_CONTENT, WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL) ~>
           On.click {
-            markerManager.hideOverlays = !markerManager.hideOverlays
-            toggleOverlays ~> text(if (markerManager.hideOverlays) R.string.show_overlays else R.string.hide_overlays)
-            markerManager.update()
+            mapManager.hideOverlays = !mapManager.hideOverlays
+            toggleOverlays ~> text(if (mapManager.hideOverlays) R.string.show_overlays else R.string.hide_overlays)
+            mapManager.update()
           }
       )
     )
@@ -52,12 +51,11 @@ class FlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
     map.setMapType(GoogleMap.MAP_TYPE_HYBRID)
 
     story foreachUi { s ⇒
-      markerManager.add(s.chapters(0))
-      map.setOnMarkerClickListener(markerManager.onMarkerClick)
+      mapManager.add(s.chapters(0))
       map.setOnCameraChangeListener { p: CameraPosition ⇒
-        markerManager.update()
-        map.moveCamera(CameraUpdateFactory.newLatLngBounds(markerManager.bounds.get, 30 dp))
-        map.setOnCameraChangeListener { p: CameraPosition ⇒ markerManager.update() }
+        mapManager.update()
+        map.moveCamera(CameraUpdateFactory.newLatLngBounds(mapManager.bounds.get, 30 dp))
+        map.setOnCameraChangeListener { p: CameraPosition ⇒ mapManager.update() }
       }
     }
   }

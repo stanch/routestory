@@ -15,6 +15,7 @@ import net.routestory.recording.RecordActivity
 import android.os.Bundle
 import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
 import net.routestory.explore.{ MyStoriesActivity, ExploreActivity }
+import android.graphics.Point
 
 trait FirstEveryStart {
   var everStarted = false
@@ -33,6 +34,12 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Toas
   lazy val app = getApplication.asInstanceOf[RouteStoryApp]
   lazy val bar = getActionBar
   var drawerToggle: ActionBarDrawerToggle = _
+
+  def displaySize = {
+    val pt = new Point
+    getWindowManager.getDefaultDisplay.getSize(pt)
+    pt.x :: pt.y :: Nil
+  }
 
   override def onStart() {
     super.onStart()
@@ -99,6 +106,12 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Toas
 
 trait RouteStoryFragment extends Fragment with FullDslFragment with Toasts with FirstEveryStart {
   lazy val app = getActivity.getApplication.asInstanceOf[RouteStoryApp]
+
+  def displaySize = {
+    val pt = new Point
+    getActivity.getWindowManager.getDefaultDisplay.getSize(pt)
+    pt.x :: pt.y :: Nil
+  }
 
   override def onStart() {
     super.onStart()
