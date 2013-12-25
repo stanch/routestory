@@ -2,7 +2,7 @@ package net.routestory.recording
 
 import scala.language.dynamics
 import android.support.v4.app.DialogFragment
-import android.widget._
+import android.widget.{ ListAdapter ⇒ _, _ }
 import android.os.Bundle
 import android.media.MediaRecorder
 import MediaRecorder._
@@ -20,19 +20,18 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.parts.Implicits._
 import org.macroid._
 import net.routestory.parts.Styles._
-import java.net.{ HttpURLConnection, URL }
-import scala.concurrent.future
-import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, GravityGridLayout, VerticalLinearLayout }
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import org.macroid.util.{ Effector, Thunk }
 import scala.collection.JavaConversions._
 import org.macroid.contrib.ExtraTweaks
 import org.codehaus.jackson.map.ObjectMapper
-import java.util.Locale
 import rx.{ Rx, Var }
 import scala.async.Async.{ async, await }
-import scala.Dynamic
-import org.codehaus.jackson.JsonNode
 import com.google.android.gms.maps.model.LatLng
+import net.routestory.external.Foursquare
+import org.macroid.contrib.ListAdapter
+import akka.pattern.ask
+import akka.util.Timeout
 
 class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
   import AddMediaDialogFragment._
@@ -94,48 +93,29 @@ object AddMediaDialogFragment {
 
 class AddSomethingDialogFragment extends DialogFragment {
   lazy val activity = getActivity.asInstanceOf[RecordActivity]
-  lazy val coords: LatLng = ???
-
-  override def onDismiss(dialog: DialogInterface) {
-    super.onDismiss(dialog)
-  }
 }
 
 class FoursquareDialogFragment extends AddSomethingDialogFragment with UiThreading with BasicViewSearch with MediaQueries with FragmentContext {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val client_id = "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05"
-    val client_secret = "SIPSHLBOLADA2HW3RT44GE14OGBDNSM0VPBN4MSEWH2E4VLN"
-    val ll = "%f,%f".formatLocal(Locale.US, coords.latitude, coords.longitude)
-    val urll = new URL(s"https://api.foursquare.com/v2/venues/search?ll=$ll&client_id=$client_id&client_secret=$client_secret&v=20130920&intent=browse&radius=100")
-    val venues = future {
-      val conn = urll.openConnection().asInstanceOf[HttpURLConnection]
-      conn.getInputStream
-    }
-
     val list = w[ListView]
     val progress = w[ProgressBar](null, android.R.attr.progressBarStyleLarge)
-    // format: OFF
     async {
-      val data = await(venues)
-      val vs = (new ObjectMapper).readTree(data).get("response").get("venues").iterator.map { v ⇒
-        val loc = v.get("location")
-        (v.get("id").asText, v.get("name").asText, loc.get("lat").asDouble, loc.get("lng").asDouble)
-      }
+      // TODO: properly work with Option?
+      implicit val timeout = Timeout(4000)
+      val location: LatLng = await((activity.cartographer ? Cartographer.QueryLast).mapTo[Option[LatLng]]).get
+      val data = await(Foursquare.NeedNearbyVenues(location).go)
       await(progress ~@> Effects.fadeOut)
-      ui(list.setAdapter(new ArrayAdapter(activity, 0, vs.toArray) {
-        override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-          val item = getItem(position)
-          val v = Option(itemView).getOrElse(w[TextView] ~> TextSize.large ~> padding(all = (3 sp)) ~> id(Id.text))
-          findView[TextView](v, Id.text) ~> text(item._2)
-          v ~> On.click {
-            //activity.addVenue(item._1, item._2, item._3, item._4)
-            dismiss()
-          }
+      val adapter = ListAdapter.text(data)(
+        TextSize.large + padding(all = 4 sp),
+        venue ⇒ text(venue.name) + On.click {
+          activity.typewriter ! venue
+          dismiss()
         }
-      }))
+      )
+      list ~> (_.setAdapter(adapter))
+    } onFailure {
+      case t ⇒ t.printStackTrace()
     }
-    // format: ON
-
     new AlertDialog.Builder(activity) {
       setView(l[FrameLayout](list, progress))
       setNegativeButton(android.R.string.cancel, ())

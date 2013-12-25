@@ -1,20 +1,19 @@
 package net.routestory.recording
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ Promise, Future, future }
+import scala.concurrent.{ Await, Promise, Future, future }
 
 import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model._
 
 import android.location.{ Location ⇒ AndroidLocation }
-import android.os.{ Message, Handler, Bundle }
+import android.os.Bundle
 import android.view._
 import android.widget.{ ProgressBar, LinearLayout }
 import net.routestory.R
 import net.routestory.display.DisplayActivity
 import net.routestory.display.RouteMapManager
 import net.routestory.model.Story
-import net.routestory.parts.BitmapUtils
 import net.routestory.parts.HapticButton
 import net.routestory.parts.RouteStoryActivity
 import ViewGroup.LayoutParams._
@@ -30,6 +29,12 @@ import org.macroid.{ Toasts, UiThreading }
 import android.content.Context
 import net.routestory.parts.Implicits._
 import android.app.Activity
+import net.routestory.external.Foursquare
+import play.api.libs.json.Json
+import akka.pattern.ask
+import scala.concurrent.duration._
+import akka.util.Timeout
+import net.routestory.model.JsonFormats._
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -82,7 +87,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   lazy val actorSystem = ActorSystem("RecordingActorSystem", app.config, app.getClassLoader)
   implicit lazy val uiActor = actorSystem.actorOf(Props.empty, "ui")
   lazy val cartographer = actorSystem.actorOf(Cartographer.props(map, displaySize, WeakReference(this)), "cartographer")
-  lazy val typewriter = actorSystem.actorOf(Typewriter.props(None), "typewriter")
+  lazy val typewriter = actorSystem.actorOf(Typewriter.props, "typewriter")
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -104,6 +109,13 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
     // setup action bar
     bar.setDisplayShowTitleEnabled(true)
     bar.setDisplayShowHomeEnabled(true)
+
+    // restore the chapter
+    Option(savedInstanceState).filter(_.containsKey("savedChapter")).map(_.getString("savedChapter")).flatMap { json ⇒
+      Json.parse(json).asOpt[Story.Chapter]
+    } map { chapter ⇒
+      typewriter ! Typewriter.Restore(chapter)
+    }
   }
 
   override def onStart() {
@@ -118,8 +130,17 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
 
   def onLocationChanged(location: AndroidLocation) {
     firstLocationPromise.trySuccess(())
+    // TODO: send it to only one of them
     cartographer ! Cartographer.Location(location, location.getBearing)
     typewriter ! Typewriter.Location(location)
+  }
+
+  override def onSaveInstanceState(outState: Bundle) = {
+    implicit val timeout = Timeout(5 seconds)
+    val chapter = Await.result((typewriter ? Typewriter.Backup).mapTo[Story.Chapter], 5 seconds)
+    val json = Json.toJson(chapter).toString
+    outState.putString("savedChapter", json)
+    super.onSaveInstanceState(outState)
   }
 }
 
@@ -127,6 +148,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
 object Cartographer {
   case class Location(coords: LatLng, bearing: Float)
   case class Update(chapter: Story.Chapter)
+  case object QueryLast
   def props(map: GoogleMap, displaySize: List[Int], activity: WeakReference[Activity])(implicit ctx: Context) =
     Props(new Cartographer(map, displaySize, activity))
 }
@@ -136,6 +158,7 @@ class Cartographer(map: GoogleMap, displaySize: List[Int], activity: WeakReferen
 
   lazy val mapManager = new RouteMapManager(map, displaySize, activity)(displaySize.min / 8)
   var manMarker: Option[Marker] = None
+  var last: Option[LatLng] = None
 
   def receive = {
     case Update(chapter) ⇒ ui {
@@ -144,11 +167,14 @@ class Cartographer(map: GoogleMap, displaySize: List[Int], activity: WeakReferen
 
     case Location(coords, bearing) ⇒ ui {
       // update the map
+      last = Some(coords)
       mapManager.updateMan(coords)
       map.animateCamera(CameraUpdateFactory.newCameraPosition {
         CameraPosition.builder(map.getCameraPosition).target(coords).tilt(45).zoom(19).bearing(bearing).build()
       })
     }
+
+    case QueryLast ⇒ sender ! last
   }
 }
 
@@ -159,14 +185,15 @@ object Typewriter {
   case class TextNote(text: String)
   case class Heartbeat(bpm: Int)
   case object Backup
-  def props(firstSketch: Option[Story.Chapter])(implicit ctx: Context) = Props(new Typewriter(firstSketch))
+  case class Restore(chapter: Story.Chapter)
+  def props(implicit ctx: Context) = Props(new Typewriter())
 }
-class Typewriter(firstSketch: Option[Story.Chapter])(implicit ctx: Context) extends Actor with Toasts {
+class Typewriter(implicit ctx: Context) extends Actor with Toasts {
   import Typewriter._
 
   def cartographer = context.actorSelection("../cartographer")
   def ts = (System.currentTimeMillis / 1000L - chapter.start).toInt
-  var chapter = firstSketch.getOrElse(Story.Chapter(System.currentTimeMillis / 1000L, 0, Nil, Nil))
+  var chapter = Story.Chapter(System.currentTimeMillis / 1000L, 0, Nil, Nil)
   def addMedia(m: Story.Media) = chapter = chapter.copy(media = m :: chapter.media)
 
   val addingStuff: Receive = {
@@ -179,14 +206,19 @@ class Typewriter(firstSketch: Option[Story.Chapter])(implicit ctx: Context) exte
     case Heartbeat(bpm) ⇒
       addMedia(Story.Heartbeat(ts, bpm))
 
+    case Foursquare.Venue(id, name, lat, lng) ⇒
+      addMedia(Story.Venue(ts, id, name, new LatLng(lat, lng)))
+
     case Location(coords) ⇒
       chapter = chapter.copy(locations = Story.Location(ts, coords) :: chapter.locations)
+
+    case Restore(ch) ⇒
+      chapter = ch
   }
 
   def receive = addingStuff.andThen(_ ⇒ cartographer ! Cartographer.Update(chapter)) orElse {
-    // save chapter to disk
     case Backup ⇒
-      ???
+      sender ! chapter
   }
 }
 

@@ -85,6 +85,14 @@ object JsonFormats {
     (__ \ 'private).read[Boolean]
   }
 
+  implicit val storyWrites = (
+    (__ \ '_id).write[String] and
+    (__ \ 'meta).write[Story.Meta] and
+    (__ \ 'chapters).write[List[Story.Chapter]] and
+    (__ \ 'authorId).write[Option[String]].contramap { a: Option[Author] ⇒ a.map(_.id) } and
+    (__ \ 'private).write[Boolean]
+  )(unlift(Story.unapply))
+
   /* Story preview */
 
   object storyPreviewReadsLatest {

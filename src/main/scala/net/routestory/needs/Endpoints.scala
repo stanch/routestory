@@ -5,7 +5,7 @@ import org.needs.{ rest, http, Endpoint }
 import android.util.Log
 import org.needs.http.HttpEndpoint
 import org.needs.json.JsonEndpoint
-import org.needs.file.{ LocalFileEndpoint, FileEndpoint }
+import org.needs.file.{ HttpFileEndpoint, LocalFileEndpoint, FileEndpoint }
 import java.io.File
 import scala.concurrent.{ Future, ExecutionContext }
 import android.content.Context
@@ -28,7 +28,7 @@ trait RemoteEndpointBase extends http.AndroidJsonClient with EndpointLogging { s
   val asyncHttpClient = Client.client
 }
 
-abstract class SingleResource(val path: String)
+abstract class SingleResource(val baseUrl: String)
   extends rest.SingleResourceEndpoint with RemoteEndpointBase
 
 case class RemoteAuthor(id: String)
@@ -42,18 +42,16 @@ abstract class CachedFileBase(url: String, ctx: Context) extends FileEndpoint wi
 }
 
 case class RemoteMedia(url: String)(implicit ctx: Context)
-  extends CachedFileBase(url, ctx) with http.HttpEndpoint with http.AndroidFileClient {
-  // TODO: WTF? loopj is a piece of crap? can’t we reuse the global one?
-  val asyncHttpClient = new AsyncHttpClient //Client.client
-  protected def fetch(implicit ec: ExecutionContext) =
-    client(s"http://routestory.herokuapp.com/api/stories/$url")
+  extends CachedFileBase(url, ctx) with HttpFileEndpoint with http.AndroidFileClient {
+  val asyncHttpClient = new AsyncHttpClient
+  val baseUrl = "http://routestory.herokuapp.com/api/stories"
 }
 
 case class LocalCachedMedia(url: String)(implicit ctx: Context)
   extends CachedFileBase(url, ctx) with LocalFileEndpoint with Local
 
 case class LocalTempMedia(url: String)
-  extends FileEndpoint with EndpointLogging with LocalFileEndpoint {
+  extends LocalFileEndpoint with EndpointLogging {
   override val priority = Seq(2)
   def create = new File(url)
 }
