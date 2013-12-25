@@ -1,24 +1,21 @@
 package net.routestory.display
 
-import net.routestory.R
-import android.os.Bundle
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model._
-import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.parts.{ FragmentData, RouteStoryFragment }
-import net.routestory.parts.Implicits._
 import scala.concurrent.Future
-import android.widget.{ Button, FrameLayout }
-import ViewGroup.LayoutParams._
-import scala.async.Async.{ async, await }
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.ref.WeakReference
+
+import android.os.Bundle
+import android.view.{ Gravity, LayoutInflater, View, ViewGroup }
+import android.view.ViewGroup.LayoutParams._
+import android.widget.{ Button, FrameLayout }
+
+import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap, SupportMapFragment }
+
+import net.routestory.R
 import net.routestory.model.Story
+import net.routestory.ui.RouteStoryFragment
+import net.routestory.util.FragmentData
+import net.routestory.util.Implicits._
 
 class FlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
   lazy val story = getFragmentData
@@ -47,15 +44,18 @@ class FlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
     )
   }
 
-  override def onFirstStart() {
-    map.setMapType(GoogleMap.MAP_TYPE_HYBRID)
+  var positioned = false
+  override def onStart() {
+    super.onStart()
+    if (!positioned) positioned = true else return
 
+    map.setMapType(GoogleMap.MAP_TYPE_HYBRID)
     story foreachUi { s ⇒
       mapManager.add(s.chapters(0))
-      map.setOnCameraChangeListener { p: CameraPosition ⇒
+      map.onCameraChange { _ ⇒
         mapManager.update()
         map.moveCamera(CameraUpdateFactory.newLatLngBounds(mapManager.bounds.get, 30 dp))
-        map.setOnCameraChangeListener { p: CameraPosition ⇒ mapManager.update() }
+        map.onCameraChange(_ ⇒ mapManager.update())
       }
     }
   }

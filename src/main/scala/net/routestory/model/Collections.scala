@@ -3,7 +3,7 @@ package net.routestory.model
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import org.needs._
-import JsonFormats._
+import net.routestory.model.JsonFormats._
 
 // format: OFF
 

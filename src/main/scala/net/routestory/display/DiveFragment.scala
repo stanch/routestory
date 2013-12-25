@@ -1,32 +1,30 @@
 package net.routestory.display
 
-import net.routestory.R
-import net.routestory.parts.{ FragmentData, BitmapUtils, RouteStoryFragment }
-import android.media.MediaPlayer
-import android.os.{ Vibrator, Bundle, Handler, SystemClock }
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget._
-import com.google.android.gms.maps.{ SupportMapFragment, CameraUpdateFactory, GoogleMap }
-import com.google.android.gms.maps.model._
-import scala.concurrent.ExecutionContext.Implicits.global
-import ViewGroup.LayoutParams._
-import android.util.Log
-import scala.async.Async.{ async, await }
-import android.graphics.Bitmap
-import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import android.widget.SeekBar.OnSeekBarChangeListener
-import rx.Var
-import org.macroid.contrib.ExtraTweaks
-import net.routestory.parts.Implicits._
-import android.content.Context
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.ref.WeakReference
+
+import android.content.Context
+import android.media.MediaPlayer
+import android.os.{ Bundle, Handler, SystemClock, Vibrator }
+import android.view.{ Gravity, LayoutInflater, View, ViewGroup }
+import android.view.ViewGroup.LayoutParams._
+import android.widget._
+import android.widget.SeekBar.OnSeekBarChangeListener
+
+import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap, SupportMapFragment }
+import com.google.android.gms.maps.model._
+import org.macroid.contrib.ExtraTweaks
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import rx.Var
+
+import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.model.Story._
-import scala.ref.WeakReference
-import net.routestory.parts.Styles._
+import net.routestory.ui.RouteStoryFragment
+import net.routestory.ui.Styles._
+import net.routestory.util.FragmentData
+import net.routestory.util.Implicits._
 
 object DiveFragment {
   val photoDuration = 1500
@@ -83,18 +81,21 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     ) ~> wire(layout)
   }
 
-  override def onFirstStart() {
-    map.setMapType(GoogleMap.MAP_TYPE_NORMAL)
+  var positioned = false
+  override def onStart() {
+    super.onStart()
 
-    story foreachUi { s ⇒
-      val chapter = s.chapters(0)
-      positionMap(chapter, 0, tiltZoom = true)
-      mapManager.add(chapter)
-      mapManager.updateMan(mapManager.start.get)
+    if (!positioned) {
+      positioned = true
+      map.setMapType(GoogleMap.MAP_TYPE_NORMAL)
+      story foreachUi { s ⇒
+        val chapter = s.chapters(0)
+        positionMap(chapter, 0, tiltZoom = true)
+        mapManager.add(chapter)
+        mapManager.updateMan(mapManager.start.get)
+      }
     }
-  }
 
-  override def onEveryStart() {
     story foreachUi { s ⇒
       val chapter = s.chapters(0)
       seekBar ~>

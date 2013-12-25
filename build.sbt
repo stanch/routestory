@@ -74,6 +74,6 @@ proguardOptions ++= Seq(
   "-keep class akka.actor.LocalActorRefProvider$SystemGuardian { *; }",
   "-keep class akka.dispatch.UnboundedMailbox { *; }",
   "-keep class akka.actor.DefaultSupervisorStrategy { *; }",
-  "-keep class net.routestory.parts.AkkaAndroidLogger { *; }",
+  "-keep class net.routestory.util.AkkaAndroidLogger { *; }",
   "-keep class akka.event.Logging$LogExt { *; }"
 )

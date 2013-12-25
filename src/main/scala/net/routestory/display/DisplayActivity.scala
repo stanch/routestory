@@ -2,32 +2,27 @@ package net.routestory.display
 
 import java.io.IOException
 import java.nio.charset.Charset
+
+import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
-import android.app.{ AlertDialog, PendingIntent }
-import android.content.Intent
-import android.content.IntentFilter
+
+import android.app.PendingIntent
+import android.content.{ Intent, IntentFilter }
 import android.net.Uri
-import android.nfc.FormatException
-import android.nfc.NdefMessage
-import android.nfc.NdefRecord
-import android.nfc.NfcAdapter
-import android.nfc.Tag
-import android.nfc.tech.Ndef
-import android.nfc.tech.NdefFormatable
+import android.nfc.{ FormatException, NdefMessage, NdefRecord, NfcAdapter, Tag }
+import android.nfc.tech.{ Ndef, NdefFormatable }
 import android.os.Bundle
 import android.view.{ Menu, MenuItem }
 import android.widget.ProgressBar
+
+import org.macroid.contrib.Layouts.VerticalLinearLayout
+import org.macroid.util.Text
+
 import net.routestory.R
 import net.routestory.model._
-import net.routestory.parts._
-import net.routestory.parts.Implicits._
-import scala.concurrent._
-import scala.async.Async.{ async, await }
-import org.macroid.util.Text
-import org.macroid.contrib.Layouts.VerticalLinearLayout
-import net.routestory.explore.ExploreActivity
 import net.routestory.needs.NeedStory
-import java.util.concurrent.Executors
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import net.routestory.util._
 
 object DisplayActivity {
   object NfcIntent {

@@ -1,33 +1,33 @@
 package net.routestory.display
 
-import net.routestory.R
-import net.routestory.parts.{ Styles, BitmapUtils }
-import net.routestory.parts.BitmapUtils.MagicGrid
-import android.app.{ Activity, Dialog, AlertDialog }
-import android.content.{ Intent, Context, DialogInterface }
-import android.content.DialogInterface.OnClickListener
-import android.graphics.{ Color, Bitmap, BitmapFactory, Point }
-import android.view.{ Gravity, View, ViewGroup }
-import android.widget._
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model._
-import net.routestory.parts.Implicits._
 import scala.collection.JavaConversions._
+import scala.concurrent.{ Future, future }
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import org.macroid.{ MediaQueries, Tweaks, LayoutDsl, UiThreading }
-import org.macroid.contrib.ExtraTweaks
-import org.macroid.contrib.ListAdapter
 import scala.ref.WeakReference
+
+import android.app.{ Activity, AlertDialog }
+import android.content.{ Context, DialogInterface }
+import android.content.DialogInterface.OnClickListener
+import android.graphics.{ Bitmap, BitmapFactory, Point }
+import android.view.View
+import android.widget._
+
+import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap }
+import com.google.android.gms.maps.model._
+import org.macroid.{ LayoutDsl, MediaQueries, Tweaks, UiThreading }
+import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
+
+import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.model.Story.Chapter
-import scala.concurrent.future
+import net.routestory.util.BitmapUtils
+import net.routestory.util.BitmapUtils.MagicGrid
+import net.routestory.util.Implicits._
 
 class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], activity: WeakReference[Activity])(implicit ctx: Context)
   extends MapManager(map, displaySize, activity) with UiThreading with MediaQueries {
 
-  map.setOnMarkerClickListener(onMarkerClick)
+  map.onMarkerClick(onMarkerClick)
   var hideOverlays = false
   val maxIconSize = ((800 dp) :: displaySize).min / 4
 
@@ -185,7 +185,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
         }
         case (_, Nil) ⇒ Nil // make compiler happy
       }
-      Future.sequence(bitmaps).map(MagicGrid.createSquarishGrid(_, maxIconSize))
+      Future.sequence(bitmaps).map(MagicGrid.create(_, maxIconSize))
     }
     lazy val iconSize = icon.map(i ⇒ Math.min(Math.max(i.getWidth, i.getHeight), maxIconSize))
 

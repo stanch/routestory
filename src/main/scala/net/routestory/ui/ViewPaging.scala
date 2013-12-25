@@ -1,4 +1,4 @@
-package net.routestory.parts
+package net.routestory.ui
 
 import android.support.v4.view.ViewPager
 import android.content.Context

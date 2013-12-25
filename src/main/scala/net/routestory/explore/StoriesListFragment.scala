@@ -1,24 +1,26 @@
 package net.routestory.explore
 
-import net.routestory.R
-import android.view.{ LayoutInflater, Gravity, View, ViewGroup }
-import android.widget.{ ListAdapter ⇒ _, _ }
-import net.routestory.parts.RouteStoryFragment
-import android.support.v4.app.ListFragment
-import android.app.Activity
-import scala.collection.JavaConversions._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import android.os.Bundle
-import android.content.Context
-import org.macroid.contrib.Layouts.HorizontalLinearLayout
-import android.util.Log
 import scala.async.Async.{ async, await }
-import org.macroid.contrib.ExtraTweaks
-import org.macroid.contrib.ListAdapter
-import net.routestory.model.StoryPreview
+import scala.collection.JavaConversions._
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.ref.WeakReference
+
+import android.app.Activity
+import android.content.Context
+import android.os.Bundle
+import android.support.v4.app.ListFragment
+import android.util.Log
+import android.view.{ Gravity, LayoutInflater, View, ViewGroup }
+import android.widget.{ ListAdapter ⇒ _, _ }
+
 import org.macroid.MediaQueries
+import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
+import org.macroid.contrib.Layouts.HorizontalLinearLayout
+
+import net.routestory.R
+import net.routestory.model.StoryPreview
+import net.routestory.ui.RouteStoryFragment
 
 class StoriesListFragment extends ListFragment
   with RouteStoryFragment

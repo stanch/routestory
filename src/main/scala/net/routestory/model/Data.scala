@@ -5,7 +5,7 @@ import play.api.libs.json.JsValue
 import scala.concurrent.{ Future, ExecutionContext }
 import android.content.Context
 import net.routestory.needs.NeedMedia
-import net.routestory.parts.BitmapUtils
+import net.routestory.util.BitmapUtils
 import java.io.File
 import java.util.concurrent.Executors
 

@@ -1,4 +1,4 @@
-package net.routestory.parts
+package net.routestory.util
 
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.{ LatLng, CameraPosition, Marker }
@@ -21,12 +21,14 @@ object Implicits {
 
   implicit def location2latlng(l: Location): LatLng = new LatLng(l.getLatitude, l.getLongitude)
 
-  implicit def func2OnCameraChangeListener(f: CameraPosition ⇒ Any) = new GoogleMap.OnCameraChangeListener() {
-    def onCameraChange(p: CameraPosition) { f(p) }
-  }
+  implicit class RichMap(map: GoogleMap) {
+    def onCameraChange(f: CameraPosition ⇒ Any) = map.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener {
+      def onCameraChange(p: CameraPosition) { f(p) }
+    })
 
-  implicit def func2OnMarkerClickListener(f: Marker ⇒ Boolean) = new GoogleMap.OnMarkerClickListener() {
-    def onMarkerClick(m: Marker) = f(m)
+    def onMarkerClick(f: Marker ⇒ Boolean) = map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener {
+      def onMarkerClick(m: Marker) = f(m)
+    })
   }
 
   implicit def thunk2OnDismissListener(f: ⇒ Any) = new DialogInterface.OnDismissListener {
@@ -41,7 +43,7 @@ object Implicits {
     def onClick(d: DialogInterface, w: Int) = f(d, w)
   }
 
-  implicit def thunk2OnCancelListener(f: ⇒ Any) = new DialogInterface.OnCancelListener() {
+  implicit def thunk2OnCancelListener(f: ⇒ Any) = new DialogInterface.OnCancelListener {
     def onCancel(d: DialogInterface) { f }
   }
 

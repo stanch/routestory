@@ -1,17 +1,19 @@
 package net.routestory.explore
 
-import android.view.{ View, ViewGroup, LayoutInflater }
-import android.os.Bundle
-import android.widget.{ ScrollView, LinearLayout }
 import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.parts.RouteStoryFragment
-import scala.util.Random
-import android.graphics.Point
-import net.routestory.parts.Styles._
-import org.macroid.contrib.Layouts.VerticalLinearLayout
 import scala.ref.WeakReference
+import scala.util.Random
+
+import android.graphics.Point
+import android.os.Bundle
+import android.view.{ LayoutInflater, View, ViewGroup }
+import android.widget.{ LinearLayout, ScrollView }
+
+import org.macroid.contrib.Layouts.VerticalLinearLayout
+
 import net.routestory.needs.NeedTags
-import net.routestory.model.Tag
+import net.routestory.ui.RouteStoryFragment
+import net.routestory.ui.Styles._
 
 class TagsFragment extends RouteStoryFragment {
   var rows = slot[LinearLayout]

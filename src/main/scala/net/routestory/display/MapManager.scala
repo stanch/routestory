@@ -1,28 +1,30 @@
 package net.routestory.display
 
-import com.google.android.gms.maps.model.{ LatLngBounds, PolylineOptions, Polyline }
-import android.graphics.Color
-import com.google.android.gms.maps.GoogleMap
 import scala.collection.JavaConversions._
-import net.routestory.model.Story
-import android.widget.{ Button, TextView, FrameLayout, ImageView }
-import android.view.ViewGroup.LayoutParams._
-import net.routestory.model.Story.Chapter
-import android.view.{ View, Gravity }
-import uk.co.senab.photoview.PhotoViewAttacher
-import android.app.{ Activity, AlertDialog, Dialog }
-import android.content.{ Intent, Context }
-import org.macroid.UiThreading._
-import net.routestory.parts.Implicits._
-import net.routestory.parts.Styles._
-import android.media.MediaPlayer
-import scala.util.Try
-import android.os.Vibrator
-import net.routestory.parts.Styles
-import org.macroid.contrib.Layouts.VerticalLinearLayout
-import android.net.Uri
-import scala.ref.WeakReference
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.ref.WeakReference
+import scala.util.Try
+
+import android.app.{ Activity, AlertDialog, Dialog }
+import android.content.{ Context, Intent }
+import android.graphics.Color
+import android.media.MediaPlayer
+import android.net.Uri
+import android.os.Vibrator
+import android.view.Gravity
+import android.view.ViewGroup.LayoutParams._
+import android.widget.{ Button, FrameLayout, ImageView, TextView }
+
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.{ LatLngBounds, Polyline, PolylineOptions }
+import org.macroid.UiThreading._
+import org.macroid.contrib.Layouts.VerticalLinearLayout
+import uk.co.senab.photoview.PhotoViewAttacher
+
+import net.routestory.model.Story
+import net.routestory.model.Story.Chapter
+import net.routestory.ui.Styles._
+import net.routestory.util.Implicits._
 
 class MapManager(map: GoogleMap, displaySize: List[Int], activity: WeakReference[Activity])(implicit ctx: Context) {
   var route: Option[Polyline] = None
@@ -55,7 +57,7 @@ class MapManager(map: GoogleMap, displaySize: List[Int], activity: WeakReference
   def end = points.map(_.last)
 
   def startBearing = points.map { p ⇒
-    import net.routestory.parts.Implicits._
+    import net.routestory.util.Implicits._
     if (p.size < 2) 0f else p(0).bearingTo(p(1))
   }
 
@@ -90,7 +92,7 @@ class MapManager(map: GoogleMap, displaySize: List[Int], activity: WeakReference
   def onTextNoteClick(data: Story.TextNote) = {
     val bld = new AlertDialog.Builder(ctx)
     val textView = w[TextView] ~> text(data.text) ~>
-      TextSize.medium ~> Styles.p8dding ~>
+      TextSize.medium ~> p8dding ~>
       (_.setMaxWidth((displaySize(0) * 0.75).toInt))
     bld.setView(textView).create().show()
     true

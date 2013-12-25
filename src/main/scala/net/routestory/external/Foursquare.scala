@@ -1,13 +1,15 @@
 package net.routestory.external
 
-import com.google.android.gms.maps.model.LatLng
-import org.needs.json.JsonEndpoint
-import org.needs.http.{ AndroidJsonClient, HttpEndpoint }
-import scala.concurrent.ExecutionContext
 import java.util.Locale
+
+import scala.concurrent.ExecutionContext
+
+import com.google.android.gms.maps.model.LatLng
 import org.needs.Need
-import play.api.libs.json._
+import org.needs.http.{ AndroidJsonClient, HttpEndpoint }
+import org.needs.json.JsonEndpoint
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
 object Foursquare {
   case class Venue(id: String, name: String, lat: Double, lng: Double)

@@ -1,16 +1,20 @@
 package net.routestory.explore
 
-import net.routestory.parts.{ FragmentPaging, FragmentDataProvider, RouteStoryActivity }
-import rx.Var
-import scala.concurrent.Future
-import android.os.Bundle
 import scala.async.Async._
-import android.widget.{ TextView, ImageView }
-import android.view.ViewGroup.LayoutParams._
-import org.macroid.contrib.Layouts.VerticalLinearLayout
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+
+import android.os.Bundle
+import android.view.ViewGroup.LayoutParams._
+import android.widget.{ ImageView, TextView }
+
+import org.macroid.contrib.Layouts.VerticalLinearLayout
+import rx.Var
+
 import net.routestory.model.StoryPreview
 import net.routestory.needs.NeedAuthor
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import net.routestory.util.FragmentDataProvider
 
 class AuthorActivity extends RouteStoryActivity
   with HazStories

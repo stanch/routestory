@@ -1,6 +1,5 @@
-package net.routestory.parts
+package net.routestory.util
 
-import scala.concurrent.Promise
 import android.support.v4.app.Fragment
 
 trait FragmentDataProvider[A] {

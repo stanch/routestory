@@ -1,20 +1,18 @@
 package net.routestory.explore
 
+import scala.async.Async.{ async, await }
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.ref.WeakReference
+
 import android.app.AlertDialog
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.{ LayoutInflater, View, ViewGroup }
 import com.google.android.gms.maps._
 import com.google.android.gms.maps.model._
-import net.routestory.parts.RouteStoryFragment
-import net.routestory.parts.Implicits._
-import scala.concurrent.ExecutionContext.Implicits.global
-import com.google.android.gms.maps.model.CameraPosition
-import scala.concurrent.Future
-import scala.async.Async.{ async, await }
-import scala.ref.WeakReference
 import net.routestory.model.StoryPreview
+import net.routestory.ui.RouteStoryFragment
+import net.routestory.util.Implicits._
 
 class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment {
   lazy val map = findFrag[SupportMapFragment](Tag.resultsMap).get.getMap
@@ -35,7 +33,7 @@ class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment
 
   override def onStart() {
     super.onStart()
-    map.setOnMarkerClickListener { marker: Marker ⇒
+    map.onMarkerClick { marker: Marker ⇒
       val story = markers(marker)
       // TODO: wtf? how to measure one?
       val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8

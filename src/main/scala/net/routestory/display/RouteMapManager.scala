@@ -1,22 +1,25 @@
 package net.routestory.display
 
-import android.graphics.Bitmap
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model._
-import net.routestory.model.Story._
-import net.routestory.R
-import net.routestory.parts.BitmapUtils
-import org.macroid.UiThreading._
-import android.content.Context
 import scala.concurrent.ExecutionContext
 import scala.ref.WeakReference
+
 import android.app.Activity
-import net.routestory.parts.Implicits._
+import android.content.Context
+import android.graphics.Bitmap
+
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model._
+import org.macroid.UiThreading._
+
+import net.routestory.R
+import net.routestory.model.Story._
+import net.routestory.util.BitmapUtils
+import net.routestory.util.Implicits._
 
 class RouteMapManager(map: GoogleMap, displaySize: List[Int], activity: WeakReference[Activity])(maxImageSize: Int = displaySize.min / 4)(implicit ctx: Context)
   extends MapManager(map, displaySize, activity) {
 
-  map.setOnMarkerClickListener(onMarkerClick)
+  map.onMarkerClick(onMarkerClick)
 
   var man: Option[Marker] = None
   var markers: Map[Media, Marker] = Map.empty

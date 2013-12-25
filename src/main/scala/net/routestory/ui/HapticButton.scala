@@ -1,4 +1,4 @@
-package net.routestory.parts
+package net.routestory.ui
 
 import android.content.Context
 import android.widget.Button

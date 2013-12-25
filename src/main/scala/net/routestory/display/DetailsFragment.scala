@@ -1,20 +1,22 @@
 package net.routestory.display
 
-import net.routestory.R
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.{ ScrollView, LinearLayout, TextView, ImageView }
 import scala.concurrent._
-import ExecutionContext.Implicits.global
-import net.routestory.parts.{ FragmentData, Styles, RouteStoryFragment }
-import net.routestory.parts.Styles._
-import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import ViewGroup.LayoutParams._
-import net.routestory.explore.PreviewRow
 import scala.ref.WeakReference
+
+import android.os.Bundle
+import android.view.{ LayoutInflater, View, ViewGroup }
+import android.view.ViewGroup.LayoutParams._
+import android.widget.{ ImageView, LinearLayout, ScrollView, TextView }
+
+import ExecutionContext.Implicits.global
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+
+import net.routestory.R
+import net.routestory.explore.PreviewRow
 import net.routestory.model.Story
+import net.routestory.ui.{ RouteStoryFragment, Styles }
+import net.routestory.ui.Styles._
+import net.routestory.util.FragmentData
 
 class DetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
   lazy val story = getFragmentData

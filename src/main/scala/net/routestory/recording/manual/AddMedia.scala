@@ -1,40 +1,37 @@
-package net.routestory.recording
+package net.routestory.recording.manual
 
-import scala.language.dynamics
-import android.support.v4.app.DialogFragment
-import android.widget.{ ListAdapter ⇒ _, _ }
-import android.os.Bundle
-import android.media.MediaRecorder
-import MediaRecorder._
-import android.app.AlertDialog
 import java.io.File
-import android.view.{ ViewGroup, Gravity, View }
-import net.routestory.R
-import android.app.Dialog
-import android.content.{ Context, DialogInterface, Intent }
-import net.routestory.parts.{ Effects, RouteStoryFragment }
-import android.app.Activity
-import android.provider.MediaStore
-import android.net.Uri
-import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.parts.Implicits._
-import org.macroid._
-import net.routestory.parts.Styles._
-import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import org.macroid.util.{ Effector, Thunk }
-import scala.collection.JavaConversions._
-import org.macroid.contrib.ExtraTweaks
-import org.codehaus.jackson.map.ObjectMapper
-import rx.{ Rx, Var }
+
 import scala.async.Async.{ async, await }
-import com.google.android.gms.maps.model.LatLng
-import net.routestory.external.Foursquare
-import org.macroid.contrib.ListAdapter
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.language.dynamics
+
+import android.app.{ Activity, AlertDialog, Dialog }
+import android.content.Intent
+import android.media.MediaRecorder
+import android.net.Uri
+import android.os.Bundle
+import android.provider.MediaStore
+import android.support.v4.app.DialogFragment
+import android.view.Gravity
+import android.widget.{ ListAdapter ⇒ _, _ }
+
 import akka.pattern.ask
 import akka.util.Timeout
+import com.google.android.gms.maps.model.LatLng
+import org.macroid.contrib.ListAdapter
+import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import org.macroid.util.{ Effector, Thunk }
+import rx.{ Rx, Var }
 
-class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
-  import AddMediaDialogFragment._
+import net.routestory.R
+import net.routestory.external.Foursquare
+import net.routestory.recording.{ Cartographer, RecordActivity, Typewriter }
+import net.routestory.ui.{ Effects, RouteStoryFragment }
+import net.routestory.ui.Styles._
+import net.routestory.util.Implicits._
+
+class AddMedia extends DialogFragment with RouteStoryFragment {
   lazy val photoUrl = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
@@ -53,13 +50,25 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
 
     val buttons = List(
       (R.drawable.photo, "Take a picture", cameraClicker),
-      (R.drawable.text_note, "Add a text note", clicker(f[TextNoteDialogFragment].factory, Tag.noteDialog)),
-      (R.drawable.voice_note, "Make a voice note", clicker(f[VoiceDialogFragment].factory, Tag.voiceDialog)),
-      (R.drawable.heart, "Record heartbeat", clicker(f[MeasurePulseDialogFragment].factory, Tag.pulseDialog)),
-      (R.drawable.foursquare, "Mention a venue", clicker(f[FoursquareDialogFragment].factory, Tag.fsqDialog))
+      (R.drawable.text_note, "Add a text note", clicker(f[AddTextNote].factory, Tag.noteDialog)),
+      (R.drawable.voice_note, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog)),
+      (R.drawable.heart, "Record heartbeat", clicker(f[AddHeartbeat].factory, Tag.pulseDialog)),
+      (R.drawable.foursquare, "Mention a venue", clicker(f[AddVenue].factory, Tag.fsqDialog))
     )
 
-    val view = w[ListView] ~> (_.setAdapter(new MediaListAdapter(buttons)))
+    val adapter = ListAdapter(buttons)(
+      l[HorizontalLinearLayout](
+        w[ImageView],
+        w[TextView] ~> TextSize.large
+      ) ~> padding(top = 12 dp, bottom = 12 dp, left = 8 dp),
+      button ⇒ {
+        case img: ImageView ⇒ img ~> (_.setImageResource(button._1))
+        case txt: TextView ⇒ txt ~> text(button._2)
+        case l @ Layout(_*) ⇒ l ~> ThunkOn.click(button._3)
+      }
+    )
+
+    val view = w[ListView] ~> (_.setAdapter(adapter))
     new AlertDialog.Builder(activity).setView(view).create()
   }
 
@@ -75,27 +84,11 @@ class AddMediaDialogFragment extends DialogFragment with RouteStoryFragment {
   }
 }
 
-object AddMediaDialogFragment {
-  class MediaListAdapter(media: List[(Int, String, Thunk[Any])])(implicit ctx: Context) extends ArrayAdapter(ctx, 0, media) with LayoutDsl with MediaQueries with ExtraTweaks with BasicViewSearch {
-    override def getView(position: Int, itemView: View, parent: ViewGroup): View = {
-      val item = getItem(position)
-      val v = Option(itemView) getOrElse {
-        l[HorizontalLinearLayout](
-          w[ImageView] ~> id(Id.image), w[TextView] ~> id(Id.text) ~> TextSize.large
-        ) ~> padding(top = 12 dp, bottom = 12 dp, left = 8 dp)
-      }
-      findView[ImageView](v, Id.image) ~> (_.setImageResource(item._1))
-      findView[TextView](v, Id.text) ~> text(item._2)
-      v ~> ThunkOn.click(item._3)
-    }
-  }
-}
-
-class AddSomethingDialogFragment extends DialogFragment {
+class AddSomething extends DialogFragment with RouteStoryFragment {
   lazy val activity = getActivity.asInstanceOf[RecordActivity]
 }
 
-class FoursquareDialogFragment extends AddSomethingDialogFragment with UiThreading with BasicViewSearch with MediaQueries with FragmentContext {
+class AddVenue extends AddSomething {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val list = w[ListView]
     val progress = w[ProgressBar](null, android.R.attr.progressBarStyleLarge)
@@ -123,7 +116,7 @@ class FoursquareDialogFragment extends AddSomethingDialogFragment with UiThreadi
   }
 }
 
-class TextNoteDialogFragment extends AddSomethingDialogFragment {
+class AddTextNote extends AddSomething {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val input = new EditText(activity) {
       setHint(R.string.message_typenotehere)
@@ -140,7 +133,7 @@ class TextNoteDialogFragment extends AddSomethingDialogFragment {
   }
 }
 
-class VoiceDialogFragment extends AddSomethingDialogFragment with LayoutDsl with Tweaks with FragmentContext {
+class AddVoiceNote extends AddSomething {
   var mMediaRecorder: MediaRecorder = null
   var mRecording = false
   var mRecorded = false
@@ -197,7 +190,7 @@ class VoiceDialogFragment extends AddSomethingDialogFragment with LayoutDsl with
   }
 }
 
-class MeasurePulseDialogFragment extends AddSomethingDialogFragment with LayoutDsl with MediaQueries with Tweaks with FragmentContext {
+class AddHeartbeat extends AddSomething {
   val taps = Var(List[Long]())
   val beats = Rx {
     if (taps().length < 5) 0 else {

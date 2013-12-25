@@ -1,4 +1,4 @@
-package net.routestory.parts
+package net.routestory.util
 
 import akka.event.Logging._
 import akka.actor._

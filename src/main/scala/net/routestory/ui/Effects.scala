@@ -1,4 +1,4 @@
-package net.routestory.parts
+package net.routestory.ui
 
 import org.macroid.Snails
 import scala.concurrent.ExecutionContext

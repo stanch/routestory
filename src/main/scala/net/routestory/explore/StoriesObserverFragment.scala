@@ -1,10 +1,13 @@
 package net.routestory.explore
 
-import android.support.v4.app.Fragment
-import net.routestory.model.StoryPreview
-import net.routestory.parts.FragmentData
-import rx.{ Obs, Rx }
 import scala.concurrent.Future
+
+import android.support.v4.app.Fragment
+
+import rx.{ Obs, Rx }
+
+import net.routestory.model.StoryPreview
+import net.routestory.util.FragmentData
 
 trait HazStories {
   val stories: Rx[Future[List[StoryPreview]]]

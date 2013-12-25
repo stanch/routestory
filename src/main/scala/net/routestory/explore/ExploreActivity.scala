@@ -1,16 +1,15 @@
 package net.routestory.explore
 
-import android.os.Bundle
-import net.routestory.parts.{ FragmentPaging, RouteStoryActivity }
-import com.google.android.gms.common.{ ConnectionResult, GooglePlayServicesUtil }
-import android.preference.PreferenceManager
-import net.routestory.R
-import android.view.{ MenuItem, Menu }
 import android.content.Intent
+import android.os.Bundle
+import android.preference.PreferenceManager
+import android.view.{ Menu, MenuItem }
+
+import com.google.android.gms.common.{ ConnectionResult, GooglePlayServicesUtil }
+
+import net.routestory.R
 import net.routestory.recording.RecordActivity
-import net.routestory.needs.NeedMedia
-import android.util.Log
-import akka.actor.LightArrayRevolverScheduler
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 
 class ExploreActivity extends RouteStoryActivity with FragmentPaging {
   override def onCreate(savedInstanceState: Bundle) {

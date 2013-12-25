@@ -1,14 +1,18 @@
 package net.routestory.explore
 
-import net.routestory.parts.{ FragmentPaging, FragmentDataProvider, RouteStoryActivity }
-import rx.Var
-import scala.concurrent.Future
-import android.os.Bundle
-import org.macroid.util.Text
-import net.routestory.R
 import scala.async.Async._
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+
+import android.os.Bundle
+
+import org.macroid.util.Text
+import rx.Var
+
+import net.routestory.R
 import net.routestory.model.StoryPreview
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import net.routestory.util.FragmentDataProvider
 
 class MyStoriesActivity extends RouteStoryActivity
   with HazStories

@@ -1,21 +1,24 @@
 package net.routestory.explore
 
-import android.content.{ Context, Intent }
-import android.app.SearchManager
-import net.routestory.parts.{ FragmentPaging, FragmentDataProvider, RouteStoryActivity }
-import rx.Var
-import scala.concurrent.Future
-import scala.util.Try
-import android.os.Bundle
-import net.routestory.R
-import scala.async.Async._
 import scala.Some
-import android.view.{ View, Menu }
-import android.widget.SearchView
+import scala.async.Async._
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Try
+
+import android.app.SearchManager
+import android.content.Intent
+import android.os.Bundle
+import android.view.Menu
+
 import org.macroid.util.Text
+import rx.Var
+
+import net.routestory.R
 import net.routestory.model.StoryPreview
-import net.routestory.needs.{ NeedTagged, NeedSearch }
+import net.routestory.needs.{ NeedSearch, NeedTagged }
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import net.routestory.util.FragmentDataProvider
 
 object SearchActivity {
   object SearchIntent {

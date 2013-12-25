@@ -1,21 +1,22 @@
 package net.routestory.explore
 
+import scala.ref.WeakReference
+
 import android.app.Activity
-import android.content.Context
-import android.content.Intent
+import android.content.{ Context, Intent }
 import android.text.SpannableString
 import android.text.style.UnderlineSpan
-import android.view.{ ViewGroup, View }
-import android.widget.LinearLayout
-import android.widget.TextView
-import net.routestory.R
-import org.macroid.{ MediaQueries, Tweaks, LayoutDsl, BasicViewSearch }
-import net.routestory.parts.Styles._
+import android.view.View
+import android.view.ViewGroup.LayoutParams._
+import android.widget.{ LinearLayout, TextView }
+
+import org.macroid.{ BasicViewSearch, LayoutDsl, MediaQueries, Tweaks }
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import ViewGroup.LayoutParams._
-import net.routestory.parts.Styles
+
+import net.routestory.R
 import net.routestory.model.StoryPreview
-import scala.ref.WeakReference
+import net.routestory.ui.Styles
+import net.routestory.ui.Styles._
 
 object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicViewSearch {
   def underlined(s: String) = new SpannableString(s) {

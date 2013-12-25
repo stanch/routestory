@@ -1,4 +1,4 @@
-package net.routestory.parts
+package net.routestory.ui
 
 import android.widget.{ ProgressBar, TextView }
 import android.content.Context

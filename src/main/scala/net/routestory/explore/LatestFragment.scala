@@ -1,9 +1,12 @@
 package net.routestory.explore
 
-import rx.Var
-import android.util.Log
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+
+import android.util.Log
+
+import rx.Var
+
 import net.routestory.model.StoryPreview
 import net.routestory.needs.NeedLatest
 

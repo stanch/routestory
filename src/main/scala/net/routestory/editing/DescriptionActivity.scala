@@ -1,20 +1,23 @@
-package net.routestory.recording
+package net.routestory.editing
+
+import scala.async.Async.{ async, await }
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import android.content.Intent
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.view.{ ViewGroup, KeyEvent, View }
-import android.widget._
-import net.routestory.R
-import net.routestory.parts.{ Styles, HapticButton, RouteStoryActivity }
-import scala.concurrent.ExecutionContext.Implicits.global
-import org.macroid.contrib.Layouts.VerticalLinearLayout
-import net.routestory.parts.Styles._
-import ViewGroup.LayoutParams._
 import android.text.InputType
-import scala.async.Async.{ async, await }
+import android.view.KeyEvent
+import android.view.ViewGroup.LayoutParams._
+import android.widget._
+
 import org.macroid.contrib.ListAdapter
+import org.macroid.contrib.Layouts.VerticalLinearLayout
+
+import net.routestory.R
 import net.routestory.needs.NeedTags
+import net.routestory.ui.{ HapticButton, RouteStoryActivity, Styles }
+import net.routestory.ui.Styles._
 
 class DescriptionActivity extends RouteStoryActivity {
   var title: EditText = _

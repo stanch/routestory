@@ -1,36 +1,24 @@
-package net.routestory.parts
+package net.routestory.ui
 
-import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivity }
-import net.routestory.{ SettingsActivity, R, RouteStoryApp }
-import org.macroid._
-import android.view._
-import android.content.{ Context, Intent }
-import android.support.v4.widget.DrawerLayout
-import android.widget.{ SearchView, ProgressBar, ListView }
-import android.view.ViewGroup.LayoutParams._
-import android.app.{ SearchManager, Activity }
 import scala.reflect.ClassTag
-import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
-import net.routestory.recording.RecordActivity
-import android.os.Bundle
-import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
-import net.routestory.explore.{ MyStoriesActivity, ExploreActivity }
+
+import android.app.{ Activity, SearchManager }
+import android.content.{ Context, Intent }
 import android.graphics.Point
+import android.os.Bundle
+import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivity }
+import android.support.v4.widget.DrawerLayout
+import android.view._
+import android.view.ViewGroup.LayoutParams._
+import android.widget.{ ListView, ProgressBar, SearchView }
+import net.routestory.{ R, RouteStoryApp, SettingsActivity }
+import net.routestory.explore.{ ExploreActivity, MyStoriesActivity }
+import net.routestory.recording.RecordActivity
+import org.macroid._
+import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
+import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
 
-trait FirstEveryStart {
-  var everStarted = false
-  def onFirstStart() {}
-  def onEveryStart() {}
-  def firstOrEvery() {
-    if (!everStarted) {
-      onFirstStart()
-      everStarted = true
-    }
-    onEveryStart()
-  }
-}
-
-trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Toasts with FirstEveryStart {
+trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Toasts {
   lazy val app = getApplication.asInstanceOf[RouteStoryApp]
   lazy val bar = getActionBar
   var drawerToggle: ActionBarDrawerToggle = _
@@ -39,11 +27,6 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Toas
     val pt = new Point
     getWindowManager.getDefaultDisplay.getSize(pt)
     pt.x :: pt.y :: Nil
-  }
-
-  override def onStart() {
-    super.onStart()
-    firstOrEvery()
   }
 
   override def onOptionsItemSelected(item: MenuItem) =
@@ -104,17 +87,12 @@ trait RouteStoryActivity extends FragmentActivity with FullDslActivity with Toas
   }
 }
 
-trait RouteStoryFragment extends Fragment with FullDslFragment with Toasts with FirstEveryStart {
+trait RouteStoryFragment extends Fragment with FullDslFragment with Toasts {
   lazy val app = getActivity.getApplication.asInstanceOf[RouteStoryApp]
 
   def displaySize = {
     val pt = new Point
     getActivity.getWindowManager.getDefaultDisplay.getSize(pt)
     pt.x :: pt.y :: Nil
-  }
-
-  override def onStart() {
-    super.onStart()
-    firstOrEvery()
   }
 }
