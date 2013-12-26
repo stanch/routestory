@@ -1,10 +1,11 @@
-package net.routestory.model
+package net.routestory.needs
 
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
 import com.google.android.gms.maps.model.LatLng
 import org.needs.Fulfillable
-import net.routestory.needs.NeedAuthor
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+
+import net.routestory.model._
 
 // format: OFF
 
@@ -77,11 +78,11 @@ object JsonFormats {
 
   /* Story */
 
-  implicit val storyReads = Fulfillable.reads[Story] {
+  implicit def storyReads(implicit appCtx: AppContext) = Fulfillable.reads[Story] {
     (__ \ '_id).read[String] and
     (__ \ 'meta).read[Story.Meta] and
     (__ \ 'chapters).read[List[Story.Chapter]] and
-    (__ \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption) and
+    (__ \ 'authorId).read[Option[String]].map(_.map(id ⇒ NeedAuthor(id))).map(Fulfillable.jumpOption) and
     (__ \ 'private).read[Boolean]
   }
 
@@ -96,20 +97,20 @@ object JsonFormats {
   /* Story preview */
 
   object storyPreviewReadsLatest {
-    implicit val storyPreviewReads = Fulfillable.reads[StoryPreview] {
+    implicit def storyPreviewReads(implicit appCtx: AppContext) = Fulfillable.reads[StoryPreview] {
       (__ \ 'id).read[String] and
       (__ \ 'value \ 'title).read[Option[String]] and
       (__ \ 'value \ 'tags).read[List[String]] and
-      (__ \ 'value \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
+      (__ \ 'value \ 'authorId).read[Option[String]].map(_.map(id ⇒ NeedAuthor(id))).map(Fulfillable.jumpOption)
     }
   }
 
   object storyPreviewReadsSearched {
-    implicit val storyPreviewReads = Fulfillable.reads[StoryPreview] {
+    implicit def storyPreviewReads(implicit appCtx: AppContext) = Fulfillable.reads[StoryPreview] {
       (__ \ 'id).read[String] and
       (__ \ 'fields \ 'title).read[Option[String]] and
       ((__ \ 'fields \ 'tags).read[List[String]] orElse (__ \ 'fields \ 'tags).read[String].map(_ :: Nil)) and
-      (__ \ 'fields \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
+      (__ \ 'fields \ 'authorId).read[Option[String]].map(_.map(id ⇒ NeedAuthor(id))).map(Fulfillable.jumpOption)
     }
   }
 
@@ -121,4 +122,26 @@ object JsonFormats {
     (__ \ 'link).read[Option[String]] and
     (__ \ 'picture).read[Option[String]]
   }
+
+  /* Collections */
+
+  implicit def latestReads(implicit appCtx: AppContext) = Fulfillable.reads[Latest] {
+    import storyPreviewReadsLatest._
+    (__ \ 'total_rows).read[Int] and
+    (__ \ 'rows).read[List[Fulfillable[StoryPreview]]].map(Fulfillable.jumpList)
+  }
+
+  implicit def searchedReads(implicit appCtx: AppContext) = Fulfillable.reads[Searched] {
+    import storyPreviewReadsSearched._
+    (__ \ 'total_rows).read[Int] and
+    (__ \ 'bookmark).read[String] and
+    (__ \ 'rows).read[List[Fulfillable[StoryPreview]]].map(Fulfillable.jumpList)
+  }
+
+  implicit val tagReads = (
+    (__ \ 'key).read[String] and
+    (__ \ 'value).read[Int]
+  )(Tag.apply _)
+
+  implicit val manyTagsReads = (__ \ 'rows).read[List[Tag]]
 }

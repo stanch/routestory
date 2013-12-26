@@ -1,18 +1,25 @@
 package net.routestory.needs
 
-import com.loopj.android.http.AsyncHttpClient
-import org.needs.{ rest, http, Endpoint }
+import java.io.File
+
+import scala.concurrent.{ ExecutionContext, future }
+
+import android.content.Context
 import android.util.Log
+
+import com.loopj.android.http.AsyncHttpClient
+import org.needs.{ Endpoint, http, rest }
+import org.needs.file.{ FileEndpoint, HttpFileEndpoint, LocalFileEndpoint }
 import org.needs.http.HttpEndpoint
 import org.needs.json.JsonEndpoint
-import org.needs.file.{ HttpFileEndpoint, LocalFileEndpoint, FileEndpoint }
-import java.io.File
-import scala.concurrent.{ Future, ExecutionContext }
-import android.content.Context
 
-object Client {
+import net.routestory.RouteStoryApp
+
+object HttpClient {
   lazy val client = new AsyncHttpClient
 }
+
+case class AppContext(app: RouteStoryApp)
 
 trait EndpointLogging { self: Endpoint ⇒
   override protected def logFetching() {
@@ -20,12 +27,32 @@ trait EndpointLogging { self: Endpoint ⇒
   }
 }
 
-trait Local { self: Endpoint ⇒
+/* Local Couch endpoints */
+
+trait LocalEndpoint { self: Endpoint ⇒
   override val priority = Seq(1, 0)
 }
 
+trait CouchEndpointBase extends JsonEndpoint with LocalEndpoint with EndpointLogging {
+  import net.routestory.lounge.Couch._
+  implicit val appCtx: AppContext
+  val id: String
+  case object NotFound extends Throwable
+  protected def fetch(implicit ec: ExecutionContext) = future {
+    Option(appCtx.app.couchDb.getExistingDocument(id)).map(_.getProperties.toJsObject).getOrElse(throw NotFound)
+  }
+}
+
+case class LocalAuthor(id: String)(implicit val appCtx: AppContext)
+  extends CouchEndpointBase
+
+case class LocalStory(id: String)(implicit val appCtx: AppContext)
+  extends CouchEndpointBase
+
+/* Remote REST API endpoints */
+
 trait RemoteEndpointBase extends http.AndroidJsonClient with EndpointLogging { self: HttpEndpoint with JsonEndpoint ⇒
-  val asyncHttpClient = Client.client
+  val asyncHttpClient = HttpClient.client
 }
 
 abstract class SingleResource(val baseUrl: String)
@@ -36,6 +63,8 @@ case class RemoteAuthor(id: String)
 
 case class RemoteStory(id: String)
   extends SingleResource("http://routestory.herokuapp.com/api/stories")
+
+/* Media endpoints */
 
 abstract class CachedFileBase(url: String, ctx: Context) extends FileEndpoint with EndpointLogging {
   def create = new File(s"${ctx.getExternalCacheDir.getAbsolutePath}/${url.replace("/", "-")}")
@@ -48,7 +77,7 @@ case class RemoteMedia(url: String)(implicit ctx: Context)
 }
 
 case class LocalCachedMedia(url: String)(implicit ctx: Context)
-  extends CachedFileBase(url, ctx) with LocalFileEndpoint with Local
+  extends CachedFileBase(url, ctx) with LocalFileEndpoint with LocalEndpoint
 
 case class LocalTempMedia(url: String)
   extends LocalFileEndpoint with EndpointLogging {

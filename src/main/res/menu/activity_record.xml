@@ -3,8 +3,4 @@
         android:title="@string/menu_stoprecord"
         android:orderInCategory="100"
         android:showAsAction="always" />
-    <item android:id="@+id/toggleAudio"
-        android:title=""
-        android:orderInCategory="100"
-        android:showAsAction="ifRoom" />    
 </menu>

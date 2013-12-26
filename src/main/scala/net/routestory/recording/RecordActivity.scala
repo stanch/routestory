@@ -1,5 +1,6 @@
 package net.routestory.recording
 
+import scala.async.Async._
 import scala.concurrent.{ Await, Promise }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -21,11 +22,18 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 import play.api.libs.json.Json
 
 import net.routestory.model.Story
-import net.routestory.model.JsonFormats._
+import net.routestory.needs.JsonFormats
+import JsonFormats._
 import net.routestory.recording.manual.AddMedia
 import net.routestory.ui.{ HapticButton, RouteStoryActivity }
 import net.routestory.ui.Styles._
 import net.routestory.util.Implicits._
+import android.view.{ MenuItem, Menu, KeyEvent }
+import net.routestory.R
+import android.app.AlertDialog
+import net.routestory.util.Shortuuid
+import android.content.Intent
+import net.routestory.display.DisplayActivity
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -129,9 +137,51 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   override def onSaveInstanceState(outState: Bundle) = {
     implicit val timeout = Timeout(5 seconds)
     val chapter = Await.result((typewriter ? Typewriter.Backup).mapTo[Story.Chapter], 5 seconds)
-    val json = Json.toJson(chapter).toString
+    val json = Json.toJson(chapter).toString()
     outState.putString("savedChapter", json)
     super.onSaveInstanceState(outState)
+  }
+
+  def giveUp() {
+    finish()
+  }
+
+  def createNew() {
+    progress ~@> waitProgress(async {
+      implicit val timeout = Timeout(5 seconds)
+      val id = s"story-${Shortuuid.make}"
+      val chapter = await((typewriter ? Typewriter.Backup).mapTo[Story.Chapter])
+      val story = Story(id, Story.Meta(None, None), List(chapter), None)
+      app.createStory(story)
+      val intent = new Intent(this, classOf[DisplayActivity])
+      intent.putExtra("id", id)
+      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+      ui(startActivity(intent))
+    } recover {
+      case t ⇒ t.printStackTrace(); throw t
+    })
+  }
+
+  override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
+    case R.id.stopRecord ⇒
+      new AlertDialog.Builder(ctx) {
+        setMessage(R.string.message_stoprecord)
+        setPositiveButton(android.R.string.yes, createNew())
+        setNegativeButton(android.R.string.no, ())
+        create()
+      }.show()
+      true
+    case _ ⇒ super.onOptionsItemSelected(item)
+  }
+
+  override def onKeyDown(keyCode: Int, event: KeyEvent) = keyCode match {
+    case KeyEvent.KEYCODE_BACK ⇒ giveUp(); false
+    case _ ⇒ super.onKeyDown(keyCode, event)
+  }
+
+  override def onCreateOptionsMenu(menu: Menu) = {
+    getMenuInflater.inflate(R.menu.activity_record, menu)
+    true
   }
 }
 

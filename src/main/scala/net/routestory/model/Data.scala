@@ -25,8 +25,9 @@ object Story {
   sealed trait ExternalMedia extends Media {
     val url: String
 
+    private val _fetchingLock = new Object
     private var _fetched: Option[Future[File]] = None
-    def fetch(implicit ctx: Context) = _fetched.synchronized {
+    def fetch(implicit ctx: Context) = _fetchingLock.synchronized {
       _fetched getOrElse {
         _fetched = Some(NeedMedia(url).go(externalMediaEc))
         _fetched.get

@@ -7,9 +7,11 @@ import android.net.ConnectivityManager
 import rx.{ Obs, Var }
 import android.util.Log
 import com.typesafe.config.ConfigFactory
+import net.routestory.lounge.Couch
+import scala.concurrent.ExecutionContext.Implicits.global
+import net.routestory.needs.{ AppContext, NeedAuthor }
 
-class RouteStoryApp extends Application {
-  implicit val ctx = this
+class RouteStoryApp extends Application with Couch {
   lazy val authToken = Var(readPrefs("authToken"))
   lazy val authTokenSaver = authToken.foreach(writePrefs("authToken", _), skipInitial = true)
   lazy val authorId = Var(readPrefs("authorId"))
@@ -35,17 +37,7 @@ class RouteStoryApp extends Application {
 
   //  def setAuthData(s: Option[Array[String]]) = signIn(s.map(_(1)), s.map(_(0)))
   //
-  //  def getAuthor = Local.couch.map(c ⇒ authorId.now.map(c.get(classOf[Author], _)))
-  //
-  //  def createStory(story: Story) = Local.couch.map(_.create(story))
-
-  //  def updateStoryAttachment(attachmentId: String, contentStream: InputStream, contentType: String, id: String, rev: String) = {
-  //    Local.updateAttachment(attachmentId, contentStream, contentType, id, rev)
-  //  }
-
-  //  def compactLocal = Local.server.map(_.getDatabaseNamed("story").compact())
-  //
-  //  def deleteStory(story: Story) = Local.couch.map(_.delete(story))
+  def author = authorId.now.map(id ⇒ NeedAuthor(id)(AppContext(this)).go)
 
   def isOnline = {
     val cm = getSystemService(Context.CONNECTIVITY_SERVICE).asInstanceOf[ConnectivityManager]

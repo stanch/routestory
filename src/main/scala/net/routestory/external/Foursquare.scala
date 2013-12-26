@@ -21,7 +21,7 @@ object Foursquare {
   )(Venue)
 
   case class NearbyVenues(location: LatLng) extends JsonEndpoint with HttpEndpoint with AndroidJsonClient {
-    val asyncHttpClient = net.routestory.needs.Client.client
+    val asyncHttpClient = net.routestory.needs.HttpClient.client
     protected def fetch(implicit ec: ExecutionContext) =
       client("https://api.foursquare.com/v2/venues/search", Map(
         "client_id" → "0TORHPL0MPUG24YGBVNINGV2LREZJCD0XBCDCBMFC0JPDO05",

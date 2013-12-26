@@ -37,7 +37,8 @@ libraryDependencies ++= Seq(
   "com.loopj.android" % "android-async-http" % "1.4.4",
   "com.android.support" % "support-v13" % "19.0.0",
   "com.github.chrisbanes.photoview" % "library" % "1.2.1",
-  aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),
+  "com.couchbase.lite" %% "couchbase-lite-android-core" % "1.0.0-SNAPSHOT",
+  //aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),
   aarlib("com.google.android.gms" % "play-services" % "4.0.30"),
   apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4")
 )
