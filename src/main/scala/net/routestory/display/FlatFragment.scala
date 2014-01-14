@@ -10,18 +10,20 @@ import android.view.ViewGroup.LayoutParams._
 import android.widget.{ Button, FrameLayout }
 
 import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap, SupportMapFragment }
+import org.macroid.FullDsl._
 
 import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.FragmentData
 import net.routestory.util.Implicits._
+import org.macroid.IdGeneration
 
-class FlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
+class FlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] with IdGeneration {
   lazy val story = getFragmentData
   lazy val mapView = findFrag[SupportMapFragment](Tag.overviewMap).get.getView
   lazy val map = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap
-  lazy val mapManager = new FlatMapManager(map, mapView, displaySize, WeakReference(getActivity))
+  lazy val mapManager = new FlatMapManager(map, mapView, displaySize)
 
   var toggleOverlays = slot[Button]
 

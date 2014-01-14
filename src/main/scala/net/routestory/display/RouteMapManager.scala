@@ -1,9 +1,7 @@
 package net.routestory.display
 
 import scala.concurrent.ExecutionContext
-import scala.ref.WeakReference
 
-import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 
@@ -15,9 +13,10 @@ import net.routestory.R
 import net.routestory.model.Story._
 import net.routestory.util.BitmapUtils
 import net.routestory.util.Implicits._
+import org.macroid.{ AppContext, ActivityContext }
 
-class RouteMapManager(map: GoogleMap, displaySize: List[Int], activity: WeakReference[Activity])(maxImageSize: Int = displaySize.min / 4)(implicit ctx: Context)
-  extends MapManager(map, displaySize, activity) {
+class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int = displaySize.min / 4)(implicit ctx: ActivityContext, appCtx: AppContext)
+  extends MapManager(map, displaySize) {
 
   map.onMarkerClick(onMarkerClick)
 
@@ -33,7 +32,7 @@ class RouteMapManager(map: GoogleMap, displaySize: List[Int], activity: WeakRefe
     markerDispatch += markers(m) → m
   }
 
-  def add(chapter: Chapter)(implicit ctx: Context, ec: ExecutionContext) = {
+  def add(chapter: Chapter)(implicit ec: ExecutionContext) = {
     super.addRoute(chapter)
     chapter.media foreach {
       case m: TextNote if !markers.contains(m) ⇒

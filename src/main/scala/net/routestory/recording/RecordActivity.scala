@@ -4,13 +4,15 @@ import scala.async.Async._
 import scala.concurrent.{ Await, Promise }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.ref.WeakReference
 import scala.util.Try
 
+import android.app.AlertDialog
+import android.content.Intent
 import android.location.{ Location ⇒ AndroidLocation }
 import android.os.Bundle
+import android.view.{ KeyEvent, Menu, MenuItem }
 import android.view.ViewGroup.LayoutParams._
-import android.widget.{ LinearLayout, ProgressBar }
+import android.widget.{ Button, LinearLayout, ProgressBar }
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
 import akka.pattern.ask
@@ -18,22 +20,21 @@ import akka.util.Timeout
 import com.google.android.gms.common._
 import com.google.android.gms.location.{ LocationClient, LocationListener, LocationRequest }
 import com.google.android.gms.maps.SupportMapFragment
+import org.macroid.FullDsl._
+import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import play.api.libs.json.Json
 
-import net.routestory.model.Story
-import net.routestory.needs.JsonFormats
-import JsonFormats._
-import net.routestory.recording.manual.AddMedia
-import net.routestory.ui.{ HapticButton, RouteStoryActivity }
-import net.routestory.ui.Styles._
-import net.routestory.util.Implicits._
-import android.view.{ MenuItem, Menu, KeyEvent }
 import net.routestory.R
-import android.app.AlertDialog
-import net.routestory.util.Shortuuid
-import android.content.Intent
 import net.routestory.display.DisplayActivity
+import net.routestory.model.Story
+import net.routestory.needs.JsonFormats._
+import net.routestory.recording.manual.AddMedia
+import net.routestory.ui.RouteStoryActivity
+import net.routestory.util.Shortuuid
+import net.routestory.util.Implicits._
+import android.support.v4.app.FragmentActivity
+import org.macroid.IdGeneration
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -78,14 +79,14 @@ trait LocationHandler
   }
 }
 
-class RecordActivity extends RouteStoryActivity with LocationHandler {
+class RecordActivity extends RouteStoryActivity with LocationHandler with IdGeneration {
   val rqGmsConnectionFailureResolution = RecordActivity.REQUEST_CONNECTION_FAILURE_RESOLUTION
   lazy val map = findFrag[SupportMapFragment](Tag.recordingMap).get.getMap
   var progress = slot[ProgressBar]
 
   lazy val actorSystem = ActorSystem("RecordingActorSystem", app.config, app.getClassLoader)
   implicit lazy val uiActor = actorSystem.actorOf(Props.empty, "ui")
-  lazy val cartographer: ActorRef = actorSystem.actorOf(Cartographer.props(map, displaySize, WeakReference(this)), "cartographer")
+  lazy val cartographer: ActorRef = actorSystem.actorOf(Cartographer.props(map, displaySize), "cartographer")
   lazy val typewriter: ActorRef = actorSystem.actorOf(Typewriter.props, "typewriter")
 
   override def onCreate(savedInstanceState: Bundle) {
@@ -96,7 +97,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
         activityProgress ~>
           wire(progress) ~>
           showProgress(firstLocationPromise.future),
-        w[HapticButton] ~> text("Add stuff") ~> TextSize.large ~>
+        w[Button] ~> text("Add stuff") ~> TextSize.large ~>
           layoutParams(MATCH_PARENT, WRAP_CONTENT) ~>
           On.click(new AddMedia().show(getSupportFragmentManager, Tag.addMedia)),
         l[LinearLayout](
@@ -149,7 +150,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
   def createNew() {
     progress ~@> waitProgress(async {
       implicit val timeout = Timeout(5 seconds)
-      val id = s"story-${Shortuuid.make}"
+      val id = Shortuuid.make("story")
       val chapter = await((typewriter ? Typewriter.Backup).mapTo[Story.Chapter])
       val story = Story(id, Story.Meta(None, None), List(chapter), None)
       app.createStory(story)
@@ -164,7 +165,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler {
 
   override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
     case R.id.stopRecord ⇒
-      new AlertDialog.Builder(ctx) {
+      new AlertDialog.Builder(this) {
         setMessage(R.string.message_stoprecord)
         setPositiveButton(android.R.string.yes, createNew())
         setNegativeButton(android.R.string.no, ())

@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.view.ViewGroup.LayoutParams._
 import android.widget.{ ImageView, TextView }
 
+import org.macroid.FullDsl._
+import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import rx.Var
 
@@ -15,11 +17,13 @@ import net.routestory.model.StoryPreview
 import net.routestory.needs.NeedAuthor
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.FragmentDataProvider
+import org.macroid.IdGeneration
 
 class AuthorActivity extends RouteStoryActivity
   with HazStories
   with FragmentDataProvider[HazStories]
-  with FragmentPaging {
+  with FragmentPaging
+  with IdGeneration {
 
   lazy val stories: Var[Future[List[StoryPreview]]] = Var(fetchStories)
   def getFragmentData(tag: String): HazStories = this

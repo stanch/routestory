@@ -1,7 +1,6 @@
 package net.routestory.explore
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.ref.WeakReference
 import scala.util.Random
 
 import android.graphics.Point
@@ -9,6 +8,7 @@ import android.os.Bundle
 import android.view.{ LayoutInflater, View, ViewGroup }
 import android.widget.{ LinearLayout, ScrollView }
 
+import org.macroid.FullDsl._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 import net.routestory.needs.NeedTags
@@ -33,7 +33,7 @@ class TagsFragment extends RouteStoryFragment {
       val (max, min) = (shuffled.maxBy(_.count).count, shuffled.minBy(_.count).count)
       def n(x: Int) = if (max == min) 1 else (x - min).toDouble / (max - min)
       val norm = shuffled.map(t ⇒ (t.tag, Some(n(t.count))))
-      PreviewRow.fillTags(rows, displaySize.x - (20 dp), norm, WeakReference(getActivity))
+      PreviewRow.fillTags(rows, displaySize.x - (20 dp), norm)
     }
   }
 }

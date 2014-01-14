@@ -11,7 +11,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 
-import org.macroid.util.Text
+import org.macroid.LayoutDsl._
 import rx.Var
 
 import net.routestory.R
@@ -19,6 +19,7 @@ import net.routestory.model.StoryPreview
 import net.routestory.needs.{ NeedSearch, NeedTagged }
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.FragmentDataProvider
+import org.macroid.IdGeneration
 
 object SearchActivity {
   object SearchIntent {
@@ -37,7 +38,8 @@ object SearchActivity {
 class SearchActivity extends RouteStoryActivity
   with HazStories
   with FragmentDataProvider[HazStories]
-  with FragmentPaging {
+  with FragmentPaging
+  with IdGeneration {
   import SearchActivity._
 
   // this is failed at the beginning, so that observers don’t update (they update onSuccess)
@@ -63,10 +65,10 @@ class SearchActivity extends RouteStoryActivity
 
   lazy val query = getIntent match {
     case SearchIntent(q) ⇒
-      bar.setSubtitle(Text(R.string.search_results_for) + " " + q)
+      bar.setSubtitle(getResources.getText(R.string.search_results_for) + " " + q)
       textQuery(q)
     case TagIntent(t) ⇒
-      bar.setSubtitle(Text(R.string.search_results_tag) + " " + t)
+      bar.setSubtitle(getResources.getText(R.string.search_results_tag) + " " + t)
       tagQuery(t)
     case _ ⇒
       bar.setSubtitle("Search results for: lisbon")

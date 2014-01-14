@@ -2,7 +2,6 @@ package net.routestory.display
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.ref.WeakReference
 
 import android.content.Context
 import android.media.MediaPlayer
@@ -13,8 +12,9 @@ import android.widget._
 import android.widget.SeekBar.OnSeekBarChangeListener
 
 import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap, SupportMapFragment }
-import com.google.android.gms.maps.model._
-import org.macroid.contrib.ExtraTweaks
+import com.google.android.gms.maps.model.{ f ⇒ _, _ }
+import org.macroid.FullDsl._
+import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import rx.Var
 
@@ -25,16 +25,17 @@ import net.routestory.ui.RouteStoryFragment
 import net.routestory.ui.Styles._
 import net.routestory.util.FragmentData
 import net.routestory.util.Implicits._
+import org.macroid.{ IdGeneration, Tweak }
 
 object DiveFragment {
   val photoDuration = 1500
   val photoFade = 300
 }
 
-class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] with ExtraTweaks {
+class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] with IdGeneration {
   lazy val story = getFragmentData
   lazy val map = findFrag[SupportMapFragment](Tag.previewMap).get.getMap
-  lazy val mapManager = new RouteMapManager(map, displaySize, WeakReference(getActivity))()
+  lazy val mapManager = new RouteMapManager(map, displaySize)()
   lazy val handler = new Handler
 
   // playback vars
@@ -62,23 +63,30 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
           w[ImageView] ~> wire(imageView)
         ),
         l[FrameLayout](
-          w[Button] ~> wire(playBig) ~>
+          w[Button] ~>
+            wire(playBig) ~>
             lp(80 dp, 80 dp, Gravity.CENTER) ~>
             Bg.res(R.drawable.play_big) ~>
-            story.map(s ⇒ On.click {
-              playing.update(true)
-              start(s.chapters(0))
-            })
+            story.map(s ⇒ On.click { playing.update(true); start(s.chapters(0)) })
         )
       ) ~> lp(WRAP_CONTENT, WRAP_CONTENT, 1.0f),
       l[HorizontalLinearLayout](
-        w[Button] ~> Bg.res(R.drawable.play) ~> lp(32 dp, 32 dp) ~>
-          wire(play) ~> story.map(s ⇒ On.click { playing.update(true); start(s.chapters(0)) }),
-        w[Button] ~> Bg.res(R.drawable.pause) ~> lp(32 dp, 32 dp) ~>
-          wire(pause) ~> story.map(s ⇒ On.click { playing.update(false); stop(); }) ~> hide,
-        w[SeekBar] ~> wire(seekBar) ~> lp(MATCH_PARENT, WRAP_CONTENT)
+        w[Button] ~>
+          Bg.res(R.drawable.play) ~>
+          lp(32 dp, 32 dp) ~>
+          wire(play) ~>
+          story.map(s ⇒ On.click { playing.update(true); start(s.chapters(0)) }),
+        w[Button] ~>
+          Bg.res(R.drawable.pause) ~>
+          lp(32 dp, 32 dp) ~>
+          wire(pause) ~>
+          story.map(s ⇒ On.click { playing.update(false); stop(); }) ~> hide,
+        w[SeekBar] ~>
+          wire(seekBar) ~>
+          lp(MATCH_PARENT, WRAP_CONTENT)
       ) ~> padding(left = 16 dp, right = 8 dp, top = 8 dp, bottom = 8 dp)
     ) ~> wire(layout)
+    w[View]
   }
 
   var positioned = false
@@ -98,9 +106,9 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
 
     story foreachUi { s ⇒
       val chapter = s.chapters(0)
-      seekBar ~>
-        (_.setMax(seekBar.get.getWidth)) ~>
-        (_.setOnSeekBarChangeListener(new OnSeekBarChangeListener {
+      seekBar ~> Tweak[SeekBar] { bar ⇒
+        bar.setMax(bar.getWidth)
+        bar.setOnSeekBarChangeListener(new OnSeekBarChangeListener {
           def onProgressChanged(bar: SeekBar, position: Int, fromUser: Boolean) {
             cue.update(1.0 * position / bar.getMax)
             if (fromUser) {
@@ -115,7 +123,8 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
           def onStartTrackingTouch(bar: SeekBar) {
             stop()
           }
-        }))
+        })
+      }
     }
   }
 
@@ -145,7 +154,7 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     play ~> show
     imageView ~> hide
     handler.removeCallbacksAndMessages(null)
-    layout ~> (_.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE))
+    layout ~> unImmerse
   }
 
   def start(chapter: Chapter) {
@@ -157,7 +166,7 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     val from = Math.ceil(cue.now * duration)
     val start = SystemClock.uptimeMillis
 
-    lazy val vibrator = ctx.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator]
+    lazy val vibrator = getActivity.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator]
 
     var photos = Vector[Photo]()
 
@@ -185,7 +194,7 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
       case (photo, span) if span > 2 * photoFade ⇒
         handler.postAtTime({
           photo.fetchAndLoad(displaySize.min) foreach { bitmap ⇒
-            imageView ~> (_.setImageBitmap(bitmap)) ~@> fadeIn(photoFade)
+            imageView ~> Image.bitmap(bitmap) ~@> fadeIn(photoFade)
             handler.postDelayed(imageView ~@> fadeOut(photoFade), List(span - 2 * photoFade, photoDuration).min)
           }
         }, start + (photo.timestamp / ratio.now - from).toInt)
@@ -200,7 +209,7 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
 
     def walk() {
       val ts = SystemClock.uptimeMillis - start + from.toInt
-      seekBar ~> (_.setProgress((ts * seekBar.get.getMax / duration).toInt))
+      seekBar ~> seek((ts * seekBar.get.getMax / duration).toInt)
       positionMan(chapter, ts)
       if (ts <= duration) handler.postDelayed(walk, 100) else handler.postDelayed(rewind(chapter), 1000)
     }
@@ -212,7 +221,7 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     play ~> show
     pause ~> hide
     playing.update(false)
-    seekBar ~> (_.setProgress(0))
+    seekBar ~> seek(0)
     stop()
     positionMap(chapter, 0, tiltZoom = true)
     positionMan(chapter, 0)

@@ -14,12 +14,13 @@ import org.needs.http.HttpEndpoint
 import org.needs.json.JsonEndpoint
 
 import net.routestory.RouteStoryApp
+import org.macroid.AppContext
 
 object HttpClient {
   lazy val client = new AsyncHttpClient
 }
 
-case class AppContext(app: RouteStoryApp)
+case class RouteStoryAppContext(app: RouteStoryApp)
 
 trait EndpointLogging { self: Endpoint ⇒
   override protected def logFetching() {
@@ -35,7 +36,7 @@ trait LocalEndpoint { self: Endpoint ⇒
 
 trait CouchEndpointBase extends JsonEndpoint with LocalEndpoint with EndpointLogging {
   import net.routestory.lounge.Couch._
-  implicit val appCtx: AppContext
+  implicit val appCtx: RouteStoryAppContext
   val id: String
   case object NotFound extends Throwable
   protected def fetch(implicit ec: ExecutionContext) = future {
@@ -43,10 +44,10 @@ trait CouchEndpointBase extends JsonEndpoint with LocalEndpoint with EndpointLog
   }
 }
 
-case class LocalAuthor(id: String)(implicit val appCtx: AppContext)
+case class LocalAuthor(id: String)(implicit val appCtx: RouteStoryAppContext)
   extends CouchEndpointBase
 
-case class LocalStory(id: String)(implicit val appCtx: AppContext)
+case class LocalStory(id: String)(implicit val appCtx: RouteStoryAppContext)
   extends CouchEndpointBase
 
 /* Remote REST API endpoints */
@@ -66,17 +67,17 @@ case class RemoteStory(id: String)
 
 /* Media endpoints */
 
-abstract class CachedFileBase(url: String, ctx: Context) extends FileEndpoint with EndpointLogging {
-  def create = new File(s"${ctx.getExternalCacheDir.getAbsolutePath}/${url.replace("/", "-")}")
+abstract class CachedFileBase(url: String, ctx: AppContext) extends FileEndpoint with EndpointLogging {
+  def create = new File(s"${ctx.get.getExternalCacheDir.getAbsolutePath}/${url.replace("/", "-")}")
 }
 
-case class RemoteMedia(url: String)(implicit ctx: Context)
+case class RemoteMedia(url: String)(implicit ctx: AppContext)
   extends CachedFileBase(url, ctx) with HttpFileEndpoint with http.AndroidFileClient {
   val asyncHttpClient = new AsyncHttpClient
   val baseUrl = "http://routestory.herokuapp.com/api/stories"
 }
 
-case class LocalCachedMedia(url: String)(implicit ctx: Context)
+case class LocalCachedMedia(url: String)(implicit ctx: AppContext)
   extends CachedFileBase(url, ctx) with LocalFileEndpoint with LocalEndpoint
 
 case class LocalTempMedia(url: String)

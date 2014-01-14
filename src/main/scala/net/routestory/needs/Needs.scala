@@ -11,8 +11,9 @@ import org.needs.http.HttpEndpoint
 
 import net.routestory.model._
 import net.routestory.needs.JsonFormats._
+import org.macroid.AppContext
 
-case class NeedAuthor(id: String)(implicit appCtx: AppContext) extends Need[Author] with rest.Probing[Author] {
+case class NeedAuthor(id: String)(implicit appCtx: RouteStoryAppContext) extends Need[Author] with rest.Probing[Author] {
   use(LocalAuthor(id), RemoteAuthor(id))
   from { singleResource[RemoteAuthor] }
   from {
@@ -20,7 +21,7 @@ case class NeedAuthor(id: String)(implicit appCtx: AppContext) extends Need[Auth
   }
 }
 
-case class NeedStory(id: String)(implicit appCtx: AppContext) extends Need[Story] with rest.Probing[Story] {
+case class NeedStory(id: String)(implicit appCtx: RouteStoryAppContext) extends Need[Story] with rest.Probing[Story] {
   use(LocalStory(id), RemoteStory(id))
   from { singleResource[RemoteStory] }
   from {
@@ -28,20 +29,20 @@ case class NeedStory(id: String)(implicit appCtx: AppContext) extends Need[Story
   }
 }
 
-case class NeedLatest(num: Int)(implicit appCtx: AppContext)
+case class NeedLatest(num: Int)(implicit appCtx: RouteStoryAppContext)
   extends json.SelfFulfillingNeed[Latest] with HttpEndpoint with RemoteEndpointBase {
   def fetch(implicit ec: ExecutionContext) =
     client("http://routestory.herokuapp.com/api/stories/latest", Map("limit" → num.toString))
 }
 
-case class NeedSearch(query: String, limit: Int = 4, bookmark: Option[String] = None)(implicit appCtx: AppContext)
+case class NeedSearch(query: String, limit: Int = 4, bookmark: Option[String] = None)(implicit appCtx: RouteStoryAppContext)
   extends json.SelfFulfillingNeed[Searched] with HttpEndpoint with RemoteEndpointBase {
   def fetch(implicit ec: ExecutionContext) =
     client(s"http://routestory.herokuapp.com/api/stories/search/$query",
       Map("limit" → limit.toString) ++ bookmark.map(b ⇒ Map("bookmark" → b)).getOrElse(Map.empty))
 }
 
-case class NeedTagged(tag: String, limit: Int = 4, bookmark: Option[String] = None)(implicit appCtx: AppContext)
+case class NeedTagged(tag: String, limit: Int = 4, bookmark: Option[String] = None)(implicit appCtx: RouteStoryAppContext)
   extends json.SelfFulfillingNeed[Searched] with HttpEndpoint with RemoteEndpointBase {
   def fetch(implicit ec: ExecutionContext) =
     client(s"http://routestory.herokuapp.com/api/tags/$tag/stories",
@@ -53,7 +54,7 @@ case class NeedTags() extends json.SelfFulfillingNeed[List[Tag]] with HttpEndpoi
     client("http://routestory.herokuapp.com/api/tags")
 }
 
-case class NeedMedia(url: String)(implicit ctx: Context) extends Need[File] {
+case class NeedMedia(url: String)(implicit ctx: AppContext) extends Need[File] {
   use { RemoteMedia(url) }
   use { LocalCachedMedia(url) }
   use { LocalTempMedia(url) }

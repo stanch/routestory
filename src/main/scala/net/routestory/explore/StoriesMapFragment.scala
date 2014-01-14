@@ -3,18 +3,22 @@ package net.routestory.explore
 import scala.async.Async.{ async, await }
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.ref.WeakReference
 
 import android.app.AlertDialog
 import android.os.Bundle
 import android.view.{ LayoutInflater, View, ViewGroup }
 import com.google.android.gms.maps._
-import com.google.android.gms.maps.model._
+import com.google.android.gms.maps.model.{ f ⇒ _, _ }
+
+import org.macroid.FullDsl._
+
 import net.routestory.model.StoryPreview
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.Implicits._
+import org.macroid.IdGeneration
+import android.support.v4.app.Fragment
 
-class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment {
+class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment with IdGeneration {
   lazy val map = findFrag[SupportMapFragment](Tag.resultsMap).get.getMap
   var markers = Map[Marker, StoryPreview]()
   var routes = List[Polyline]()
@@ -38,8 +42,8 @@ class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment
       // TODO: wtf? how to measure one?
       val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8
       val view = PreviewRow.makeView
-      PreviewRow.fillView(view, a.toInt, story, WeakReference(getActivity))
-      new AlertDialog.Builder(ctx).setView(view).create().show()
+      PreviewRow.fillView(view, a.toInt, story)
+      new AlertDialog.Builder(getActivity).setView(view).create().show()
       true
     }
     observe()

@@ -2,10 +2,9 @@ package net.routestory.display
 
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.ref.WeakReference
 import scala.util.Try
 
-import android.app.{ Activity, AlertDialog, Dialog }
+import android.app.{ AlertDialog, Dialog }
 import android.content.{ Context, Intent }
 import android.graphics.Color
 import android.media.MediaPlayer
@@ -17,7 +16,9 @@ import android.widget.{ Button, FrameLayout, ImageView, TextView }
 
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.{ LatLngBounds, Polyline, PolylineOptions }
-import org.macroid.UiThreading._
+import org.macroid.{ AppContext, ActivityContext }
+import org.macroid.FullDsl._
+import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 import uk.co.senab.photoview.PhotoViewAttacher
 
@@ -26,7 +27,7 @@ import net.routestory.model.Story.Chapter
 import net.routestory.ui.Styles._
 import net.routestory.util.Implicits._
 
-class MapManager(map: GoogleMap, displaySize: List[Int], activity: WeakReference[Activity])(implicit ctx: Context) {
+class MapManager(map: GoogleMap, displaySize: List[Int])(implicit ctx: ActivityContext, appCtx: AppContext) {
   var route: Option[Polyline] = None
 
   def addRoute(chapter: Chapter) = route match {
@@ -65,7 +66,7 @@ class MapManager(map: GoogleMap, displaySize: List[Int], activity: WeakReference
     data.fetchAndLoad(displaySize.max) foreachUi { bitmap ⇒
       val view = w[ImageView] ~> Image.bitmap(bitmap) ~> Image.adjustBounds ~> lowProfile
       new PhotoViewAttacher(view).update()
-      new Dialog(ctx, android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
+      new Dialog(ctx.get, android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
         setContentView(l[FrameLayout](view ~> lp(MATCH_PARENT, MATCH_PARENT, Gravity.CENTER)))
         setOnDismissListener(bitmap.recycle())
         show()
@@ -90,27 +91,26 @@ class MapManager(map: GoogleMap, displaySize: List[Int], activity: WeakReference
   }
 
   def onTextNoteClick(data: Story.TextNote) = {
-    val bld = new AlertDialog.Builder(ctx)
-    val textView = w[TextView] ~> text(data.text) ~>
-      TextSize.medium ~> p8dding ~>
-      (_.setMaxWidth((displaySize(0) * 0.75).toInt))
+    val bld = new AlertDialog.Builder(ctx.get)
+    val textView = w[TextView] ~> text(data.text) ~> TextSize.medium ~> p8dding ~>
+      (tweak ~ (_.setMaxWidth((displaySize(0) * 0.75).toInt)))
     bld.setView(textView).create().show()
     true
   }
 
   def onHeartbeatClick(data: Story.Heartbeat) = {
-    ctx.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator].vibrate(data.vibrationPattern(5), -1)
+    ctx.get.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator].vibrate(data.vibrationPattern(5), -1)
     true
   }
 
   def onVenueClick(data: Story.Venue) = {
-    val bld = new AlertDialog.Builder(ctx)
+    val bld = new AlertDialog.Builder(ctx.get)
     val view = l[VerticalLinearLayout](
       w[TextView] ~> text(data.name) ~> TextSize.large ~> padding(left = 3 sp),
       w[Button] ~> text("Open in Foursquare®") ~> On.click {
         val intent = new Intent(Intent.ACTION_VIEW)
         intent.setData(Uri.parse(s"https://foursquare.com/v/${data.id}"))
-        activity().startActivityForResult(intent, 0)
+        ctx.get.startActivityForResult(intent, 0)
       }
     )
     bld.setView(view).create().show()

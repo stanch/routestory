@@ -1,21 +1,20 @@
 package net.routestory.explore
 
 import scala.async.Async.{ async, await }
-import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.ref.WeakReference
+import scala.collection.JavaConversions._
 
-import android.app.Activity
-import android.content.Context
 import android.os.Bundle
 import android.support.v4.app.ListFragment
 import android.util.Log
 import android.view.{ Gravity, LayoutInflater, View, ViewGroup }
 import android.widget.{ ListAdapter ⇒ _, _ }
 
-import org.macroid.MediaQueries
-import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
+import org.macroid.FullDsl._
+import org.macroid.contrib.ExtraTweaks._
+import org.macroid.{ Tweak, ActivityContext, AppContext }
+import org.macroid.contrib.ListAdapter
 import org.macroid.contrib.Layouts.HorizontalLinearLayout
 
 import net.routestory.R
@@ -24,8 +23,7 @@ import net.routestory.ui.RouteStoryFragment
 
 class StoriesListFragment extends ListFragment
   with RouteStoryFragment
-  with StoriesObserverFragment
-  with ExtraTweaks {
+  with StoriesObserverFragment {
 
   lazy val emptyText = Option(getArguments) map {
     _.getString("emptyText")
@@ -47,12 +45,14 @@ class StoriesListFragment extends ListFragment
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val view = super.onCreateView(inflater, container, savedInstanceState) ~> Bg.res(R.drawable.caspa)
-    val list = findView[ListView](view, android.R.id.list) ~> (_.setDivider(null))
+    val list = view.find[ListView](android.R.id.list) ~> (tweak ~ (_.setDivider(null)))
     if (showControls) {
-      list.get.addFooterView(l[HorizontalLinearLayout](
-        w[Button] ~> text("Prev") ~> wire(prevButton) ~> On.click(storyteller.prev()),
-        w[Button] ~> text("Next") ~> wire(nextButton) ~> On.click(storyteller.next())
-      ) ~> (_.setGravity(Gravity.CENTER_HORIZONTAL)))
+      list.get.addFooterView {
+        l[HorizontalLinearLayout](
+          w[Button] ~> text("Prev") ~> wire(prevButton) ~> On.click(storyteller.prev()),
+          w[Button] ~> text("Next") ~> wire(nextButton) ~> On.click(storyteller.next())
+        ) ~> Tweak[HorizontalLinearLayout](_.setGravity(Gravity.CENTER_HORIZONTAL))
+      }
       prevButton ~> enable(storyteller.hasPrev)
       nextButton ~> enable(storyteller.hasNext)
     }
@@ -82,7 +82,7 @@ class StoriesListFragment extends ListFragment
       adapter map { a ⇒
         a.clear()
       } getOrElse {
-        adapter = Some(StoriesListFragment.Adapter(WeakReference(getActivity)))
+        adapter = Some(new StoriesListFragment.Adapter)
         setListAdapter(adapter.get)
       }
       adapter.map(_.addAll(s))
@@ -94,10 +94,10 @@ class StoriesListFragment extends ListFragment
 }
 
 object StoriesListFragment {
-  case class Adapter(activity: WeakReference[Activity])(implicit ctx: Context) extends ListAdapter[StoryPreview, View] with MediaQueries {
+  case class Adapter(implicit ctx: ActivityContext, appCtx: AppContext) extends ListAdapter[StoryPreview, View] {
     def makeView = PreviewRow.makeView
     def fillView(view: View, parent: ViewGroup, data: StoryPreview) =
-      PreviewRow.fillView(view, parent.getMeasuredWidth, data, activity)
+      PreviewRow.fillView(view, parent.getMeasuredWidth, data)
     override def isEnabled(position: Int) = false
   }
 }

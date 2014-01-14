@@ -1,29 +1,28 @@
 package net.routestory.explore
 
-import scala.ref.WeakReference
-
-import android.app.Activity
-import android.content.{ Context, Intent }
+import android.content.Intent
 import android.text.SpannableString
 import android.text.style.UnderlineSpan
 import android.view.View
 import android.view.ViewGroup.LayoutParams._
 import android.widget.{ LinearLayout, TextView }
 
-import org.macroid.{ BasicViewSearch, LayoutDsl, MediaQueries, Tweaks }
+import org.macroid.FullDsl._
+import org.macroid.{ IdGeneration, AppContext, ActivityContext }
+import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 
 import net.routestory.R
-import net.routestory.model.StoryPreview
 import net.routestory.ui.Styles
 import net.routestory.ui.Styles._
+import net.routestory.model.StoryPreview
 
-object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicViewSearch {
+object PreviewRow extends IdGeneration {
   def underlined(s: String) = new SpannableString(s) {
     setSpan(new UnderlineSpan(), 0, length, 0)
   }
 
-  def fillTags(tagRowsView: Option[LinearLayout], maxWidth: Int, tags: List[(String, Option[Double])], activity: WeakReference[Activity])(implicit ctx: Context) {
+  def fillTags(tagRowsView: Option[LinearLayout], maxWidth: Int, tags: List[(String, Option[Double])])(implicit ctx: ActivityContext, appCtx: AppContext) {
     // form rows by accumulating tags that fit in one line
     val (_, rows) = tags.foldLeft[(Int, List[List[View]])]((0, Nil :: Nil)) {
       case ((width, row :: prevRows), tag) ⇒
@@ -39,7 +38,7 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
           val p = w[TextView] ~> Styles.tag ~> text(underlined(tag._1)) ~>
             tag._2.map(s ⇒ TextSize.sp(20 + (s * 20).toInt)) ~>
             measure ~> On.click {
-              activity.get map { a ⇒
+              ctx.activity.get map { a ⇒
                 val intent = new Intent(a, classOf[SearchActivity])
                 intent.putExtra("tag", tag._1)
                 a.startActivityForResult(intent, 0)
@@ -62,7 +61,7 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
     tagRowsView ~> addViewsReverse(rows.map(row ⇒ l[HorizontalLinearLayout]() ~> addViewsReverse(row)), removeOld = true)
   }
 
-  def makeView(implicit ctx: Context) = l[VerticalLinearLayout](
+  def makeView(implicit ctx: ActivityContext, appCtx: AppContext) = l[VerticalLinearLayout](
     w[TextView] ~> id(Id.storyTitle) ~> Styles.title ~> lp(WRAP_CONTENT, WRAP_CONTENT),
     l[HorizontalLinearLayout](
       w[TextView] ~> text(R.string.by) ~> Styles.caption,
@@ -73,11 +72,11 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
     ) ~> id(Id.storyTags) ~> padding(left = storyShift)
   ) ~> padding(0, 8 dp, 0, 8 dp)
 
-  def fillView(view: View, maxWidth: Int, story: StoryPreview, activity: WeakReference[Activity])(implicit ctx: Context) {
+  def fillView(view: View, maxWidth: Int, story: StoryPreview)(implicit ctx: ActivityContext, appCtx: AppContext) {
     // title
     val title = story.title.filter(!_.isEmpty).toRight(R.string.untitled)
-    findView[TextView](view, Id.storyTitle) ~> text(title) ~> On.click {
-      activity.get map { a ⇒
+    view.find[TextView](Id.storyTitle) ~> text(title) ~> On.click {
+      ctx.activity.get.map { a ⇒
         val intent = new Intent(a, classOf[net.routestory.display.DisplayActivity])
         intent.putExtra("id", story.id)
         a.startActivityForResult(intent, 0)
@@ -86,12 +85,12 @@ object PreviewRow extends LayoutDsl with MediaQueries with Tweaks with BasicView
 
     // author
     val author = story.author.map(_.name).toRight(R.string.me)
-    findView[TextView](view, Id.storyAuthor) ~> text(author)
+    view.find[TextView](Id.storyAuthor) ~> text(author)
 
     // tags
-    findView[View](view, Id.storyTags) ~> (Some(story.tags).filter(!_.isEmpty) map { tags ⇒
-      val tagRows = findView[LinearLayout](view, Id.storyTagRows)
-      fillTags(tagRows, maxWidth, tags.map((_, None)), activity)
+    view.find[View](Id.storyTags) ~> (Some(story.tags).filter(!_.isEmpty) map { tags ⇒
+      val tagRows = view.find[LinearLayout](Id.storyTagRows)
+      fillTags(tagRows, maxWidth, tags.map((_, None)))
       show
     } getOrElse {
       hide

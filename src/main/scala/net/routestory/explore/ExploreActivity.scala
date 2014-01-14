@@ -5,13 +5,15 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.{ Menu, MenuItem }
 
+import org.macroid.LayoutDsl._
 import com.google.android.gms.common.{ ConnectionResult, GooglePlayServicesUtil }
 
 import net.routestory.R
 import net.routestory.recording.RecordActivity
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import org.macroid.IdGeneration
 
-class ExploreActivity extends RouteStoryActivity with FragmentPaging {
+class ExploreActivity extends RouteStoryActivity with FragmentPaging with IdGeneration {
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
 

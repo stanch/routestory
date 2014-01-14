@@ -23,7 +23,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.macroid" %% "macroid" % "1.1.0-20131212",
+  "org.macroid" %% "macroid" % "2.0.0-SNAPSHOT",
   "org.needs" %% "needs" % "1.0.0-RC2",
   "com.scalarx" %% "scalarx" % "0.1" exclude ("com.typesafe.akka", "akka-actor"),
   "com.typesafe.play" %% "play-json" % "2.2.0",

@@ -1,10 +1,9 @@
 package net.routestory.recording
 
-import android.content.Context
-
 import akka.actor.{ Actor, Props }
 import com.google.android.gms.maps.model.LatLng
-import org.macroid.Toasts
+import org.macroid.Toasts._
+import org.macroid.AppContext
 
 import net.routestory.external.Foursquare
 import net.routestory.model.Story
@@ -16,11 +15,11 @@ object Typewriter {
   case class Heartbeat(bpm: Int)
   case object Backup
   case class Restore(chapter: Story.Chapter)
-  def props(implicit ctx: Context) = Props(new Typewriter())
+  def props(implicit ctx: AppContext) = Props(new Typewriter())
 }
 
 /** An actor that maintains the chapter being recorded */
-class Typewriter(implicit ctx: Context) extends Actor with Toasts {
+class Typewriter(implicit ctx: AppContext) extends Actor {
   import Typewriter._
 
   def cartographer = context.actorSelection("../cartographer")

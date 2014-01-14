@@ -8,6 +8,7 @@ import net.routestory.needs.NeedMedia
 import net.routestory.util.BitmapUtils
 import java.io.File
 import java.util.concurrent.Executors
+import org.macroid.AppContext
 
 object Story {
   sealed trait Timed {
@@ -27,7 +28,7 @@ object Story {
 
     private val _fetchingLock = new Object
     private var _fetched: Option[Future[File]] = None
-    def fetch(implicit ctx: Context) = _fetchingLock.synchronized {
+    def fetch(implicit ctx: AppContext) = _fetchingLock.synchronized {
       _fetched getOrElse {
         _fetched = Some(NeedMedia(url).go(externalMediaEc))
         _fetched.get
@@ -40,7 +41,7 @@ object Story {
   case class VoiceNote(timestamp: Int, url: String) extends Audio
 
   sealed trait Image extends ExternalMedia {
-    def fetchAndLoad(maxSize: Int)(implicit ctx: Context) =
+    def fetchAndLoad(maxSize: Int)(implicit ctx: AppContext) =
       fetch.map(BitmapUtils.decodeFile(_, maxSize))(externalMediaEc).collect { case b if b != null ⇒ b }(externalMediaEc)
   }
   case class Photo(timestamp: Int, url: String) extends Image

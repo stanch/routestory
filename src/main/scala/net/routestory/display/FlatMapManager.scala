@@ -3,7 +3,6 @@ package net.routestory.display
 import scala.collection.JavaConversions._
 import scala.concurrent.{ Future, future }
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.ref.WeakReference
 
 import android.app.{ Activity, AlertDialog }
 import android.content.{ Context, DialogInterface }
@@ -14,8 +13,9 @@ import android.widget._
 
 import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model._
-import org.macroid.{ LayoutDsl, MediaQueries, Tweaks, UiThreading }
-import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
+import org.macroid.FullDsl._
+import org.macroid.contrib.ExtraTweaks._
+import org.macroid.contrib.ListAdapter
 
 import net.routestory.R
 import net.routestory.model.Story
@@ -23,9 +23,12 @@ import net.routestory.model.Story.Chapter
 import net.routestory.util.BitmapUtils
 import net.routestory.util.BitmapUtils.MagicGrid
 import net.routestory.util.Implicits._
+import scala.Some
+import net.routestory.model.Story.Chapter
+import org.macroid.{ AppContext, ActivityContext }
 
-class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], activity: WeakReference[Activity])(implicit ctx: Context)
-  extends MapManager(map, displaySize, activity) with UiThreading with MediaQueries {
+class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(implicit ctx: ActivityContext, appCtx: AppContext)
+  extends MapManager(map, displaySize) {
 
   map.onMarkerClick(onMarkerClick)
   var hideOverlays = false
@@ -67,14 +70,14 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
 
   // Image marker
   class ImageMarkerItem(chapter: Chapter, data: Story.Image)
-    extends MarkerItem(chapter, data.timestamp) with LayoutDsl with Tweaks with ExtraTweaks {
+    extends MarkerItem(chapter, data.timestamp) {
 
     private val icon = data.fetchAndLoad(maxIconSize)
 
     override def getIcon(scale: Boolean) = if (!scale) {
       icon
     } else icon.map { i ⇒
-      BitmapUtils.createScaledTransparentBitmap(i, (maxIconSize * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, true)
+      BitmapUtils.createScaledTransparentBitmap(i, (maxIconSize * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, border = true)
     }
 
     override def onClick() {
@@ -86,7 +89,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
     var iconPool = Map[Int, Bitmap]()
     def loadIcon(resourceId: Int): Bitmap = {
       if (!iconPool.contains(resourceId)) {
-        iconPool += resourceId → BitmapFactory.decodeResource(ctx.getResources, resourceId)
+        iconPool += resourceId → BitmapFactory.decodeResource(appCtx.get.getResources, resourceId)
       }
       iconPool(resourceId)
     }
@@ -112,7 +115,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
 
   // Text note marker
   class TextMarkerItem(chapter: Chapter, data: Story.TextNote)
-    extends IconMarkerItem(chapter, data, R.drawable.text_note) with ExtraTweaks {
+    extends IconMarkerItem(chapter, data, R.drawable.text_note) {
 
     override def onClick() {
       onTextNoteClick(data)
@@ -121,7 +124,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
 
   // Foursquare venue marker
   class VenueMarkerItem(chapter: Chapter, data: Story.Venue)
-    extends IconMarkerItem(chapter, data, R.drawable.foursquare_bigger) with ExtraTweaks {
+    extends IconMarkerItem(chapter, data, R.drawable.foursquare_bigger) {
 
     override def onClick() {
       onVenueClick(data)
@@ -167,7 +170,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
 
   // Grouping marker
   class GroupMarkerItem(chapter: Chapter, val children: List[MarkerItem], val closest: Double, val bounds: LatLngBounds)
-    extends MarkerItem(chapter, children.map(_.timestamp).sum / children.length) with LayoutDsl with ExtraTweaks {
+    extends MarkerItem(chapter, children.map(_.timestamp).sum / children.length) {
     lazy val leafList: List[MarkerItem] = children flatMap {
       case g: GroupMarkerItem ⇒ g.leafList
       case i ⇒ i :: Nil
@@ -217,7 +220,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int], acti
       if (FlatMapManager.manhattanDistance(ne, sw) * Math.pow(2, map.getMaxZoomLevel - 2 - map.getCameraPosition.zoom) < maxIconSize) {
         Future.sequence(leafList.map(_.getIcon(scale = false))) foreachUi { icons ⇒
           //show a confusion resolving dialog
-          new AlertDialog.Builder(ctx)
+          new AlertDialog.Builder(ctx.get)
             .setAdapter(ListAdapter.simple(icons)(
               w[ImageView] ~> Image.adjustBounds,
               icon ⇒ Image.bitmap {

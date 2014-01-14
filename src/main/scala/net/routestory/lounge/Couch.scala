@@ -2,7 +2,7 @@ package net.routestory.lounge
 
 import android.content.Context
 
-import com.couchbase.lite.{ Emitter, Manager, Mapper }
+import com.couchbase.lite.{ Attachment, Emitter, Manager, Mapper }
 import com.fasterxml.jackson.databind.ObjectMapper
 import play.api.libs.json._
 
@@ -10,6 +10,9 @@ import net.routestory.model.{ Author, Story }
 import net.routestory.needs.JsonFormats
 import JsonFormats._
 import net.routestory.RouteStoryApp
+import java.io.File
+import net.routestory.util.Shortuuid
+import android.util.Log
 
 object Couch {
   implicit class RichJsObject(js: JsObject) {
@@ -41,11 +44,25 @@ trait Couch { self: RouteStoryApp ⇒
   }
 
   def createStory(story: Story) = {
-    val json = Json.toJson(story).as[JsObject].toJavaMap
+    // relocate local files to attachments
+    var files = Map.empty[String, String]
+    val updated = story.copy(chapters = story.chapters.map { chapter ⇒
+      chapter.copy(media = chapter.media.map {
+        case m: Story.ExternalMedia if new File(m.url).isAbsolute ⇒
+          val url = story.id + "/" + Shortuuid.make("media")
+          files += url → m.url
+          m match {
+            case x: Story.Sound ⇒ x.copy(url = url)
+            case x: Story.VoiceNote ⇒ x.copy(url = url)
+            case x: Story.Photo ⇒ x.copy(url = url)
+          }
+        case x ⇒ x
+      })
+    })
+    val json = Json.toJson(updated).as[JsObject].toJavaMap
     val doc = couchDb.getDocument(story.id)
-    doc.putProperties(json)
-    //    val rev = doc.createRevision()
-    //    rev.setUserProperties(json)
-    //    rev.save()
+    val rev = doc.putProperties(json).createRevision()
+    //files.foreach { case (u, f) ⇒ rev.addAttachment(new Attachment()) }
+    rev.save()
   }
 }

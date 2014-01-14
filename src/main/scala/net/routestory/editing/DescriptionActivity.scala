@@ -11,13 +11,15 @@ import android.view.KeyEvent
 import android.view.ViewGroup.LayoutParams._
 import android.widget._
 
+import org.macroid.FullDsl._
 import org.macroid.contrib.ListAdapter
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 import net.routestory.R
 import net.routestory.needs.NeedTags
-import net.routestory.ui.{ HapticButton, RouteStoryActivity, Styles }
+import net.routestory.ui.{ RouteStoryActivity, Styles }
 import net.routestory.ui.Styles._
+import org.macroid.Tweak
 
 class DescriptionActivity extends RouteStoryActivity {
   var title: EditText = _
@@ -28,24 +30,26 @@ class DescriptionActivity extends RouteStoryActivity {
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
 
+    def inputType(t: Int) = tweak(W[EditText]) doing (_.setInputType(t))
+
     val view = l[VerticalLinearLayout](
       w[TextView] ~>
         text(R.string.title) ~> Styles.header(noPadding = true),
       w[EditText] ~> wire(title) ~> lp(MATCH_PARENT, WRAP_CONTENT) ~>
-        (_.setInputType(InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE)),
+        inputType(InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE),
 
       w[TextView] ~>
         text(R.string.description) ~> Styles.header(),
       w[EditText] ~> wire(description) ~> lp(MATCH_PARENT, WRAP_CONTENT) ~>
-        (_.setInputType(InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE)),
+        inputType(InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE),
 
       w[TextView] ~>
         text(R.string.tags) ~> Styles.header(),
       w[MultiAutoCompleteTextView] ~> wire(tags) ~> lp(MATCH_PARENT, WRAP_CONTENT) ~>
-        (_.setInputType(InputType.TYPE_CLASS_TEXT)) ~> (_.setHint(R.string.tags_hint)),
+        inputType(InputType.TYPE_CLASS_TEXT) ~> (tweak ~ (_.setHint(R.string.tags_hint))),
 
       w[CheckBox] ~> wire(public) ~> text(R.string.makeprivate) ~> padding(top = 15 sp),
-      w[HapticButton] ~> text(R.string.done) ~> On.click {
+      w[Button] ~> text(R.string.done) ~> On.click {
         setResult(0, new Intent("result") {
           putExtra("title", title.getText.toString)
           putExtra("description", description.getText.toString)

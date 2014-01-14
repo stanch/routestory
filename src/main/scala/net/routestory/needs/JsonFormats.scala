@@ -78,7 +78,7 @@ object JsonFormats {
 
   /* Story */
 
-  implicit def storyReads(implicit appCtx: AppContext) = Fulfillable.reads[Story] {
+  implicit def storyReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[Story] {
     (__ \ '_id).read[String] and
     (__ \ 'meta).read[Story.Meta] and
     (__ \ 'chapters).read[List[Story.Chapter]] and
@@ -97,7 +97,7 @@ object JsonFormats {
   /* Story preview */
 
   object storyPreviewReadsLatest {
-    implicit def storyPreviewReads(implicit appCtx: AppContext) = Fulfillable.reads[StoryPreview] {
+    implicit def storyPreviewReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[StoryPreview] {
       (__ \ 'id).read[String] and
       (__ \ 'value \ 'title).read[Option[String]] and
       (__ \ 'value \ 'tags).read[List[String]] and
@@ -106,7 +106,7 @@ object JsonFormats {
   }
 
   object storyPreviewReadsSearched {
-    implicit def storyPreviewReads(implicit appCtx: AppContext) = Fulfillable.reads[StoryPreview] {
+    implicit def storyPreviewReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[StoryPreview] {
       (__ \ 'id).read[String] and
       (__ \ 'fields \ 'title).read[Option[String]] and
       ((__ \ 'fields \ 'tags).read[List[String]] orElse (__ \ 'fields \ 'tags).read[String].map(_ :: Nil)) and
@@ -125,13 +125,13 @@ object JsonFormats {
 
   /* Collections */
 
-  implicit def latestReads(implicit appCtx: AppContext) = Fulfillable.reads[Latest] {
+  implicit def latestReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[Latest] {
     import storyPreviewReadsLatest._
     (__ \ 'total_rows).read[Int] and
     (__ \ 'rows).read[List[Fulfillable[StoryPreview]]].map(Fulfillable.jumpList)
   }
 
-  implicit def searchedReads(implicit appCtx: AppContext) = Fulfillable.reads[Searched] {
+  implicit def searchedReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[Searched] {
     import storyPreviewReadsSearched._
     (__ \ 'total_rows).read[Int] and
     (__ \ 'bookmark).read[String] and

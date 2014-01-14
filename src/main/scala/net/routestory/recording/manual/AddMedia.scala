@@ -19,6 +19,8 @@ import android.widget.{ ListAdapter ⇒ _, _ }
 import akka.pattern.ask
 import akka.util.Timeout
 import com.google.android.gms.maps.model.LatLng
+import org.macroid.FullDsl._
+import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.ListAdapter
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import org.macroid.util.{ Effector, Thunk }
@@ -30,8 +32,9 @@ import net.routestory.recording.{ Cartographer, RecordActivity, Typewriter }
 import net.routestory.ui.{ Effects, RouteStoryFragment }
 import net.routestory.ui.Styles._
 import net.routestory.util.Implicits._
+import org.macroid.{ IdGeneration, Tweak, Transformer, Layout }
 
-class AddMedia extends DialogFragment with RouteStoryFragment {
+class AddMedia extends DialogFragment with RouteStoryFragment with IdGeneration {
   lazy val photoUrl = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
@@ -61,14 +64,14 @@ class AddMedia extends DialogFragment with RouteStoryFragment {
         w[ImageView],
         w[TextView] ~> TextSize.large
       ) ~> padding(top = 12 dp, bottom = 12 dp, left = 8 dp),
-      button ⇒ {
-        case img: ImageView ⇒ img ~> (_.setImageResource(button._1))
+      button ⇒ Transformer {
+        case img: ImageView ⇒ img ~> (tweak(W[ImageView]) ~ (_.setImageResource(button._1)))
         case txt: TextView ⇒ txt ~> text(button._2)
         case l @ Layout(_*) ⇒ l ~> ThunkOn.click(button._3)
       }
     )
 
-    val view = w[ListView] ~> (_.setAdapter(adapter))
+    val view = w[ListView] ~> (tweak doing (_.setAdapter(adapter)))
     new AlertDialog.Builder(activity).setView(view).create()
   }
 
@@ -89,6 +92,7 @@ class AddSomething extends DialogFragment with RouteStoryFragment {
 }
 
 class AddVenue extends AddSomething {
+  implicit val self = this
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val list = w[ListView]
     val progress = w[ProgressBar](null, android.R.attr.progressBarStyleLarge)
@@ -105,7 +109,7 @@ class AddVenue extends AddSomething {
           dismiss()
         }
       )
-      list ~> (_.setAdapter(adapter))
+      list ~> Tweak[ListView](_.setAdapter(adapter))
     } onFailure {
       case t ⇒ t.printStackTrace()
     }
@@ -212,13 +216,13 @@ class AddHeartbeat extends AddSomething {
       w[TextView] ~> beats.map(b ⇒ text(s"BPM: $b")),
       w[Button] ~> text("TAP") ~> On.click {
         taps.update(System.currentTimeMillis() :: taps().take(4))
-      } ~> { x ⇒
+      } ~> (tweak doing { x ⇒
         x.setHeight(100 dp)
         x.setGravity(Gravity.CENTER)
-      }
+      })
     )
 
-    new AlertDialog.Builder(ctx) {
+    new AlertDialog.Builder(activity) {
       setView(layout)
       setPositiveButton(android.R.string.ok, Some(beats.now).filter(_ > 0).foreach { bpm ⇒
         activity.typewriter ! Typewriter.Heartbeat(bpm)

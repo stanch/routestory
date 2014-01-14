@@ -1,7 +1,6 @@
 package net.routestory.display
 
 import scala.concurrent._
-import scala.ref.WeakReference
 
 import android.os.Bundle
 import android.view.{ LayoutInflater, View, ViewGroup }
@@ -9,13 +8,14 @@ import android.view.ViewGroup.LayoutParams._
 import android.widget.{ ImageView, LinearLayout, ScrollView, TextView }
 
 import ExecutionContext.Implicits.global
+import org.macroid.FullDsl._
+import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 
 import net.routestory.R
 import net.routestory.explore.PreviewRow
 import net.routestory.model.Story
 import net.routestory.ui.{ RouteStoryFragment, Styles }
-import net.routestory.ui.Styles._
 import net.routestory.util.FragmentData
 
 class DetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
@@ -55,10 +55,10 @@ class DetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]
       val width = displaySize(0)
 
       s.author map { a ⇒
-        authorPicture ~> { x ⇒
+        authorPicture ~> (tweak doing { x ⇒
           x.setScaleType(ImageView.ScaleType.FIT_START)
           x.setAdjustViewBounds(true)
-        }
+        })
         authorName ~> text(a.name)
         //        a.pictureCache.get foreach {
         //          picture ⇒ Option(picture).map(b ⇒ authorPicture ~> (_.setImageBitmap(b))).getOrElse(authorPicture ~> hide)
@@ -72,7 +72,7 @@ class DetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]
       description ~> text(d)
 
       Option(s.meta.tags).filter(!_.isEmpty) map { t ⇒
-        PreviewRow.fillTags(tagRows, width - 20, t.map((_, None)), WeakReference(getActivity))
+        PreviewRow.fillTags(tagRows, width - 20, t.map((_, None)))
       } getOrElse {
         tagStuff ~> hide
       }

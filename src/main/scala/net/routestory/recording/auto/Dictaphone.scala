@@ -4,7 +4,7 @@ import akka.actor.Actor
 import scala.ref.WeakReference
 import android.content.Context
 import android.os.{ Message, Handler }
-import org.macroid.Bundles
+import org.macroid.Bundles._
 import scala.concurrent._
 import java.util.concurrent.Executors
 import android.util.Log
@@ -37,7 +37,7 @@ class Dictaphone extends Actor {
   }
 }
 
-class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone: Int = 0) extends Runnable with Bundles {
+class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone: Int = 0) extends Runnable {
   import AudioTracker._
 
   val frameSize = ms(10) * 2 // 10 ms * 2B per Float

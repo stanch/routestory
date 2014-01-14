@@ -15,14 +15,15 @@ import android.os.Bundle
 import android.view.{ Menu, MenuItem }
 import android.widget.ProgressBar
 
+import org.macroid.FullDsl._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
-import org.macroid.util.Text
 
 import net.routestory.R
 import net.routestory.model._
 import net.routestory.needs.NeedStory
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util._
+import org.macroid.IdGeneration
 
 object DisplayActivity {
   object NfcIntent {
@@ -42,7 +43,7 @@ object DisplayActivity {
   }
 }
 
-class DisplayActivity extends RouteStoryActivity with FragmentDataProvider[Future[Story]] with FragmentPaging {
+class DisplayActivity extends RouteStoryActivity with FragmentDataProvider[Future[Story]] with FragmentPaging with IdGeneration {
   import DisplayActivity._
 
   private lazy val id = getIntent match {
@@ -140,7 +141,7 @@ class DisplayActivity extends RouteStoryActivity with FragmentDataProvider[Futur
           .putExtra(Intent.EXTRA_SUBJECT, getResources.getString(R.string.share_subject))
           .putExtra(
             Intent.EXTRA_TEXT,
-            Text(R.string.share_body) + " http://www.routestory.net/" + id.replace("-", "/")
+            getResources.getText(R.string.share_body) + " http://www.routestory.net/" + id.replace("-", "/")
           )
         startActivity(Intent.createChooser(intent, getResources.getString(R.string.share_chooser)))
         true
