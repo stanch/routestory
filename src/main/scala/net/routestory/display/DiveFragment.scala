@@ -86,7 +86,6 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
           lp(MATCH_PARENT, WRAP_CONTENT)
       ) ~> padding(left = 16 dp, right = 8 dp, top = 8 dp, bottom = 8 dp)
     ) ~> wire(layout)
-    w[View]
   }
 
   var positioned = false

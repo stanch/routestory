@@ -188,7 +188,9 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
         }
         case (_, Nil) ⇒ Nil // make compiler happy
       }
-      Future.sequence(bitmaps).map(MagicGrid.create(_, maxIconSize))
+      Future.sequence(bitmaps).map(MagicGrid.create(_, maxIconSize)) recover {
+        case t ⇒ t.printStackTrace(); throw t
+      }
     }
     lazy val iconSize = icon.map(i ⇒ Math.min(Math.max(i.getWidth, i.getHeight), maxIconSize))
 

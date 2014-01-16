@@ -2,10 +2,8 @@ package net.routestory.recording
 
 import akka.actor.{ Actor, Props }
 import com.google.android.gms.maps.model.LatLng
-import org.macroid.Toasts._
 import org.macroid.AppContext
-
-import net.routestory.external.Foursquare
+import org.needs.foursquare
 import net.routestory.model.Story
 
 object Typewriter {
@@ -37,7 +35,7 @@ class Typewriter(implicit ctx: AppContext) extends Actor {
     case Heartbeat(bpm) ⇒
       addMedia(Story.Heartbeat(ts, bpm))
 
-    case Foursquare.Venue(id, name, lat, lng) ⇒
+    case foursquare.Venue(id, name, lat, lng) ⇒
       addMedia(Story.Venue(ts, id, name, new LatLng(lat, lng)))
 
     case Location(coords) ⇒

@@ -20,7 +20,6 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 import net.routestory.R
 import net.routestory.model._
-import net.routestory.needs.NeedStory
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util._
 import org.macroid.IdGeneration
@@ -57,7 +56,7 @@ class DisplayActivity extends RouteStoryActivity with FragmentDataProvider[Futur
       finish(); ""
   }
 
-  lazy val story = NeedStory(id).go
+  lazy val story = app.api.NeedStory(id).go
   lazy val media = story map { s ⇒
     s.chapters(0).media flatMap {
       case m: Story.ExternalMedia ⇒ m.fetch :: Nil

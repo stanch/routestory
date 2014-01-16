@@ -18,14 +18,12 @@ import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
 
 import net.routestory.{ R, RouteStoryApp, SettingsActivity }
 import net.routestory.explore.{ ExploreActivity, MyStoriesActivity }
-import net.routestory.needs.RouteStoryAppContext
 import net.routestory.recording.RecordActivity
 import org.macroid.Contexts
 
 trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity] {
   lazy val app = getApplication.asInstanceOf[RouteStoryApp]
   lazy val bar = getActionBar
-  implicit lazy val routeStoryAppCtx = RouteStoryAppContext(app)
   var drawerToggle: ActionBarDrawerToggle = _
 
   def displaySize = {
@@ -94,7 +92,6 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
 
 trait RouteStoryFragment extends Fragment with Contexts[Fragment] {
   lazy val app = getActivity.getApplication.asInstanceOf[RouteStoryApp]
-  implicit lazy val routeStoryAppCtx = RouteStoryAppContext(app)
 
   def displaySize = {
     val pt = new Point

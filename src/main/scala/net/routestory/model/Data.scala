@@ -3,12 +3,11 @@ package net.routestory.model
 import com.google.android.gms.maps.model.LatLng
 import play.api.libs.json.JsValue
 import scala.concurrent.{ Future, ExecutionContext }
-import android.content.Context
-import net.routestory.needs.NeedMedia
 import net.routestory.util.BitmapUtils
 import java.io.File
 import java.util.concurrent.Executors
 import org.macroid.AppContext
+import net.routestory.RouteStoryApp
 
 object Story {
   sealed trait Timed {
@@ -29,8 +28,9 @@ object Story {
     private val _fetchingLock = new Object
     private var _fetched: Option[Future[File]] = None
     def fetch(implicit ctx: AppContext) = _fetchingLock.synchronized {
+      val app = ctx.get.asInstanceOf[RouteStoryApp]
       _fetched getOrElse {
-        _fetched = Some(NeedMedia(url).go(externalMediaEc))
+        _fetched = Some(app.api.NeedMedia(url).go(externalMediaEc))
         _fetched.get
       }
     }

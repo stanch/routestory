@@ -28,7 +28,7 @@ import play.api.libs.json.Json
 import net.routestory.R
 import net.routestory.display.DisplayActivity
 import net.routestory.model.Story
-import net.routestory.needs.JsonFormats._
+import net.routestory.needs.SavingFormats._
 import net.routestory.recording.manual.AddMedia
 import net.routestory.ui.RouteStoryActivity
 import net.routestory.util.Shortuuid

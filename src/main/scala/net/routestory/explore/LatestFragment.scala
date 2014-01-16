@@ -8,7 +8,6 @@ import android.util.Log
 import rx.Var
 
 import net.routestory.model.StoryPreview
-import net.routestory.needs.NeedLatest
 
 class LatestFragment extends StoriesListFragment with HazStories {
   override lazy val stories: Var[Future[List[StoryPreview]]] = Var {
@@ -30,5 +29,5 @@ class LatestFragment extends StoriesListFragment with HazStories {
     if (stories.now.isCompleted) stories.update(fetchStories)
   }
 
-  def fetchStories = NeedLatest(number).go.map(_.stories)
+  def fetchStories = app.api.NeedLatest(number).go.map(_.stories)
 }

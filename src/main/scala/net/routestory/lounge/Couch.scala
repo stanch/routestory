@@ -1,18 +1,14 @@
 package net.routestory.lounge
 
-import android.content.Context
-
 import com.couchbase.lite.{ Attachment, Emitter, Manager, Mapper }
 import com.fasterxml.jackson.databind.ObjectMapper
 import play.api.libs.json._
 
 import net.routestory.model.{ Author, Story }
-import net.routestory.needs.JsonFormats
-import JsonFormats._
+import net.routestory.needs.SavingFormats
 import net.routestory.RouteStoryApp
 import java.io.File
 import net.routestory.util.Shortuuid
-import android.util.Log
 
 object Couch {
   implicit class RichJsObject(js: JsObject) {
@@ -26,6 +22,7 @@ object Couch {
 
 trait Couch { self: RouteStoryApp ⇒
   import Couch._
+  import SavingFormats._
 
   lazy val couchManager = new Manager(getFilesDir, Manager.DEFAULT_OPTIONS)
   lazy val couchDb = {

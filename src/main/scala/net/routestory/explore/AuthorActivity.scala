@@ -14,7 +14,6 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 import rx.Var
 
 import net.routestory.model.StoryPreview
-import net.routestory.needs.NeedAuthor
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.FragmentDataProvider
 import org.macroid.IdGeneration
@@ -55,7 +54,7 @@ class AuthorActivity extends RouteStoryActivity
   override def onStart() {
     super.onStart()
     async {
-      val author = await(NeedAuthor(id).go)
+      val author = await(app.api.NeedAuthor(id).go)
       name ~> text(author.name)
     }
     //if (stories.now.isCompleted) stories.update(fetchStories)

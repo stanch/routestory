@@ -16,7 +16,6 @@ import rx.Var
 
 import net.routestory.R
 import net.routestory.model.StoryPreview
-import net.routestory.needs.{ NeedSearch, NeedTagged }
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.FragmentDataProvider
 import org.macroid.IdGeneration
@@ -76,11 +75,11 @@ class SearchActivity extends RouteStoryActivity
   }
 
   def textQuery(q: String) = { bookmark: Option[String] ⇒
-    NeedSearch(q, storiesByPage, bookmark).go
+    app.api.NeedSearch(q, storiesByPage, bookmark).go
   }
 
   def tagQuery(tag: String) = { bookmark: Option[String] ⇒
-    NeedTagged(tag, storiesByPage, bookmark).go
+    app.api.NeedTagged(tag, storiesByPage, bookmark).go
   }
 
   override def onCreate(savedInstanceState: Bundle) {

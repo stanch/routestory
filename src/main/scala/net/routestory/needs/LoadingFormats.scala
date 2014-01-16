@@ -9,11 +9,7 @@ import net.routestory.model._
 
 // format: OFF
 
-object JsonFormats {
-  import Story._
-
-  /* Auxiliary formats */
-
+trait AuxiliaryFormats {
   implicit object latLngFormat extends Format[LatLng] {
     def reads(json: JsValue) = json match {
       case JsArray(Seq(JsNumber(lat), JsNumber(lng))) ⇒ JsSuccess(new LatLng(lat.toDouble, lng.toDouble))
@@ -21,7 +17,11 @@ object JsonFormats {
     }
     def writes(latLng: LatLng) = Json.arr(latLng.latitude, latLng.longitude)
   }
+}
 
+trait MediaFormats extends AuxiliaryFormats {
+  import Story._
+  
   /* Locations */
 
   implicit val locationReads = Json.reads[Location]
@@ -75,17 +75,9 @@ object JsonFormats {
   implicit val heartBeatFormat = Json.format[Heartbeat]
   implicit val chapterFormat = Json.format[Chapter]
   implicit val metaFormat = Json.format[Meta]
+}
 
-  /* Story */
-
-  implicit def storyReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[Story] {
-    (__ \ '_id).read[String] and
-    (__ \ 'meta).read[Story.Meta] and
-    (__ \ 'chapters).read[List[Story.Chapter]] and
-    (__ \ 'authorId).read[Option[String]].map(_.map(id ⇒ NeedAuthor(id))).map(Fulfillable.jumpOption) and
-    (__ \ 'private).read[Boolean]
-  }
-
+object SavingFormats extends MediaFormats {
   implicit val storyWrites = (
     (__ \ '_id).write[String] and
     (__ \ 'meta).write[Story.Meta] and
@@ -93,24 +85,36 @@ object JsonFormats {
     (__ \ 'authorId).write[Option[String]].contramap { a: Option[Author] ⇒ a.map(_.id) } and
     (__ \ 'private).write[Boolean]
   )(unlift(Story.unapply))
+}
+
+trait LoadingFormats extends MediaFormats { self: Shared with Needs ⇒
+  /* Story */
+
+  implicit def storyReads = Fulfillable.reads[Story] {
+    (__ \ '_id).read[String] and
+    (__ \ 'meta).read[Story.Meta] and
+    (__ \ 'chapters).read[List[Story.Chapter]] and
+    (__ \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption) and
+    (__ \ 'private).read[Boolean]
+  }
 
   /* Story preview */
 
   object storyPreviewReadsLatest {
-    implicit def storyPreviewReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[StoryPreview] {
+    implicit def storyPreviewReads = Fulfillable.reads[StoryPreview] {
       (__ \ 'id).read[String] and
       (__ \ 'value \ 'title).read[Option[String]] and
       (__ \ 'value \ 'tags).read[List[String]] and
-      (__ \ 'value \ 'authorId).read[Option[String]].map(_.map(id ⇒ NeedAuthor(id))).map(Fulfillable.jumpOption)
+      (__ \ 'value \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
     }
   }
 
   object storyPreviewReadsSearched {
-    implicit def storyPreviewReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[StoryPreview] {
+    implicit def storyPreviewReads = Fulfillable.reads[StoryPreview] {
       (__ \ 'id).read[String] and
       (__ \ 'fields \ 'title).read[Option[String]] and
       ((__ \ 'fields \ 'tags).read[List[String]] orElse (__ \ 'fields \ 'tags).read[String].map(_ :: Nil)) and
-      (__ \ 'fields \ 'authorId).read[Option[String]].map(_.map(id ⇒ NeedAuthor(id))).map(Fulfillable.jumpOption)
+      (__ \ 'fields \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
     }
   }
 
@@ -125,13 +129,13 @@ object JsonFormats {
 
   /* Collections */
 
-  implicit def latestReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[Latest] {
+  implicit def latestReads = Fulfillable.reads[Latest] {
     import storyPreviewReadsLatest._
     (__ \ 'total_rows).read[Int] and
     (__ \ 'rows).read[List[Fulfillable[StoryPreview]]].map(Fulfillable.jumpList)
   }
 
-  implicit def searchedReads(implicit appCtx: RouteStoryAppContext) = Fulfillable.reads[Searched] {
+  implicit def searchedReads = Fulfillable.reads[Searched] {
     import storyPreviewReadsSearched._
     (__ \ 'total_rows).read[Int] and
     (__ \ 'bookmark).read[String] and

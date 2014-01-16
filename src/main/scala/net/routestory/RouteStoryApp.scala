@@ -9,9 +9,8 @@ import android.util.Log
 import com.typesafe.config.ConfigFactory
 import net.routestory.lounge.Couch
 import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.needs.{ RouteStoryAppContext, NeedAuthor }
 
-class RouteStoryApp extends Application with Couch {
+class RouteStoryApp extends Application with Couch with Apis { self ⇒
   lazy val authToken = Var(readPrefs("authToken"))
   lazy val authTokenSaver = authToken.foreach(writePrefs("authToken", _), skipInitial = true)
   lazy val authorId = Var(readPrefs("authorId"))
@@ -37,7 +36,7 @@ class RouteStoryApp extends Application with Couch {
 
   //  def setAuthData(s: Option[Array[String]]) = signIn(s.map(_(1)), s.map(_(0)))
   //
-  def author = authorId.now.map(id ⇒ NeedAuthor(id)(RouteStoryAppContext(this)).go)
+  def author = authorId.now.map(id ⇒ api.NeedAuthor(id).go)
 
   def isOnline = {
     val cm = getSystemService(Context.CONNECTIVITY_SERVICE).asInstanceOf[ConnectivityManager]

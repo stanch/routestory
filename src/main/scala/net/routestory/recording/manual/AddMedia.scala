@@ -27,7 +27,6 @@ import org.macroid.util.{ Effector, Thunk }
 import rx.{ Rx, Var }
 
 import net.routestory.R
-import net.routestory.external.Foursquare
 import net.routestory.recording.{ Cartographer, RecordActivity, Typewriter }
 import net.routestory.ui.{ Effects, RouteStoryFragment }
 import net.routestory.ui.Styles._
@@ -93,6 +92,7 @@ class AddSomething extends DialogFragment with RouteStoryFragment {
 
 class AddVenue extends AddSomething {
   implicit val self = this
+
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
     val list = w[ListView]
     val progress = w[ProgressBar](null, android.R.attr.progressBarStyleLarge)
@@ -100,7 +100,7 @@ class AddVenue extends AddSomething {
       // TODO: properly work with Option?
       implicit val timeout = Timeout(4000)
       val location: LatLng = await((activity.cartographer ? Cartographer.QueryLast).mapTo[Option[LatLng]]).get
-      val data = await(Foursquare.NeedNearbyVenues(location).go)
+      val data = await(app.foursquareApi.NeedNearbyVenues(location.latitude, location.longitude, 100).go)
       await(progress ~@> Effects.fadeOut)
       val adapter = ListAdapter.text(data)(
         TextSize.large + padding(all = 4 sp),

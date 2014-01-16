@@ -16,7 +16,6 @@ import org.macroid.contrib.ListAdapter
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 import net.routestory.R
-import net.routestory.needs.NeedTags
 import net.routestory.ui.{ RouteStoryActivity, Styles }
 import net.routestory.ui.Styles._
 import org.macroid.Tweak
@@ -69,7 +68,7 @@ class DescriptionActivity extends RouteStoryActivity {
   override def onStart() {
     super.onStart()
     async {
-      val tagz = await(NeedTags().go).map(_.tag)
+      val tagz = await(app.api.NeedTags().go).map(_.tag)
       ui {
         val adapter = ListAdapter.text(tagz)(Tweak.blank, t ⇒ text(t))
         tags.setAdapter(adapter)

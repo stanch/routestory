@@ -2,86 +2,72 @@ package net.routestory.needs
 
 import java.io.File
 
-import scala.concurrent.{ ExecutionContext, future }
+import scala.concurrent.{ Future, ExecutionContext, future }
 
-import android.content.Context
+import android.content.{ SharedPreferences, Context }
 import android.util.Log
 
 import com.loopj.android.http.AsyncHttpClient
-import org.needs.{ Endpoint, http, rest }
+import org.needs.{ EndpointLogger, Endpoint, http, rest }
 import org.needs.file.{ FileEndpoint, HttpFileEndpoint, LocalFileEndpoint }
-import org.needs.http.HttpEndpoint
-import org.needs.json.JsonEndpoint
+import org.needs.http.{ AndroidClient, HttpClient, HttpEndpoint }
+import org.needs.json.{ HttpJsonEndpoint, JsonEndpoint }
 
 import net.routestory.RouteStoryApp
 import org.macroid.AppContext
 
-object HttpClient {
-  lazy val client = new AsyncHttpClient
-}
+trait Endpoints { self: Shared ⇒
 
-case class RouteStoryAppContext(app: RouteStoryApp)
+  /* Local Couch endpoints */
 
-trait EndpointLogging { self: Endpoint ⇒
-  override protected def logFetching() {
-    Log.d("Needs", s"Downloading $this")
+  abstract class CouchEndpoint(id: String) extends JsonEndpoint {
+    import net.routestory.lounge.Couch._
+    val logger = endpointLogger
+    case object NotFound extends Throwable
+    protected def fetch(implicit ec: ExecutionContext) = future {
+      Option(couchDb.getExistingDocument(id)).map(_.getProperties.toJsObject).getOrElse(throw NotFound)
+    }
   }
-}
 
-/* Local Couch endpoints */
+  case class LocalAuthor(id: String)
+    extends CouchEndpoint(id)
 
-trait LocalEndpoint { self: Endpoint ⇒
-  override val priority = Seq(1, 0)
-}
+  case class LocalStory(id: String)
+    extends CouchEndpoint(id)
 
-trait CouchEndpointBase extends JsonEndpoint with LocalEndpoint with EndpointLogging {
-  import net.routestory.lounge.Couch._
-  implicit val appCtx: RouteStoryAppContext
-  val id: String
-  case object NotFound extends Throwable
-  protected def fetch(implicit ec: ExecutionContext) = future {
-    Option(appCtx.app.couchDb.getExistingDocument(id)).map(_.getProperties.toJsObject).getOrElse(throw NotFound)
+  /* Remote REST API endpoints */
+
+  trait RemoteEndpoint extends HttpJsonEndpoint {
+    val client = httpClient
+    val logger = endpointLogger
   }
-}
 
-case class LocalAuthor(id: String)(implicit val appCtx: RouteStoryAppContext)
-  extends CouchEndpointBase
+  abstract class SingleResource(val baseUrl: String)
+    extends rest.SingleResourceEndpoint with RemoteEndpoint
 
-case class LocalStory(id: String)(implicit val appCtx: RouteStoryAppContext)
-  extends CouchEndpointBase
+  case class RemoteAuthor(id: String)
+    extends SingleResource("http://routestory.herokuapp.com/api/authors")
 
-/* Remote REST API endpoints */
+  case class RemoteStory(id: String)
+    extends SingleResource("http://routestory.herokuapp.com/api/stories")
 
-trait RemoteEndpointBase extends http.AndroidJsonClient with EndpointLogging { self: HttpEndpoint with JsonEndpoint ⇒
-  val asyncHttpClient = HttpClient.client
-}
+  /* Media endpoints */
 
-abstract class SingleResource(val baseUrl: String)
-  extends rest.SingleResourceEndpoint with RemoteEndpointBase
+  abstract class CachedFile(url: String) extends FileEndpoint {
+    val logger = endpointLogger
+    def create = new File(s"${appCtx.getExternalCacheDir.getAbsolutePath}/${url.replace("/", "-")}")
+  }
 
-case class RemoteAuthor(id: String)
-  extends SingleResource("http://routestory.herokuapp.com/api/authors")
+  case class RemoteMedia(url: String) extends CachedFile(url) with HttpFileEndpoint {
+    val client = AndroidClient(new AsyncHttpClient)
+    val baseUrl = "http://routestory.herokuapp.com/api/stories"
+  }
 
-case class RemoteStory(id: String)
-  extends SingleResource("http://routestory.herokuapp.com/api/stories")
+  case class LocalCachedMedia(url: String)
+    extends CachedFile(url) with LocalFileEndpoint
 
-/* Media endpoints */
-
-abstract class CachedFileBase(url: String, ctx: AppContext) extends FileEndpoint with EndpointLogging {
-  def create = new File(s"${ctx.get.getExternalCacheDir.getAbsolutePath}/${url.replace("/", "-")}")
-}
-
-case class RemoteMedia(url: String)(implicit ctx: AppContext)
-  extends CachedFileBase(url, ctx) with HttpFileEndpoint with http.AndroidFileClient {
-  val asyncHttpClient = new AsyncHttpClient
-  val baseUrl = "http://routestory.herokuapp.com/api/stories"
-}
-
-case class LocalCachedMedia(url: String)(implicit ctx: AppContext)
-  extends CachedFileBase(url, ctx) with LocalFileEndpoint with LocalEndpoint
-
-case class LocalTempMedia(url: String)
-  extends LocalFileEndpoint with EndpointLogging {
-  override val priority = Seq(2)
-  def create = new File(url)
+  case class LocalTempMedia(url: String) extends LocalFileEndpoint {
+    val logger = endpointLogger
+    def create = new File(url)
+  }
 }

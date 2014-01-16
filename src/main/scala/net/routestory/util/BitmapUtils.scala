@@ -64,7 +64,6 @@ object BitmapUtils {
 
   object MagicGrid {
     val spacing = 2
-    case class Oversized(r: Double) extends Exception
 
     def grouped[A](xs: List[A], minSize: Int) = {
       val rest = xs.length % minSize
@@ -83,15 +82,15 @@ object BitmapUtils {
       }
       val s = root.widthFrom(size)
       val (width, height) = if (s > size) (size, root.heightFrom(size)) else (s, size)
-      def make(w: Int, h: Int): Try[Bitmap] = Try {
-        val target = Bitmap.createBitmap(w, h, Config.ARGB_8888)
+      def make(w: Int, h: Int): Bitmap = {
+        val target = Bitmap.createBitmap(Math.max(w, 1), Math.max(h, 1), Config.ARGB_8888)
         val canvas = new Canvas(target)
-        root.draw(canvas, 0, 0, Some(width), None)
-        target
-      } recoverWith {
-        case Oversized(r) ⇒ make(w / 2, h / 2)
+        root.draw(canvas, 0, 0, Some(Math.max(w, 1)), None) match {
+          case Right(_) ⇒ target
+          case Left(r) ⇒ target.recycle(); make((w / r).toInt, (h / r).toInt)
+        }
       }
-      make(width, height).get
+      make(width, height)
     }
 
     trait RectObject {
@@ -102,7 +101,7 @@ object BitmapUtils {
       def widthFrom(height: Int) = (height * heightToWidth._1 + heightToWidth._2).toInt
       def heightFrom(width: Int) = (width * widthToHeight._1 + widthToHeight._2).toInt
 
-      def draw(canvas: Canvas, x: Int, y: Int, width: Option[Int], height: Option[Int]): Int
+      def draw(canvas: Canvas, x: Int, y: Int, width: Option[Int], height: Option[Int]): Either[Double, Int]
     }
 
     case class Cell(bitmap: Bitmap) extends RectObject {
@@ -118,10 +117,11 @@ object BitmapUtils {
         val size = Math.max(w, h)
         val maxSize = Math.max(bitmap.getWidth, bitmap.getHeight)
         if (maxSize + 5 < size) {
-          throw Oversized(size.toDouble / maxSize)
+          Left(size.toDouble / maxSize)
+        } else {
+          canvas.drawBitmap(bitmap, null, new Rect(x, y, x + w, y + h), null)
+          Right(ret)
         }
-        canvas.drawBitmap(bitmap, null, new Rect(x, y, x + w, y + h), null)
-        ret
       }
     }
 
@@ -139,10 +139,15 @@ object BitmapUtils {
           case (Some(s), _) ⇒ (heightFrom(s), s, heightFrom(s))
           case (None, None) ⇒ ???
         }
-        children.foldLeft(0) { (d, ch) ⇒
-          d + spacing + (if (horizontal) ch.draw(canvas, x + d, y, None, Some(h)) else ch.draw(canvas, x, y + d, Some(w), None))
+        val z = children.foldLeft[Either[Double, Int]](Right(0)) { (acc, ch) ⇒
+          acc.right.flatMap { d ⇒
+            (if (horizontal) ch.draw(canvas, x + d, y, None, Some(h)) else ch.draw(canvas, x, y + d, Some(w), None)) match {
+              case Right(s) ⇒ Right(d + spacing + s)
+              case Left(r) ⇒ Left(r)
+            }
+          }
         }
-        ret
+        z.right.map(_ ⇒ ret)
       }
     }
 

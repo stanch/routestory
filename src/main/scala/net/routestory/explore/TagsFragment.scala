@@ -11,7 +11,6 @@ import android.widget.{ LinearLayout, ScrollView }
 import org.macroid.FullDsl._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
 
-import net.routestory.needs.NeedTags
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.ui.Styles._
 
@@ -28,7 +27,7 @@ class TagsFragment extends RouteStoryFragment {
     val displaySize = new Point
     getActivity.getWindowManager.getDefaultDisplay.getSize(displaySize)
 
-    NeedTags().go foreachUi { tags ⇒
+    app.api.NeedTags().go foreachUi { tags ⇒
       val shuffled = Random.shuffle(tags).take(50)
       val (max, min) = (shuffled.maxBy(_.count).count, shuffled.minBy(_.count).count)
       def n(x: Int) = if (max == min) 1 else (x - min).toDouble / (max - min)
