@@ -13,6 +13,7 @@ object Typewriter {
   case class Heartbeat(bpm: Int)
   case object Backup
   case class Restore(chapter: Story.Chapter)
+  case object StartOver
   def props(implicit ctx: AppContext) = Props(new Typewriter())
 }
 
@@ -43,6 +44,9 @@ class Typewriter(implicit ctx: AppContext) extends Actor {
 
     case Restore(ch) ⇒
       chapter = ch
+
+    case StartOver ⇒
+      chapter = Story.Chapter(System.currentTimeMillis / 1000L, 0, Nil, Nil)
   }
 
   def receive = addingStuff.andThen(_ ⇒ cartographer ! Cartographer.Update(chapter)) orElse {

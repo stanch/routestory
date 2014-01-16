@@ -30,11 +30,11 @@ import net.routestory.display.DisplayActivity
 import net.routestory.model.Story
 import net.routestory.needs.SavingFormats._
 import net.routestory.recording.manual.AddMedia
-import net.routestory.ui.RouteStoryActivity
-import net.routestory.util.Shortuuid
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import net.routestory.util.{ FragmentDataProvider, FragmentData, Shortuuid }
 import net.routestory.util.Implicits._
-import android.support.v4.app.FragmentActivity
 import org.macroid.IdGeneration
+import net.routestory.recording.auto.SuggestionsFragment
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -79,15 +79,17 @@ trait LocationHandler
   }
 }
 
-class RecordActivity extends RouteStoryActivity with LocationHandler with IdGeneration {
+class RecordActivity extends RouteStoryActivity with LocationHandler with IdGeneration with FragmentPaging with FragmentDataProvider[ActorSystem] {
   val rqGmsConnectionFailureResolution = RecordActivity.REQUEST_CONNECTION_FAILURE_RESOLUTION
-  lazy val map = findFrag[SupportMapFragment](Tag.recordingMap).get.getMap
+  lazy val map = findFrag[SupportMapFragment](s"android:switcher:${Id.pager}:0").get.getMap
   var progress = slot[ProgressBar]
 
   lazy val actorSystem = ActorSystem("RecordingActorSystem", app.config, app.getClassLoader)
   implicit lazy val uiActor = actorSystem.actorOf(Props.empty, "ui")
   lazy val cartographer: ActorRef = actorSystem.actorOf(Cartographer.props(map, displaySize), "cartographer")
   lazy val typewriter: ActorRef = actorSystem.actorOf(Typewriter.props, "typewriter")
+
+  def getFragmentData(tag: String) = actorSystem
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -100,8 +102,9 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
         w[Button] ~> text("Add stuff") ~> TextSize.large ~>
           layoutParams(MATCH_PARENT, WRAP_CONTENT) ~>
           On.click(new AddMedia().show(getSupportFragmentManager, Tag.addMedia)),
-        l[LinearLayout](
-          f[SupportMapFragment].framed(Id.map, Tag.recordingMap)
+        getTabs(
+          "Map" → f[SupportMapFragment].factory,
+          "Suggestions" → f[SuggestionsFragment].factory
         )
       )
     }
@@ -110,11 +113,13 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
     bar.setDisplayShowTitleEnabled(true)
     bar.setDisplayShowHomeEnabled(true)
 
-    // restore the chapter
+    // restore the chapter or create a new one
     Option(savedInstanceState).filter(_.containsKey("savedChapter")).map(_.getString("savedChapter")).flatMap { json ⇒
       Json.parse(json).asOpt[Story.Chapter]
     } map { chapter ⇒
       typewriter ! Typewriter.Restore(chapter)
+    } getOrElse {
+      typewriter ! Typewriter.StartOver
     }
   }
 
@@ -130,9 +135,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
 
   def onLocationChanged(location: AndroidLocation) {
     firstLocationPromise.trySuccess(())
-    // TODO: send it to only one of them
     cartographer ! Cartographer.Location(location, location.getBearing)
-    typewriter ! Typewriter.Location(location)
   }
 
   override def onSaveInstanceState(outState: Bundle) = {

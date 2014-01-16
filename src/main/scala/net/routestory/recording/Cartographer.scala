@@ -25,6 +25,7 @@ class Cartographer(map: GoogleMap, displaySize: List[Int])(implicit ctx: Activit
   extends Actor {
   import Cartographer._
 
+  lazy val typewriter = context.actorSelection("../typewriter")
   lazy val mapManager = new RouteMapManager(map, displaySize)(displaySize.min / 8)
   var manMarker: Option[Marker] = None
   var last: Option[LatLng] = None
@@ -41,6 +42,7 @@ class Cartographer(map: GoogleMap, displaySize: List[Int])(implicit ctx: Activit
       map.animateCamera(CameraUpdateFactory.newCameraPosition {
         CameraPosition.builder(map.getCameraPosition).target(coords).tilt(45).zoom(19).bearing(bearing).build()
       })
+      typewriter ! Typewriter.Location(coords)
     }
 
     case QueryLast ⇒ sender ! last

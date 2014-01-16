@@ -32,16 +32,17 @@ import net.routestory.ui.{ Effects, RouteStoryFragment }
 import net.routestory.ui.Styles._
 import net.routestory.util.Implicits._
 import org.macroid.{ IdGeneration, Tweak, Transformer, Layout }
+import net.routestory.util.FragmentData
+import akka.actor.{ ActorSystem, ActorRef }
 
-class AddMedia extends DialogFragment with RouteStoryFragment with IdGeneration {
+class AddMedia extends DialogFragment with RouteStoryFragment with IdGeneration with FragmentData[ActorSystem] {
   lazy val photoUrl = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
+  lazy val typewriter = getFragmentData.actorSelection("/user/typewriter")
 
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val activity = getActivity.asInstanceOf[RecordActivity]
-
     def clicker(factory: Thunk[DialogFragment], tag: String) = Thunk {
       dismiss()
-      factory().show(activity.getSupportFragmentManager, tag)
+      factory().show(getActivity.getSupportFragmentManager, tag)
     }
 
     val cameraClicker = Thunk {
@@ -71,23 +72,23 @@ class AddMedia extends DialogFragment with RouteStoryFragment with IdGeneration 
     )
 
     val view = w[ListView] ~> (tweak doing (_.setAdapter(adapter)))
-    new AlertDialog.Builder(activity).setView(view).create()
+    new AlertDialog.Builder(getActivity).setView(view).create()
   }
 
   override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode == RecordActivity.REQUEST_CODE_TAKE_PICTURE) {
       dismiss()
-      val activity = getActivity.asInstanceOf[RecordActivity]
       if (resultCode == Activity.RESULT_OK) {
-        activity.typewriter ! Typewriter.Photo(photoUrl)
+        typewriter ! Typewriter.Photo(photoUrl)
       }
     }
   }
 }
 
-class AddSomething extends DialogFragment with RouteStoryFragment {
-  lazy val activity = getActivity.asInstanceOf[RecordActivity]
+class AddSomething extends DialogFragment with RouteStoryFragment with FragmentData[ActorSystem] {
+  lazy val typewriter = getFragmentData.actorSelection("/user/typewriter")
+  lazy val cartographer = getFragmentData.actorSelection("/user/cartographer")
 }
 
 class AddVenue extends AddSomething {
@@ -99,13 +100,13 @@ class AddVenue extends AddSomething {
     async {
       // TODO: properly work with Option?
       implicit val timeout = Timeout(4000)
-      val location: LatLng = await((activity.cartographer ? Cartographer.QueryLast).mapTo[Option[LatLng]]).get
+      val location: LatLng = await((cartographer ? Cartographer.QueryLast).mapTo[Option[LatLng]]).get
       val data = await(app.foursquareApi.NeedNearbyVenues(location.latitude, location.longitude, 100).go)
       await(progress ~@> Effects.fadeOut)
       val adapter = ListAdapter.text(data)(
         TextSize.large + padding(all = 4 sp),
         venue ⇒ text(venue.name) + On.click {
-          activity.typewriter ! venue
+          typewriter ! venue
           dismiss()
         }
       )
@@ -113,7 +114,7 @@ class AddVenue extends AddSomething {
     } onFailure {
       case t ⇒ t.printStackTrace()
     }
-    new AlertDialog.Builder(activity) {
+    new AlertDialog.Builder(getActivity) {
       setView(l[FrameLayout](list, progress))
       setNegativeButton(android.R.string.cancel, ())
     }.create()
@@ -122,15 +123,15 @@ class AddVenue extends AddSomething {
 
 class AddTextNote extends AddSomething {
   override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val input = new EditText(activity) {
+    val input = new EditText(getActivity) {
       setHint(R.string.message_typenotehere)
       setMinLines(5)
       setGravity(Gravity.TOP)
     }
-    new AlertDialog.Builder(activity) {
+    new AlertDialog.Builder(getActivity) {
       setView(input)
       setPositiveButton(android.R.string.ok, Some(input.getText.toString).filter(!_.isEmpty).foreach { text ⇒
-        activity.typewriter ! Typewriter.TextNote(text)
+        typewriter ! Typewriter.TextNote(text)
       })
       setNegativeButton(android.R.string.cancel, ())
     }.create()
@@ -175,7 +176,7 @@ class AddVoiceNote extends AddSomething {
       if (!mRecording) start() else stop()
     }
 
-    new AlertDialog.Builder(activity) {
+    new AlertDialog.Builder(getActivity) {
       setView(view)
       setPositiveButton(android.R.string.ok, {
         if (mRecording) {
@@ -222,10 +223,10 @@ class AddHeartbeat extends AddSomething {
       })
     )
 
-    new AlertDialog.Builder(activity) {
+    new AlertDialog.Builder(getActivity) {
       setView(layout)
       setPositiveButton(android.R.string.ok, Some(beats.now).filter(_ > 0).foreach { bpm ⇒
-        activity.typewriter ! Typewriter.Heartbeat(bpm)
+        typewriter ! Typewriter.Heartbeat(bpm)
       })
       setNegativeButton(android.R.string.cancel, ())
     }.create()
