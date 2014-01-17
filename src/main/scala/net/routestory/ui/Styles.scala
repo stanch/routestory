@@ -1,6 +1,6 @@
 package net.routestory.ui
 
-import android.widget.{ SeekBar, TextView }
+import android.widget.{ ListView, ListAdapter, SeekBar, TextView }
 import android.view.View
 import net.routestory.R
 import org.macroid.{ Tweak, AppContext }
@@ -13,6 +13,8 @@ object Styles {
   def measure = Tweak[View](_.measure(0, 0))
 
   def seek(p: Int) = Tweak[SeekBar](_.setProgress(p))
+
+  def adaptr(a: ListAdapter) = Tweak[ListView](_.setAdapter(a))
 
   def header(noPadding: Boolean = false)(implicit ctx: AppContext) =
     TextStyle.bold + TextSize.sp(25) + Tweak[TextView] { x ⇒

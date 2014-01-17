@@ -1,4 +1,4 @@
-package net.routestory.recording.auto
+package net.routestory.recording.logged
 
 import akka.actor.Actor
 import scala.ref.WeakReference

@@ -61,21 +61,33 @@ object PreviewRow extends IdGeneration {
     tagRowsView ~> addViewsReverse(rows.map(row ⇒ l[HorizontalLinearLayout]() ~> addViewsReverse(row)), removeOld = true)
   }
 
-  def makeView(implicit ctx: ActivityContext, appCtx: AppContext) = l[VerticalLinearLayout](
-    w[TextView] ~> id(Id.storyTitle) ~> Styles.title ~> lp(WRAP_CONTENT, WRAP_CONTENT),
-    l[HorizontalLinearLayout](
-      w[TextView] ~> text(R.string.by) ~> Styles.caption,
-      w[TextView] ~> id(Id.storyAuthor) ~> TextSize.medium
-    ),
-    l[HorizontalLinearLayout](
-      l[VerticalLinearLayout]() ~> id(Id.storyTagRows)
-    ) ~> id(Id.storyTags) ~> padding(left = storyShift)
-  ) ~> padding(0, 8 dp, 0, 8 dp)
+  class Slots {
+    var title = slot[TextView]
+    var author = slot[TextView]
+    var tags = slot[LinearLayout]
+    var tagRows = slot[LinearLayout]
+  }
+
+  def makeView(implicit ctx: ActivityContext, appCtx: AppContext) = {
+    val slots = new Slots
+    l[VerticalLinearLayout](
+      w[TextView] ~> wire(slots.title) ~> Styles.title ~> lp(WRAP_CONTENT, WRAP_CONTENT),
+      l[HorizontalLinearLayout](
+        w[TextView] ~> text(R.string.by) ~> Styles.caption,
+        w[TextView] ~> wire(slots.author) ~> TextSize.medium
+      ),
+      l[HorizontalLinearLayout](
+        l[VerticalLinearLayout]() ~> wire(slots.tagRows)
+      ) ~> wire(slots.tags) ~> padding(left = storyShift)
+    ) ~> padding(0, 8 dp, 0, 8 dp) ~> hold(slots)
+  }
 
   def fillView(view: View, maxWidth: Int, story: StoryPreview)(implicit ctx: ActivityContext, appCtx: AppContext) {
+    val slots = view.getTag.asInstanceOf[Slots]
+
     // title
     val title = story.title.filter(!_.isEmpty).toRight(R.string.untitled)
-    view.find[TextView](Id.storyTitle) ~> text(title) ~> On.click {
+    slots.title ~> text(title) ~> On.click {
       ctx.activity.get.map { a ⇒
         val intent = new Intent(a, classOf[net.routestory.display.DisplayActivity])
         intent.putExtra("id", story.id)
@@ -85,12 +97,11 @@ object PreviewRow extends IdGeneration {
 
     // author
     val author = story.author.map(_.name).toRight(R.string.me)
-    view.find[TextView](Id.storyAuthor) ~> text(author)
+    slots.author ~> text(author)
 
     // tags
-    view.find[View](Id.storyTags) ~> (Some(story.tags).filter(!_.isEmpty) map { tags ⇒
-      val tagRows = view.find[LinearLayout](Id.storyTagRows)
-      fillTags(tagRows, maxWidth, tags.map((_, None)))
+    slots.tags ~> (Some(story.tags).filter(!_.isEmpty) map { tags ⇒
+      fillTags(slots.tagRows, maxWidth, tags.map((_, None)))
       show
     } getOrElse {
       hide

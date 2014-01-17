@@ -34,7 +34,7 @@ import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.{ FragmentDataProvider, FragmentData, Shortuuid }
 import net.routestory.util.Implicits._
 import org.macroid.IdGeneration
-import net.routestory.recording.auto.SuggestionsFragment
+import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -81,13 +81,13 @@ trait LocationHandler
 
 class RecordActivity extends RouteStoryActivity with LocationHandler with IdGeneration with FragmentPaging with FragmentDataProvider[ActorSystem] {
   val rqGmsConnectionFailureResolution = RecordActivity.REQUEST_CONNECTION_FAILURE_RESOLUTION
-  lazy val map = findFrag[SupportMapFragment](s"android:switcher:${Id.pager}:0").get.getMap
   var progress = slot[ProgressBar]
 
   lazy val actorSystem = ActorSystem("RecordingActorSystem", app.config, app.getClassLoader)
   implicit lazy val uiActor = actorSystem.actorOf(Props.empty, "ui")
-  lazy val cartographer: ActorRef = actorSystem.actorOf(Cartographer.props(map, displaySize), "cartographer")
+  lazy val cartographer: ActorRef = actorSystem.actorOf(Cartographer.props, "cartographer")
   lazy val typewriter: ActorRef = actorSystem.actorOf(Typewriter.props, "typewriter")
+  lazy val suggester: ActorRef = actorSystem.actorOf(Suggester.props(app), "suggester")
 
   def getFragmentData(tag: String) = actorSystem
 
@@ -103,7 +103,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
           layoutParams(MATCH_PARENT, WRAP_CONTENT) ~>
           On.click(new AddMedia().show(getSupportFragmentManager, Tag.addMedia)),
         getTabs(
-          "Map" → f[SupportMapFragment].factory,
+          "Map" → f[CartographyFragment].factory,
           "Suggestions" → f[SuggestionsFragment].factory
         )
       )
@@ -125,6 +125,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
 
   override def onStart() {
     super.onStart()
+    (cartographer, typewriter, suggester) // start actors
     trackLocation()
   }
 

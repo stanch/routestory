@@ -55,8 +55,7 @@ class AddMedia extends DialogFragment with RouteStoryFragment with IdGeneration 
       (R.drawable.photo, "Take a picture", cameraClicker),
       (R.drawable.text_note, "Add a text note", clicker(f[AddTextNote].factory, Tag.noteDialog)),
       (R.drawable.voice_note, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog)),
-      (R.drawable.heart, "Record heartbeat", clicker(f[AddHeartbeat].factory, Tag.pulseDialog)),
-      (R.drawable.foursquare, "Mention a venue", clicker(f[AddVenue].factory, Tag.fsqDialog))
+      (R.drawable.heart, "Record heartbeat", clicker(f[AddHeartbeat].factory, Tag.pulseDialog))
     )
 
     val adapter = ListAdapter(buttons)(
@@ -89,36 +88,6 @@ class AddMedia extends DialogFragment with RouteStoryFragment with IdGeneration 
 class AddSomething extends DialogFragment with RouteStoryFragment with FragmentData[ActorSystem] {
   lazy val typewriter = getFragmentData.actorSelection("/user/typewriter")
   lazy val cartographer = getFragmentData.actorSelection("/user/cartographer")
-}
-
-class AddVenue extends AddSomething {
-  implicit val self = this
-
-  override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val list = w[ListView]
-    val progress = w[ProgressBar](null, android.R.attr.progressBarStyleLarge)
-    async {
-      // TODO: properly work with Option?
-      implicit val timeout = Timeout(4000)
-      val location: LatLng = await((cartographer ? Cartographer.QueryLast).mapTo[Option[LatLng]]).get
-      val data = await(app.foursquareApi.NeedNearbyVenues(location.latitude, location.longitude, 100).go)
-      await(progress ~@> Effects.fadeOut)
-      val adapter = ListAdapter.text(data)(
-        TextSize.large + padding(all = 4 sp),
-        venue ⇒ text(venue.name) + On.click {
-          typewriter ! venue
-          dismiss()
-        }
-      )
-      list ~> Tweak[ListView](_.setAdapter(adapter))
-    } onFailure {
-      case t ⇒ t.printStackTrace()
-    }
-    new AlertDialog.Builder(getActivity) {
-      setView(l[FrameLayout](list, progress))
-      setNegativeButton(android.R.string.cancel, ())
-    }.create()
-  }
 }
 
 class AddTextNote extends AddSomething {
