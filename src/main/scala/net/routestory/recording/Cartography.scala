@@ -2,7 +2,7 @@ package net.routestory.recording
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import akka.actor.{ Actor, Props }
+import akka.actor.{ActorSystem, Actor, Props}
 import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model.{ CameraPosition, LatLng, Marker }
 
@@ -11,8 +11,16 @@ import org.macroid.{ AppContext, ActivityContext }
 
 import net.routestory.display.RouteMapManager
 import net.routestory.model.Story
+import android.support.v4.app.Fragment
+import net.routestory.util.FragmentData
+import net.routestory.ui.RouteStoryFragment
+
+class CartographyFragment extends RouteStoryFragment with FragmentData[ActorSystem] {
+
+}
 
 object Cartographer {
+  case class AttachUi(fragment: SupportMapFragment)
   case class Location(coords: LatLng, bearing: Float)
   case class Update(chapter: Story.Chapter)
   case object QueryLast

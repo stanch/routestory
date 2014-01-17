@@ -32,3 +32,9 @@ object SuggestionsFragment {
     def fillView(view: TextView, parent: ViewGroup, data: Suggestion) = view ~> text(data.title)
   }
 }
+
+object Suggester {
+
+}
+
+class Suggester
