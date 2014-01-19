@@ -5,7 +5,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import android.os.Bundle
 import android.view.{ LayoutInflater, ViewGroup }
 
-import akka.actor.{ Actor, ActorSystem, Props }
+import akka.actor.{ ActorLogging, Actor, ActorSystem, Props }
 import com.google.android.gms.maps.{ CameraUpdateFactory, SupportMapFragment }
 import com.google.android.gms.maps.model.{ CameraPosition, LatLng, Marker }
 import org.macroid._
@@ -45,13 +45,12 @@ object Cartographer {
 }
 
 /** An actor that updates the map with the chapter data, as well as current location */
-class Cartographer(implicit ctx: ActivityContext, appCtx: AppContext) extends Actor {
+class Cartographer(implicit ctx: ActivityContext, appCtx: AppContext) extends Actor with ActorLogging {
   import Cartographer._
 
   var attachedUi: Option[CartographyFragment] = None
   def map = attachedUi.map(_.map)
   var mapManager: Option[RouteMapManager] = None
-  var manMarker: Option[Marker] = None
   var last: Option[LatLng] = None
 
   lazy val typewriter = context.actorSelection("../typewriter")
@@ -62,10 +61,11 @@ class Cartographer(implicit ctx: ActivityContext, appCtx: AppContext) extends Ac
       mapManager = Some(new RouteMapManager(fragment.map, fragment.displaySize)(fragment.displaySize.min / 8))
     }
 
-    case DetachUi ⇒
+    case DetachUi ⇒ ui {
       attachedUi = None
+      mapManager.foreach(_.remove())
       mapManager = None
-      manMarker = None
+    }
 
     case Update(chapter) ⇒ ui {
       mapManager.foreach(_.add(chapter))
@@ -73,6 +73,7 @@ class Cartographer(implicit ctx: ActivityContext, appCtx: AppContext) extends Ac
 
     case Location(coords, bearing) ⇒ ui {
       // update the map
+      log.debug("Received location")
       last = Some(coords)
       mapManager.foreach(_.updateMan(coords))
       map.foreach(m ⇒ m.animateCamera(CameraUpdateFactory.newCameraPosition {

@@ -8,6 +8,7 @@ import net.routestory.model.Story
 
 object Typewriter {
   case class Location(coords: LatLng)
+  case class Sound(url: String)
   case class Photo(url: String)
   case class TextNote(text: String)
   case class Heartbeat(bpm: Int)
@@ -29,6 +30,9 @@ class Typewriter(implicit ctx: AppContext) extends Actor {
   val addingStuff: Receive = {
     case Photo(url) ⇒
       addMedia(Story.Photo(ts, url))
+
+    case Sound(url) ⇒
+      addMedia(Story.Sound(ts, url))
 
     case TextNote(text) ⇒
       addMedia(Story.TextNote(ts, text))

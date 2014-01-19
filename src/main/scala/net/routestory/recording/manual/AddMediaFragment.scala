@@ -13,7 +13,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.support.v4.app.DialogFragment
-import android.view.Gravity
+import android.view.{ View, ViewGroup, LayoutInflater, Gravity }
 import android.widget.{ ListAdapter ⇒ _, _ }
 
 import akka.pattern.ask
@@ -35,14 +35,13 @@ import org.macroid.{ IdGeneration, Tweak, Transformer, Layout }
 import net.routestory.util.FragmentData
 import akka.actor.{ ActorSystem, ActorRef }
 
-class AddMedia extends DialogFragment with RouteStoryFragment with IdGeneration with FragmentData[ActorSystem] {
+class AddMediaFragment extends RouteStoryFragment with IdGeneration with FragmentData[ActorSystem] {
   lazy val photoUrl = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
   lazy val typewriter = getFragmentData.actorSelection("/user/typewriter")
 
-  override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
     def clicker(factory: Thunk[DialogFragment], tag: String) = Thunk {
-      dismiss()
-      factory().show(getActivity.getSupportFragmentManager, tag)
+      factory().show(getChildFragmentManager, tag)
     }
 
     val cameraClicker = Thunk {
@@ -70,14 +69,12 @@ class AddMedia extends DialogFragment with RouteStoryFragment with IdGeneration 
       }
     )
 
-    val view = w[ListView] ~> (tweak doing (_.setAdapter(adapter)))
-    new AlertDialog.Builder(getActivity).setView(view).create()
+    w[ListView] ~> adaptr(adapter)
   }
 
   override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode == RecordActivity.REQUEST_CODE_TAKE_PICTURE) {
-      dismiss()
       if (resultCode == Activity.RESULT_OK) {
         typewriter ! Typewriter.Photo(photoUrl)
       }

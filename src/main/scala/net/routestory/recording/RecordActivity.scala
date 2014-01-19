@@ -29,12 +29,14 @@ import net.routestory.R
 import net.routestory.display.DisplayActivity
 import net.routestory.model.Story
 import net.routestory.needs.SavingFormats._
-import net.routestory.recording.manual.AddMedia
+import net.routestory.recording.manual.AddMediaFragment
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.{ FragmentDataProvider, FragmentData, Shortuuid }
 import net.routestory.util.Implicits._
-import org.macroid.IdGeneration
+import org.macroid.{ Tweak, IdGeneration }
 import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
+import net.routestory.recording.logged.{ Dictaphone, ControlPanelFragment }
+import android.support.v4.view.ViewPager
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -82,12 +84,14 @@ trait LocationHandler
 class RecordActivity extends RouteStoryActivity with LocationHandler with IdGeneration with FragmentPaging with FragmentDataProvider[ActorSystem] {
   val rqGmsConnectionFailureResolution = RecordActivity.REQUEST_CONNECTION_FAILURE_RESOLUTION
   var progress = slot[ProgressBar]
+  lazy val pager = this.find[ViewPager](Id.pager)
 
   lazy val actorSystem = ActorSystem("RecordingActorSystem", app.config, app.getClassLoader)
   implicit lazy val uiActor = actorSystem.actorOf(Props.empty, "ui")
   lazy val cartographer: ActorRef = actorSystem.actorOf(Cartographer.props, "cartographer")
   lazy val typewriter: ActorRef = actorSystem.actorOf(Typewriter.props, "typewriter")
   lazy val suggester: ActorRef = actorSystem.actorOf(Suggester.props(app), "suggester")
+  lazy val dictaphone: ActorRef = actorSystem.actorOf(Dictaphone.props, "dictaphone")
 
   def getFragmentData(tag: String) = actorSystem
 
@@ -99,12 +103,11 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
         activityProgress ~>
           wire(progress) ~>
           showProgress(firstLocationPromise.future),
-        w[Button] ~> text("Add stuff") ~> TextSize.large ~>
-          layoutParams(MATCH_PARENT, WRAP_CONTENT) ~>
-          On.click(new AddMedia().show(getSupportFragmentManager, Tag.addMedia)),
         getTabs(
+          "Add stuff" → f[AddMediaFragment].factory,
           "Map" → f[CartographyFragment].factory,
-          "Suggestions" → f[SuggestionsFragment].factory
+          "Suggestions" → f[SuggestionsFragment].factory,
+          "Control panel" → f[ControlPanelFragment].factory
         )
       )
     }
@@ -125,7 +128,8 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
 
   override def onStart() {
     super.onStart()
-    (cartographer, typewriter, suggester) // start actors
+    pager ~> Tweak[ViewPager](_.setCurrentItem(1))
+    (cartographer, typewriter, suggester, dictaphone) // start actors
     trackLocation()
   }
 
@@ -168,6 +172,12 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
   }
 
   override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
+    case R.id.addStuff ⇒
+      pager ~> Tweak[ViewPager](_.setCurrentItem(0))
+      true
+    case R.id.controlPanel ⇒
+      pager ~> Tweak[ViewPager](_.setCurrentItem(3))
+      true
     case R.id.stopRecord ⇒
       new AlertDialog.Builder(this) {
         setMessage(R.string.message_stoprecord)

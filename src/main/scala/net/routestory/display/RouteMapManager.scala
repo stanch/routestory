@@ -46,11 +46,9 @@ class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int 
       case m: Venue if !markers.contains(m) ⇒
         addMarker(m.location(chapter), m, Left(R.drawable.foursquare))
       case m: Photo if !markers.contains(m) ⇒
-        m.fetchAndLoad(maxImageSize) onSuccess {
-          case bitmap if bitmap != null ⇒
-            val scaled = BitmapUtils.createScaledTransparentBitmap(bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxImageSize), 0.8, false)
-            addMarker(m.location(chapter), m, Right(scaled))
-          case _ ⇒
+        m.fetchAndLoad(maxImageSize) foreach { bitmap ⇒
+          val scaled = BitmapUtils.createScaledTransparentBitmap(bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxImageSize), 0.8, false)
+          addMarker(m.location(chapter), m, Right(scaled))
         }
       case _ ⇒
     }
@@ -67,6 +65,8 @@ class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int 
 
   def remove() {
     super.removeRoute()
+    man.foreach(_.remove())
+    man = None
     markers.values.foreach(_.remove())
     markers = Map.empty
     markerDispatch = Map.empty

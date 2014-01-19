@@ -1,12 +1,7 @@
 package net.routestory.recording.logged
 
-import akka.actor.Actor
-import scala.ref.WeakReference
-import android.content.Context
-import android.os.{ Message, Handler }
-import org.macroid.Bundles._
+import akka.actor.{ ActorLogging, Props, FSM, Actor }
 import scala.concurrent._
-import java.util.concurrent.Executors
 import android.util.Log
 import android.media.AudioRecord
 import android.media.AudioFormat._
@@ -14,108 +9,39 @@ import java.io.{ FileOutputStream, File }
 import org.apache.commons.io.FileUtils
 import java.nio.{ ByteOrder, ByteBuffer }
 import com.todoroo.aacenc.AACEncoder
+import org.macroid.AppContext
+import scala.concurrent.duration._
+import net.routestory.recording.Typewriter
 
 object Dictaphone {
-  case object Start
-  case object Stop
-  case object Stopped
-  case object Record
-}
+  sealed trait State
+  case object Off extends State
+  case object Idle extends State
+  case object Recording extends State
 
-class Dictaphone extends Actor {
-  import Dictaphone._
-  var enabled = false
-  def receive = {
-    case Start ⇒
-      enabled = true
-    case Stop ⇒
-      enabled = false
-      sender ! Stopped
-    case Record if enabled ⇒
-    // spawn a process to record stuff
-    case _ ⇒
-  }
-}
+  sealed trait Data
+  case object NoData extends Data
+  case class RecordingData(ar: AudioRecord, offset: Int) extends Data
 
-class AudioTracker(ctx: WeakReference[Context], handler: Handler, var piecesDone: Int = 0) extends Runnable {
-  import AudioTracker._
-
+  def ms(v: Int) = (44.100 * v).toInt
+  val gapDuration = 5.seconds
+  val frameDuration = 5.millis
+  val fadeLength = ms(1500) // 1.5s
+  val pieceLength = ms(10000) // 10s
   val frameSize = ms(10) * 2 // 10 ms * 2B per Float
   val bufferSize = pieceLength * 2 // * 2B per Float
   val buffer = new Array[Byte](bufferSize)
 
-  implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(1))
+  case object SwitchOn
+  case object SwitchOff
+  case object SwitchedOff
 
-  override def run() {
-    var working = true
-    while (working) {
-      /* setup recording */
-      Log.d("AudioTracker", "Starting")
-      val audioRecord = new AudioRecord(
-        1, 44100, CHANNEL_IN_MONO, ENCODING_PCM_16BIT,
-        AudioRecord.getMinBufferSize(44100, CHANNEL_IN_MONO, ENCODING_PCM_16BIT) * 10
-      )
-      audioRecord.startRecording()
-      val dump = File.createTempFile("audio-sample", ".snd", ctx.get.get.getExternalCacheDir)
-      val dumpStream = new FileOutputStream(dump)
-
-      /* record frames */
-      Log.d("AudioTracker", "Recording")
-      var offset = 0
-      while (offset < bufferSize - frameSize) {
-        offset += audioRecord.read(buffer, offset, frameSize)
-        if (Thread.interrupted()) {
-          Log.d("AudioTracker", "Interrupted")
-          working = false
-          offset = bufferSize
-        }
-      }
-      Log.d("AudioTracker", "Stopping")
-      audioRecord.stop()
-      if (working) {
-        dumpStream.write(buffer)
-
-        /* clean up, process and send to the activity */
-        Log.d("AudioTracker", "Saving")
-        dumpStream.close()
-        future {
-          val now = System.currentTimeMillis / 1000
-          val processed = processPiece(dump.getAbsolutePath)
-          val msg = new Message
-          msg.setData(bundle("ts" → now, "path" → processed))
-          handler.sendMessage(msg)
-        }
-        piecesDone += 1
-
-        /* sleep tight */
-        Log.d("AudioTracker", "Entering sleep")
-        try {
-          Thread.sleep(delay(piecesDone))
-        } catch {
-          case _: InterruptedException ⇒ working = false
-        }
-        if (Thread.interrupted()) working = false
-        if (!working) Log.d("AudioTracker", "Interrupted")
-      }
-    }
-  }
-}
-
-object AudioTracker {
-  def ms(v: Int) = (44.100 * v).toInt
-
-  val pieceLength = ms(10000) // 10s
-  val fadeLength = ms(1500) // 1.5s
-
-  def delay(n: Int) = 50000 * Math.pow(2, n / 5).toInt // 50s, doubles every 5 pieces
-
-  def processPiece(filename: String): String = {
+  def processPiece(filename: String)(implicit ec: ExecutionContext) = future {
     val pcmFile = new File(filename)
     val data = FileUtils.readFileToByteArray(pcmFile)
     pcmFile.delete()
 
     /* create fade-ins and fade-outs */
-    Log.d("AudioTracker", "Creating fades")
     val faded = new Array[Short](data.length / 2)
     val shortBuffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(faded)
     var i = 0
@@ -138,28 +64,60 @@ object AudioTracker {
     aacFile.getAbsolutePath
   }
 
-  def sift(pieces: List[(Long, String)]) = {
-    val dst = delay(pieces.length) * 5 / 8
-    val (use, del) = sparse(pieces, dst)
-    del.foreach(new File(_).delete())
-    use
+  def props(implicit ctx: AppContext) = Props(new Dictaphone).withDispatcher("dictaphone-pinned-dispatcher")
+}
+
+class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.State, Dictaphone.Data] with ActorLogging {
+  import Dictaphone._
+  import context.dispatcher
+
+  lazy val typewriter = context.actorSelection("../typewriter")
+  log.debug("Hey!")
+
+  startWith(Idle, NoData)
+
+  when(Off) {
+    case Event(SwitchOn, _) ⇒ goto(Idle)
+    case Event(SwitchOff, _) ⇒ sender ! SwitchedOff; stay()
+    case _ ⇒ stay()
   }
 
-  def sparse[A](data: List[(Long, A)], dst: Int): (List[(Long, A)], List[A]) = {
-    /* remove stuff that we don't need, as in
-     * ....  .  .  .  .  .    .    .    .    .    .         .         .
-     *  xxx     x  x     x         x         x      ← dst →           ↑ start here
-     */
-
-    // note that `data` is reversed, i.e. starts with the latest one
-    // also note that dst is in ms, while timestamps are in seconds
-    data.foldLeft((List[(Long, A)](), List[A]())) {
-      // always keep the first (i.e. last) piece
-      case ((Nil, unused), p) ⇒ (p :: Nil, unused)
-      // if the piece is far enough from the previous kept one, add to acc
-      case ((acc, unused), p @ (time, _)) if acc.head._1 - time > dst / 1000 ⇒ (p :: acc, unused)
-      // otherwise add to unused
-      case ((acc, unused), (_, d)) ⇒ (acc, d :: unused)
-    }
+  when(Idle, stateTimeout = gapDuration) {
+    case Event(SwitchOff, _) ⇒
+      sender ! SwitchedOff
+      goto(Off)
+    case Event(StateTimeout, _) ⇒
+      log.debug("Start recording")
+      val audioRecord = new AudioRecord(
+        1, 44100, CHANNEL_IN_MONO, ENCODING_PCM_16BIT,
+        AudioRecord.getMinBufferSize(44100, CHANNEL_IN_MONO, ENCODING_PCM_16BIT) * 10
+      )
+      audioRecord.startRecording()
+      goto(Recording) using RecordingData(audioRecord, 0)
+    case _ ⇒
+      stay()
   }
+
+  when(Recording, stateTimeout = frameDuration) {
+    case Event(StateTimeout, RecordingData(ar, offset)) if offset < bufferSize - frameSize ⇒
+      log.debug(s"$offset / $bufferSize")
+      val off = offset + ar.read(buffer, offset, frameSize)
+      stay() using RecordingData(ar, off)
+    case Event(StateTimeout, RecordingData(ar, _)) ⇒
+      ar.stop()
+      log.debug("Saving record")
+      val dump = File.createTempFile("audio-sample", ".snd", ctx.get.getExternalCacheDir)
+      val dumpStream = new FileOutputStream(dump)
+      dumpStream.write(buffer)
+      dumpStream.close()
+      // pipeTo, y u no work with ActorSelection?
+      processPiece(dump.getAbsolutePath).map(Typewriter.Sound) foreach { s ⇒ typewriter ! s }
+      goto(Idle) using NoData
+    case Event(SwitchOff, RecordingData(ar, _)) ⇒
+      ar.stop()
+      sender ! SwitchedOff
+      goto(Off) using NoData
+  }
+
+  initialize()
 }

@@ -75,8 +75,8 @@ class SuggestionsFragment extends RouteStoryFragment with FragmentData[ActorSyst
   lazy val cartographer = getFragmentData.actorSelection("/user/cartographer")
   lazy val suggester = getFragmentData.actorSelection("/user/suggester")
 
-  lazy val foursquareAdapter = new Adapter[foursquare.Venue](typewriter)
-  lazy val flickrAdapter = new Adapter[flickr.Photo](typewriter)
+  lazy val foursquareAdapter = Adapter[foursquare.Venue](typewriter)
+  lazy val flickrAdapter = Adapter[flickr.Photo](typewriter)
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
     l[ScrollView](
