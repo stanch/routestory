@@ -25,7 +25,6 @@ object Dictaphone {
 
   def ms(v: Int) = (44.100 * v).toInt
   val gapDuration = 5.seconds
-  val frameDuration = 5.millis
   val fadeLength = ms(1500) // 1.5s
   val pieceLength = ms(10000) // 10s
   val frameSize = ms(10) * 2 // 10 ms * 2B per Float
@@ -35,6 +34,7 @@ object Dictaphone {
   case object SwitchOn
   case object SwitchOff
   case object SwitchedOff
+  case object ReadFrame
 
   def processPiece(filename: String)(implicit ec: ExecutionContext) = future {
     val pcmFile = new File(filename)
@@ -93,17 +93,18 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
         AudioRecord.getMinBufferSize(44100, CHANNEL_IN_MONO, ENCODING_PCM_16BIT) * 10
       )
       audioRecord.startRecording()
+      self ! ReadFrame
       goto(Recording) using RecordingData(audioRecord, 0)
     case _ ⇒
       stay()
   }
 
-  when(Recording, stateTimeout = frameDuration) {
-    case Event(StateTimeout, RecordingData(ar, offset)) if offset < bufferSize - frameSize ⇒
-      log.debug(s"$offset / $bufferSize")
+  when(Recording) {
+    case Event(ReadFrame, RecordingData(ar, offset)) if offset < bufferSize - frameSize ⇒
       val off = offset + ar.read(buffer, offset, frameSize)
+      self ! ReadFrame
       stay() using RecordingData(ar, off)
-    case Event(StateTimeout, RecordingData(ar, _)) ⇒
+    case Event(ReadFrame, RecordingData(ar, _)) ⇒
       ar.stop()
       log.debug("Saving record")
       val dump = File.createTempFile("audio-sample", ".snd", ctx.get.getExternalCacheDir)
