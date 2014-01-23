@@ -2,7 +2,6 @@ package net.routestory.recording.logged
 
 import akka.actor.{ ActorLogging, Props, FSM, Actor }
 import scala.concurrent._
-import android.util.Log
 import android.media.AudioRecord
 import android.media.AudioFormat._
 import java.io.{ FileOutputStream, File }
@@ -24,7 +23,7 @@ object Dictaphone {
   case class RecordingData(ar: AudioRecord, offset: Int) extends Data
 
   def ms(v: Int) = (44.100 * v).toInt
-  val gapDuration = 5.seconds
+  val gapDuration = 50.seconds
   val fadeLength = ms(1500) // 1.5s
   val pieceLength = ms(10000) // 10s
   val frameSize = ms(10) * 2 // 10 ms * 2B per Float
@@ -72,7 +71,6 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
   import context.dispatcher
 
   lazy val typewriter = context.actorSelection("../typewriter")
-  log.debug("Hey!")
 
   startWith(Idle, NoData)
 

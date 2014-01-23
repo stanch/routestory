@@ -21,14 +21,24 @@ import net.routestory.recording.Cartographer
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.ui.Styles._
 import net.routestory.util.FragmentData
-import org.macroid.AppContext
-import org.macroid.ActivityContext
+import org.macroid.{ AppContext, ActivityContext }
 import android.os.Bundle
 
 trait ListViewable[A] {
   type Slots
   def makeView(implicit ctx: ActivityContext): (View, Slots)
-  def fillView(s: Slots, a: A)(implicit ctx: ActivityContext): Any
+  def fillView(slots: Slots, data: A)(implicit ctx: ActivityContext): Any
+
+  def layout(data: A)(implicit ctx: ActivityContext) = {
+    val (v, s) = makeView
+    fillView(s, data); v
+  }
+}
+
+object ListViewable {
+  implicit class ListViewableOps[A](data: A)(implicit ctx: ActivityContext, listViewable: ListViewable[A]) {
+    def layout(implicit ctx: ActivityContext) = listViewable.layout(data)
+  }
 }
 
 object Suggestables {
@@ -44,7 +54,7 @@ object Suggestables {
       )
       (layout, slots)
     }
-    def fillView(s: Slots, a: foursquare.Venue)(implicit ctx: ActivityContext) = s.name ~> text(a.name)
+    def fillView(slots: Slots, data: foursquare.Venue)(implicit ctx: ActivityContext) = slots.name ~> text(data.name)
   }
 
   implicit object flickrListViewable extends ListViewable[flickr.Photo] {
@@ -60,9 +70,9 @@ object Suggestables {
       )
       (layout, slots)
     }
-    def fillView(s: Slots, a: flickr.Photo)(implicit ctx: ActivityContext) = {
-      s.title ~> text(a.title)
-      s.owner ~> text(s"by ${a.owner.name}")
+    def fillView(slots: Slots, data: flickr.Photo)(implicit ctx: ActivityContext) = {
+      slots.title ~> text(data.title)
+      slots.owner ~> text(s"by ${data.owner.name}")
     }
   }
 }
@@ -75,16 +85,16 @@ class SuggestionsFragment extends RouteStoryFragment with FragmentData[ActorSyst
   lazy val cartographer = getFragmentData.actorSelection("/user/cartographer")
   lazy val suggester = getFragmentData.actorSelection("/user/suggester")
 
-  lazy val foursquareAdapter = Adapter[foursquare.Venue](typewriter)
-  lazy val flickrAdapter = Adapter[flickr.Photo](typewriter)
+  var venues = slot[LinearLayout]
+  var photos = slot[LinearLayout]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
     l[ScrollView](
       l[VerticalLinearLayout](
         w[TextView] ~> text("Foursquare") ~> TextSize.large ~> padding(bottom = 8 dp),
-        w[ListView] ~> adaptr(foursquareAdapter),
+        w[VerticalLinearLayout] ~> wire(venues),
         w[TextView] ~> text("Flickr") ~> TextSize.large ~> padding(top = 12 dp, bottom = 8 dp),
-        w[ListView] ~> adaptr(flickrAdapter)
+        w[VerticalLinearLayout] ~> wire(photos)
       )
     )
   }
@@ -120,11 +130,13 @@ object Suggester {
   case object Ping
   case class Venues(venues: List[foursquare.Venue])
   case class Photos(photos: List[flickr.Photo])
-  def props(apis: Apis) = Props(new Suggester(apis))
+  def props(apis: Apis)(implicit ctx: ActivityContext) = Props(new Suggester(apis))
 }
 
-class Suggester(apis: Apis) extends Actor {
+class Suggester(apis: Apis)(implicit ctx: ActivityContext) extends Actor with ActorLogging {
   import Suggester._
+  import Suggestables._
+  import ListViewable._
 
   var attachedUi: Option[SuggestionsFragment] = None
   var pings: Option[Cancellable] = None
@@ -147,17 +159,15 @@ class Suggester(apis: Apis) extends Actor {
       apis.foursquareApi.NeedNearbyVenues(l.latitude, l.longitude, 100).go.map(Venues) pipeTo self
       apis.flickrApi.NeedNearbyPhotos(l.latitude, l.longitude, 10).go.map(Photos) pipeTo self
 
-    case Venues(venues) ⇒ ui {
-      attachedUi foreach { f ⇒
-        f.foursquareAdapter.clear()
-        f.foursquareAdapter.addAll(venues.asJava)
+    case Venues(venues) ⇒ attachedUi foreach { f ⇒
+      ui {
+        f.venues ~> addViews(venues.map(_.layout), removeOld = true)
       }
     }
 
-    case Photos(photos) ⇒ ui {
-      attachedUi foreach { f ⇒
-        f.flickrAdapter.clear()
-        f.flickrAdapter.addAll(photos.asJava)
+    case Photos(photos) ⇒ attachedUi foreach { f ⇒
+      ui {
+        f.photos ~> addViews(photos.map(_.layout), removeOld = true)
       }
     }
 
