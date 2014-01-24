@@ -11,14 +11,14 @@ import android.view.KeyEvent
 import android.view.ViewGroup.LayoutParams._
 import android.widget._
 
+import org.macroid.Tweak
 import org.macroid.FullDsl._
-import org.macroid.contrib.ListAdapter
 import org.macroid.contrib.Layouts.VerticalLinearLayout
+import org.macroid.viewable.{ FillableViewable, FillableViewableAdapter }
 
 import net.routestory.R
 import net.routestory.ui.{ RouteStoryActivity, Styles }
 import net.routestory.ui.Styles._
-import org.macroid.Tweak
 
 class DescriptionActivity extends RouteStoryActivity {
   var title: EditText = _
@@ -70,7 +70,7 @@ class DescriptionActivity extends RouteStoryActivity {
     async {
       val tagz = await(app.api.NeedTags().go).map(_.tag)
       ui {
-        val adapter = ListAdapter.text(tagz)(Tweak.blank, t ⇒ text(t))
+        val adapter = FillableViewableAdapter(tagz)(FillableViewable.text(Tweak.blank, t ⇒ text(t)))
         tags.setAdapter(adapter)
         tags.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)
       }

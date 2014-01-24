@@ -15,7 +15,6 @@ import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model._
 import org.macroid.FullDsl._
 import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.ListAdapter
 
 import net.routestory.R
 import net.routestory.model.Story
@@ -26,6 +25,7 @@ import net.routestory.util.Implicits._
 import scala.Some
 import net.routestory.model.Story.Chapter
 import org.macroid.{ AppContext, ActivityContext }
+import org.macroid.viewable.{ FillableViewable, FillableViewableAdapter }
 
 class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(implicit ctx: ActivityContext, appCtx: AppContext)
   extends MapManager(map, displaySize) {
@@ -223,12 +223,12 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
         Future.sequence(leafList.map(_.getIcon(scale = false))) foreachUi { icons ⇒
           //show a confusion resolving dialog
           new AlertDialog.Builder(ctx.get)
-            .setAdapter(ListAdapter.simple(icons)(
+            .setAdapter(FillableViewableAdapter(icons)(FillableViewable.tw(
               w[ImageView] ~> Image.adjustBounds,
               icon ⇒ Image.bitmap {
                 BitmapUtils.createScaledBitmap(icon, Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize))
               }
-            ), new OnClickListener() {
+            )), new OnClickListener() {
               def onClick(dialog: DialogInterface, which: Int) {
                 leafList(which).onClick()
               }

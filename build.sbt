@@ -24,6 +24,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "org.macroid" %% "macroid" % "2.0.0-SNAPSHOT",
+  "org.macroid" %% "macroid-viewable" % "1.0.0-SNAPSHOT",
   "org.needs" %% "needs" % "1.0.0-RC4",
   "org.needs" %% "needs-flickr" % "1.0.0-SNAPSHOT",
   "org.needs" %% "needs-foursquare" % "1.0.0-SNAPSHOT",

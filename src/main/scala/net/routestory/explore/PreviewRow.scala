@@ -16,8 +16,9 @@ import net.routestory.R
 import net.routestory.ui.Styles
 import net.routestory.ui.Styles._
 import net.routestory.model.StoryPreview
+import org.macroid.viewable.SlottedFillableViewable
 
-object PreviewRow extends IdGeneration {
+object PreviewRow {
   def underlined(s: String) = new SpannableString(s) {
     setSpan(new UnderlineSpan(), 0, length, 0)
   }
@@ -60,6 +61,10 @@ object PreviewRow extends IdGeneration {
     // add to layout
     tagRowsView ~> addViewsReverse(rows.map(row ⇒ l[HorizontalLinearLayout]() ~> addViewsReverse(row)), removeOld = true)
   }
+}
+
+class PreviewRow(maxWidth: Int) extends SlottedFillableViewable[StoryPreview] {
+  import PreviewRow._
 
   class Slots {
     var title = slot[TextView]
@@ -68,9 +73,9 @@ object PreviewRow extends IdGeneration {
     var tagRows = slot[LinearLayout]
   }
 
-  def makeView(implicit ctx: ActivityContext, appCtx: AppContext) = {
+  def makeSlots(implicit ctx: ActivityContext, appCtx: AppContext) = {
     val slots = new Slots
-    l[VerticalLinearLayout](
+    val layout = l[VerticalLinearLayout](
       w[TextView] ~> wire(slots.title) ~> Styles.title ~> lp(WRAP_CONTENT, WRAP_CONTENT),
       l[HorizontalLinearLayout](
         w[TextView] ~> text(R.string.by) ~> Styles.caption,
@@ -79,12 +84,11 @@ object PreviewRow extends IdGeneration {
       l[HorizontalLinearLayout](
         l[VerticalLinearLayout]() ~> wire(slots.tagRows)
       ) ~> wire(slots.tags) ~> padding(left = storyShift)
-    ) ~> padding(0, 8 dp, 0, 8 dp) ~> hold(slots)
+    ) ~> padding(0, 8 dp, 0, 8 dp)
+    (layout, slots)
   }
 
-  def fillView(view: View, maxWidth: Int, story: StoryPreview)(implicit ctx: ActivityContext, appCtx: AppContext) {
-    val slots = view.getTag.asInstanceOf[Slots]
-
+  def fillSlots(slots: Slots, story: StoryPreview)(implicit ctx: ActivityContext, appCtx: AppContext) {
     // title
     val title = story.title.filter(!_.isEmpty).toRight(R.string.untitled)
     slots.title ~> text(title) ~> On.click {

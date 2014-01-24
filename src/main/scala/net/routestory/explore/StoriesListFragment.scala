@@ -14,12 +14,12 @@ import android.widget.{ ListAdapter ⇒ _, _ }
 import org.macroid.FullDsl._
 import org.macroid.contrib.ExtraTweaks._
 import org.macroid.{ Tweak, ActivityContext, AppContext }
-import org.macroid.contrib.ListAdapter
 import org.macroid.contrib.Layouts.HorizontalLinearLayout
 
 import net.routestory.R
 import net.routestory.model.StoryPreview
 import net.routestory.ui.RouteStoryFragment
+import org.macroid.viewable.FillableViewableAdapter
 
 class StoriesListFragment extends ListFragment
   with RouteStoryFragment
@@ -41,7 +41,8 @@ class StoriesListFragment extends ListFragment
   var nextButton = slot[Button]
   var prevButton = slot[Button]
 
-  var adapter: Option[StoriesListFragment.Adapter] = None
+  implicit lazy val viewable = new PreviewRow(displaySize(1))
+  var adapter: Option[FillableViewableAdapter[StoryPreview]] = None
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val view = super.onCreateView(inflater, container, savedInstanceState) ~> Bg.res(R.drawable.caspa)
@@ -82,7 +83,9 @@ class StoriesListFragment extends ListFragment
       adapter map { a ⇒
         a.clear()
       } getOrElse {
-        adapter = Some(new StoriesListFragment.Adapter)
+        adapter = Some(new FillableViewableAdapter[StoryPreview] {
+          override def isEnabled(position: Int) = false
+        })
         setListAdapter(adapter.get)
       }
       adapter.map(_.addAll(s))
@@ -90,14 +93,5 @@ class StoriesListFragment extends ListFragment
     }
     prevButton ~> enable(storyteller.hasPrev)
     nextButton ~> enable(storyteller.hasNext)
-  }
-}
-
-object StoriesListFragment {
-  case class Adapter(implicit ctx: ActivityContext, appCtx: AppContext) extends ListAdapter[StoryPreview, View] {
-    def makeView = PreviewRow.makeView
-    def fillView(view: View, parent: ViewGroup, data: StoryPreview) =
-      PreviewRow.fillView(view, parent.getMeasuredWidth, data)
-    override def isEnabled(position: Int) = false
   }
 }

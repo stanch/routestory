@@ -14,26 +14,25 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.support.v4.app.DialogFragment
 import android.view.{ View, ViewGroup, LayoutInflater, Gravity }
-import android.widget.{ ListAdapter ⇒ _, _ }
+import android.widget._
 
 import akka.pattern.ask
 import akka.util.Timeout
-import com.google.android.gms.maps.model.LatLng
 import org.macroid.FullDsl._
 import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.ListAdapter
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import org.macroid.util.{ Effector, Thunk }
 import rx.{ Rx, Var }
 
 import net.routestory.R
-import net.routestory.recording.{ Cartographer, RecordActivity, Typewriter }
+import net.routestory.recording.{ RecordActivity, Typewriter }
 import net.routestory.ui.{ Effects, RouteStoryFragment }
 import net.routestory.ui.Styles._
 import net.routestory.util.Implicits._
 import org.macroid.{ IdGeneration, Tweak, Transformer, Layout }
 import net.routestory.util.FragmentData
 import akka.actor.{ ActorSystem, ActorRef }
+import org.macroid.viewable.{ FillableViewableAdapter, FillableViewable }
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with FragmentData[ActorSystem] {
   lazy val photoUrl = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
@@ -50,14 +49,14 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with Fragmen
       startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
     }
 
-    val buttons = List(
+    val buttons = Seq(
       (R.drawable.photo, "Take a picture", cameraClicker),
       (R.drawable.text_note, "Add a text note", clicker(f[AddTextNote].factory, Tag.noteDialog)),
       (R.drawable.voice_note, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog)),
       (R.drawable.heart, "Record heartbeat", clicker(f[AddHeartbeat].factory, Tag.pulseDialog))
     )
 
-    val adapter = ListAdapter(buttons)(
+    val adapter = FillableViewableAdapter(buttons)(FillableViewable.tr(
       l[HorizontalLinearLayout](
         w[ImageView],
         w[TextView] ~> TextSize.large
@@ -67,7 +66,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with Fragmen
         case txt: TextView ⇒ txt ~> text(button._2)
         case l @ Layout(_*) ⇒ l ~> ThunkOn.click(button._3)
       }
-    )
+    ))
 
     w[ListView] ~> adaptr(adapter)
   }

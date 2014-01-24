@@ -12,8 +12,9 @@ import akka.pattern.pipe
 import com.google.android.gms.maps.model.LatLng
 import org.macroid.FullDsl._
 import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.ListAdapter
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import org.macroid.viewable.{ FillableViewable, FillableViewableAdapter, SlottedFillableViewable }
+import org.macroid.viewable.Viewable._
 import org.needs.{ flickr, foursquare }
 
 import net.routestory.{ R, Apis }
@@ -24,29 +25,12 @@ import net.routestory.util.FragmentData
 import org.macroid.{ AppContext, ActivityContext }
 import android.os.Bundle
 
-trait ListViewable[A] {
-  type Slots
-  def makeView(implicit ctx: ActivityContext): (View, Slots)
-  def fillView(slots: Slots, data: A)(implicit ctx: ActivityContext): Any
-
-  def layout(data: A)(implicit ctx: ActivityContext) = {
-    val (v, s) = makeView
-    fillView(s, data); v
-  }
-}
-
-object ListViewable {
-  implicit class ListViewableOps[A](data: A)(implicit ctx: ActivityContext, listViewable: ListViewable[A]) {
-    def layout(implicit ctx: ActivityContext) = listViewable.layout(data)
-  }
-}
-
 object Suggestables {
-  implicit object foursquareListViewable extends ListViewable[foursquare.Venue] {
+  implicit object foursquareListViewable extends SlottedFillableViewable[foursquare.Venue] {
     class Slots {
       var name = slot[TextView]
     }
-    def makeView(implicit ctx: ActivityContext) = {
+    def makeSlots(implicit ctx: ActivityContext, appCtx: AppContext) = {
       val slots = new Slots
       val layout = l[HorizontalLinearLayout](
         w[ImageView] ~> org.macroid.Tweak[ImageView](_.setImageResource(R.drawable.foursquare)),
@@ -54,15 +38,17 @@ object Suggestables {
       )
       (layout, slots)
     }
-    def fillView(slots: Slots, data: foursquare.Venue)(implicit ctx: ActivityContext) = slots.name ~> text(data.name)
+    def fillSlots(slots: Slots, data: foursquare.Venue)(implicit ctx: ActivityContext, appCtx: AppContext) = {
+      slots.name ~> text(data.name)
+    }
   }
 
-  implicit object flickrListViewable extends ListViewable[flickr.Photo] {
+  implicit object flickrListViewable extends SlottedFillableViewable[flickr.Photo] {
     class Slots {
       var title = slot[TextView]
       var owner = slot[TextView]
     }
-    def makeView(implicit ctx: ActivityContext) = {
+    def makeSlots(implicit ctx: ActivityContext, appCtx: AppContext) = {
       val slots = new Slots
       val layout = l[VerticalLinearLayout](
         w[TextView] ~> wire(slots.title),
@@ -70,7 +56,7 @@ object Suggestables {
       )
       (layout, slots)
     }
-    def fillView(slots: Slots, data: flickr.Photo)(implicit ctx: ActivityContext) = {
+    def fillSlots(slots: Slots, data: flickr.Photo)(implicit ctx: ActivityContext, appCtx: AppContext) = {
       slots.title ~> text(data.title)
       slots.owner ~> text(s"by ${data.owner.name}")
     }
@@ -111,16 +97,11 @@ class SuggestionsFragment extends RouteStoryFragment with FragmentData[ActorSyst
 }
 
 object SuggestionsFragment {
-  case class Adapter[A](typewriter: ActorSelection)(implicit ctx: ActivityContext, appCtx: AppContext, listViewable: ListViewable[A]) extends ListAdapter[A, View] {
-    def makeView = {
-      val (layout, slots) = listViewable.makeView
-      layout ~> hold(slots)
-    }
-    def fillView(view: View, parent: ViewGroup, data: A) = {
-      val slots = view.getTag.asInstanceOf[listViewable.Slots]
-      listViewable.fillView(slots, data)
-      view ~> On.click { typewriter ! data }
-    }
+  case class Adapter[A](typewriter: ActorSelection)(implicit ctx: ActivityContext, appCtx: AppContext, fillableViewable: FillableViewable[A])
+    extends FillableViewableAdapter[A] {
+
+    override def getView(position: Int, view: View, parent: ViewGroup) =
+      super.getView(position, view, parent) ~> On.click { typewriter ! getItem(position) }
   }
 }
 
@@ -130,13 +111,12 @@ object Suggester {
   case object Ping
   case class Venues(venues: List[foursquare.Venue])
   case class Photos(photos: List[flickr.Photo])
-  def props(apis: Apis)(implicit ctx: ActivityContext) = Props(new Suggester(apis))
+  def props(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) = Props(new Suggester(apis))
 }
 
-class Suggester(apis: Apis)(implicit ctx: ActivityContext) extends Actor with ActorLogging {
+class Suggester(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) extends Actor with ActorLogging {
   import Suggester._
   import Suggestables._
-  import ListViewable._
 
   var attachedUi: Option[SuggestionsFragment] = None
   var pings: Option[Cancellable] = None

@@ -10,16 +10,18 @@ import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivit
 import android.support.v4.widget.DrawerLayout
 import android.view._
 import android.view.ViewGroup.LayoutParams._
-import android.widget.{ ListView, ProgressBar, SearchView }
+import android.widget.{ TextView, ListView, ProgressBar, SearchView }
 
 import org.macroid.FullDsl._
-import org.macroid.contrib.{ ExtraTweaks, ListAdapter }
+import org.macroid.contrib.ExtraTweaks
 import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
 
 import net.routestory.{ R, RouteStoryApp, SettingsActivity }
 import net.routestory.explore.{ ExploreActivity, MyStoriesActivity }
 import net.routestory.recording.RecordActivity
-import org.macroid.Contexts
+import net.routestory.ui.Styles._
+import org.macroid.{ Tweak, Contexts }
+import org.macroid.viewable.{ FillableViewableAdapter, FillableViewable }
 
 trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity] {
   lazy val app = getApplication.asInstanceOf[RouteStoryApp]
@@ -55,15 +57,15 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
       ("My stories", clicker[MyStoriesActivity]),
       ("Settings", clicker[SettingsActivity])
     )
-    val adapter = ListAdapter.text(data)(
+    val adapter = FillableViewableAdapter(data)(FillableViewable.text(
       TextSize.medium + TextStyle.boldItalic + padding(all = 10 dp),
       data ⇒ text(data._1) + data._2
-    )
+    ))
     // format: ON
     val layout = l[DrawerLayout](
       view ~> lp(MATCH_PARENT, MATCH_PARENT),
       w[ListView] ~>
-        (tweak ~ (_.setAdapter(adapter))) ~>
+        adaptr(adapter) ~>
         lp(240 dp, MATCH_PARENT, Gravity.START) ~>
         ExtraTweaks.Bg.res(R.color.drawer)
     )
