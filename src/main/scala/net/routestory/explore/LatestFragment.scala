@@ -29,5 +29,5 @@ class LatestFragment extends StoriesListFragment with HazStories {
     if (stories.now.isCompleted) stories.update(fetchStories)
   }
 
-  def fetchStories = app.api.NeedLatest(number).go.map(_.stories)
+  def fetchStories = app.api.latest(number).go.map(_.stories)
 }

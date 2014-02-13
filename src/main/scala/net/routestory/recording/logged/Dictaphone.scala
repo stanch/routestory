@@ -60,7 +60,7 @@ object Dictaphone {
       encode(data)
       uninit()
     }
-    aacFile.getAbsolutePath
+    aacFile
   }
 
   def props(implicit ctx: AppContext) = Props(new Dictaphone).withDispatcher("dictaphone-pinned-dispatcher")

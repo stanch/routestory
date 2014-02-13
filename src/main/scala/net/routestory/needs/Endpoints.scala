@@ -4,17 +4,14 @@ import java.io.File
 
 import scala.concurrent.{ Future, ExecutionContext, future }
 
-import android.content.{ SharedPreferences, Context }
 import android.util.Log
 
 import com.loopj.android.http.AsyncHttpClient
-import org.needs.{ EndpointLogger, Endpoint, http, rest }
 import org.needs.file.{ FileEndpoint, HttpFileEndpoint, LocalFileEndpoint }
-import org.needs.http.{ AndroidClient, HttpClient, HttpEndpoint }
+import org.needs.http.AndroidClient
 import org.needs.json.{ HttpJsonEndpoint, JsonEndpoint }
 
-import net.routestory.RouteStoryApp
-import org.macroid.AppContext
+import java.util.concurrent.Executors
 
 trait Endpoints { self: Shared ⇒
 
@@ -29,42 +26,50 @@ trait Endpoints { self: Shared ⇒
     }
   }
 
-  case class LocalAuthor(id: String)
-    extends CouchEndpoint(id)
-
-  case class LocalStory(id: String)
-    extends CouchEndpoint(id)
+  case class LocalAuthor(id: String) extends CouchEndpoint(id)
+  case class LocalStory(id: String) extends CouchEndpoint(id)
 
   /* Remote REST API endpoints */
 
-  trait RemoteEndpoint extends HttpJsonEndpoint {
+  abstract class RouteStoryEndpoint(path: String, query: (String, String)*) extends HttpJsonEndpoint {
     val client = httpClient
     val logger = endpointLogger
+    override def fetch(implicit ec: ExecutionContext) =
+      client.getJson(s"http://routestory.herokuapp.com/api/$path", query = Map(query: _*))
   }
 
-  abstract class SingleResource(val baseUrl: String)
-    extends rest.SingleResourceEndpoint with RemoteEndpoint
+  case class RemoteAuthor(id: String) extends RouteStoryEndpoint(s"authors/$id")
+  case class RemoteStory(id: String) extends RouteStoryEndpoint(s"stories/$id")
+  case class RemoteLatest(num: Int) extends RouteStoryEndpoint("stories/latest", "limit" → num.toString)
+  case class RemoteTags() extends RouteStoryEndpoint("tags")
 
-  case class RemoteAuthor(id: String)
-    extends SingleResource("http://routestory.herokuapp.com/api/authors")
+  case class RemoteSearch(query: String, limit: Int = 4, bookmark: Option[String] = None)
+    extends RouteStoryEndpoint(s"stories/search/$query", Seq("limit" → limit.toString) ++ bookmark.map("bookmark" → _).toSeq: _*)
 
-  case class RemoteStory(id: String)
-    extends SingleResource("http://routestory.herokuapp.com/api/stories")
+  case class RemoteTagged(tag: String, limit: Int = 4, bookmark: Option[String] = None)
+    extends RouteStoryEndpoint(s"tags/$tag/stories", Seq("limit" → limit.toString) ++ bookmark.map("bookmark" → _).toSeq: _*)
 
   /* Media endpoints */
 
+  lazy val externalMediaEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
+
   abstract class CachedFile(url: String) extends FileEndpoint {
     val logger = endpointLogger
-    def create = new File(s"${appCtx.getExternalCacheDir.getAbsolutePath}/${url.replace("/", "-")}")
+    def create = new File(s"${appCtx.getExternalCacheDir.getAbsolutePath}/${url.replace("/", "-").replace(":", "-")}")
   }
 
   case class RemoteMedia(url: String) extends CachedFile(url) with HttpFileEndpoint {
     val client = AndroidClient(new AsyncHttpClient)
-    val baseUrl = "http://routestory.herokuapp.com/api/stories"
+    override protected def fetch(implicit ec: ExecutionContext) =
+      client.getFile(s"http://routestory.herokuapp.com/api/stories/$url")(externalMediaEc)
   }
 
-  case class LocalCachedMedia(url: String)
-    extends CachedFile(url) with LocalFileEndpoint
+  case class RemoteExternalMedia(url: String) extends CachedFile(url) with HttpFileEndpoint {
+    val client = AndroidClient(new AsyncHttpClient)
+    override protected def fetch(implicit ec: ExecutionContext) = client.getFile(url)(externalMediaEc)
+  }
+
+  case class LocalCachedMedia(url: String) extends CachedFile(url) with LocalFileEndpoint
 
   case class LocalTempMedia(url: String) extends LocalFileEndpoint {
     val logger = endpointLogger

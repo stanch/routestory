@@ -19,11 +19,10 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.google.android.gms.common._
 import com.google.android.gms.location.{ LocationClient, LocationListener, LocationRequest }
-import com.google.android.gms.maps.SupportMapFragment
 import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.Layouts.VerticalLinearLayout
-import play.api.libs.json.Json
+import play.api.libs.json.{ JsValue, Json, JsObject }
+import play.api.data.mapping.{ From, To }
 
 import net.routestory.R
 import net.routestory.display.DisplayActivity
@@ -37,6 +36,7 @@ import org.macroid.{ Tweak, IdGeneration }
 import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
 import net.routestory.recording.logged.{ Dictaphone, ControlPanelFragment }
 import android.support.v4.view.ViewPager
+import org.needs.Resolvable
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -118,9 +118,9 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
 
     // restore the chapter or create a new one
     Option(savedInstanceState).filter(_.containsKey("savedChapter")).map(_.getString("savedChapter")).flatMap { json ⇒
-      Json.parse(json).asOpt[Story.Chapter]
+      From[JsValue, Resolvable[Story.Chapter]](Json.parse(json))(app.api.chapterRule).asOpt
     } map { chapter ⇒
-      typewriter ! Typewriter.Restore(chapter)
+      chapter.go.foreach(c ⇒ typewriter ! Typewriter.Restore(c))
     } getOrElse {
       typewriter ! Typewriter.StartOver
     }
@@ -146,7 +146,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
   override def onSaveInstanceState(outState: Bundle) = {
     implicit val timeout = Timeout(5 seconds)
     val chapter = Await.result((typewriter ? Typewriter.Backup).mapTo[Story.Chapter], 5 seconds)
-    val json = Json.toJson(chapter).toString()
+    val json = To[Story.Chapter, JsObject](chapter).toString()
     outState.putString("savedChapter", json)
     super.onSaveInstanceState(outState)
   }

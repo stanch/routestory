@@ -68,7 +68,7 @@ class DescriptionActivity extends RouteStoryActivity {
   override def onStart() {
     super.onStart()
     async {
-      val tagz = await(app.api.NeedTags().go).map(_.tag)
+      val tagz = await(app.api.tags.go).map(_.tag)
       ui {
         val adapter = FillableViewableAdapter(tagz)(FillableViewable.text(Tweak.blank, t ⇒ text(t)))
         tags.setAdapter(adapter)

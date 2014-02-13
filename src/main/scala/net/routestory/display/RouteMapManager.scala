@@ -1,9 +1,7 @@
 package net.routestory.display
 
-import scala.concurrent.ExecutionContext
-
-import android.content.Context
-import android.graphics.Bitmap
+import scala.concurrent.{ Future, ExecutionContext }
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model._
@@ -11,46 +9,43 @@ import org.macroid.UiThreading._
 
 import net.routestory.R
 import net.routestory.model.Story._
-import net.routestory.util.BitmapUtils
 import net.routestory.util.Implicits._
 import org.macroid.{ AppContext, ActivityContext }
+import net.routestory.disp.{ Markerables, Markerable }
+import android.util.Log
 
 class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int = displaySize.min / 4)(implicit ctx: ActivityContext, appCtx: AppContext)
   extends MapManager(map, displaySize) {
 
-  map.onMarkerClick(onMarkerClick)
-
   var man: Option[Marker] = None
-  var markers: Map[Media, Marker] = Map.empty
-  var markerDispatch: Map[Marker, Media] = Map.empty
+  var markers: Map[KnownMedia, Marker] = Map.empty
+  var markerDispatch: Map[Marker, KnownMedia] = Map.empty
 
-  private def addMarker(location: LatLng, m: Media, icon: Either[Int, Bitmap]) = ui {
-    markers += m → map.addMarker(new MarkerOptions()
-      .position(location)
-      .icon(icon.fold(BitmapDescriptorFactory.fromResource, BitmapDescriptorFactory.fromBitmap))
-    )
-    markerDispatch += markers(m) → m
+  private def addMarker(data: KnownMedia)(implicit markerable: Markerable[KnownMedia]) = ui {
+    val marker = map.addMarker(new MarkerOptions().position(markerable.location(data)))
+    markerable.icon(data, maxImageSize) foreachUi { bitmap ⇒
+      marker.setIcon(BitmapDescriptorFactory.fromBitmap(bitmap))
+    }
+    markers += data → marker
+    markerDispatch += marker → data
   }
 
   def add(chapter: Chapter)(implicit ec: ExecutionContext) = {
     super.addRoute(chapter)
+
+    // import typeclass instances
+    val markerables = new Markerables(displaySize, chapter)
+    import markerables._
+
+    // add markers
     chapter.media foreach {
-      case m: TextNote if !markers.contains(m) ⇒
-        addMarker(m.location(chapter), m, Left(R.drawable.text_note))
-      case m: VoiceNote if !markers.contains(m) ⇒
-        addMarker(m.location(chapter), m, Left(R.drawable.voice_note))
-      case m: Sound if !markers.contains(m) ⇒
-        addMarker(m.location(chapter), m, Left(R.drawable.sound))
-      case m: Heartbeat if !markers.contains(m) ⇒
-        addMarker(m.location(chapter), m, Left(R.drawable.heart))
-      case m: Venue if !markers.contains(m) ⇒
-        addMarker(m.location(chapter), m, Left(R.drawable.foursquare))
-      case m: Photo if !markers.contains(m) ⇒
-        m.fetchAndLoad(maxImageSize) foreach { bitmap ⇒
-          val scaled = BitmapUtils.createScaledTransparentBitmap(bitmap, Math.min(Math.max(bitmap.getWidth, bitmap.getHeight), maxImageSize), 0.8, false)
-          addMarker(m.location(chapter), m, Right(scaled))
-        }
-      case _ ⇒
+      case m: UnknownMedia ⇒ ()
+      case m: KnownMedia if !markers.contains(m) ⇒ addMarker(m)
+    }
+
+    // update clicking
+    map.onMarkerClick { marker ⇒
+      markerDispatch.get(marker).exists(m ⇒ { implicitly[Markerable[KnownMedia]].click(m); true })
     }
   }
 
@@ -70,16 +65,5 @@ class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int 
     markers.values.foreach(_.remove())
     markers = Map.empty
     markerDispatch = Map.empty
-  }
-
-  lazy val onMarkerClick = { marker: Marker ⇒
-    markerDispatch.get(marker).exists {
-      case m: TextNote ⇒ onTextNoteClick(m)
-      case m: Audio ⇒ onAudioClick(m)
-      case m: Image ⇒ onImageClick(m)
-      case m: Heartbeat ⇒ onHeartbeatClick(m)
-      case m: Venue ⇒ onVenueClick(m)
-      case _ ⇒ false
-    }
   }
 }

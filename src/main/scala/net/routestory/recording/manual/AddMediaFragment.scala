@@ -35,7 +35,7 @@ import akka.actor.{ ActorSystem, ActorRef }
 import org.macroid.viewable.{ FillableViewableAdapter, FillableViewable }
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with FragmentData[ActorSystem] {
-  lazy val photoUrl = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir).getAbsolutePath
+  lazy val photoFile = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir)
   lazy val typewriter = getFragmentData.actorSelection("/user/typewriter")
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
@@ -45,7 +45,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with Fragmen
 
     val cameraClicker = Thunk {
       val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(photoUrl)))
+      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile))
       startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
     }
 
@@ -75,7 +75,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with Fragmen
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode == RecordActivity.REQUEST_CODE_TAKE_PICTURE) {
       if (resultCode == Activity.RESULT_OK) {
-        typewriter ! Typewriter.Photo(photoUrl)
+        typewriter ! Typewriter.Photo(photoFile)
       }
     }
   }
@@ -87,20 +87,19 @@ class AddSomething extends DialogFragment with RouteStoryFragment with FragmentD
 }
 
 class AddTextNote extends AddSomething {
-  override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val input = new EditText(getActivity) {
-      setHint(R.string.message_typenotehere)
-      setMinLines(5)
-      setGravity(Gravity.TOP)
+  var input = slot[EditText]
+
+  override def onCreateDialog(savedInstanceState: Bundle) = dialog {
+    w[EditText] ~> Tweak[EditText] { x ⇒
+      x.setHint(R.string.message_typenotehere)
+      x.setMinLines(5)
+      x.setGravity(Gravity.TOP)
+    } ~> wire(input)
+  } ~> positiveOk {
+    Some(input.get.getText.toString).filter(!_.isEmpty).foreach { text ⇒
+      typewriter ! Typewriter.TextNote(text)
     }
-    new AlertDialog.Builder(getActivity) {
-      setView(input)
-      setPositiveButton(android.R.string.ok, Some(input.getText.toString).filter(!_.isEmpty).foreach { text ⇒
-        typewriter ! Typewriter.TextNote(text)
-      })
-      setNegativeButton(android.R.string.cancel, ())
-    }.create()
-  }
+  } ~> negativeCancel() ~> create
 }
 
 class AddVoiceNote extends AddSomething {
@@ -136,28 +135,23 @@ class AddVoiceNote extends AddSomething {
     mStartStop ~> text("Click if you want to try again")
   }
 
-  override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val view = w[Button] ~> text("Start recording") ~> wire(mStartStop) ~> On.click {
+  override def onCreateDialog(savedInstanceState: Bundle) = dialog {
+    w[Button] ~> text("Start recording") ~> wire(mStartStop) ~> On.click {
       if (!mRecording) start() else stop()
     }
-
-    new AlertDialog.Builder(getActivity) {
-      setView(view)
-      setPositiveButton(android.R.string.ok, {
-        if (mRecording) {
-          stop()
-        }
-        if (mRecorded) {
-          //activity.addVoice(mOutputPath)
-        }
-      })
-      setNegativeButton(android.R.string.cancel, {
-        if (mRecording) {
-          stop()
-        }
-      })
-    }.create()
-  }
+  } ~> positiveOk {
+    if (mRecording) {
+      stop()
+    }
+    if (mRecorded) {
+      typewriter ! Typewriter.VoiceNote(new File(mOutputPath))
+      //activity.addVoice(mOutputPath)
+    }
+  } ~> negativeCancel {
+    if (mRecording) {
+      stop()
+    }
+  } ~> create
 }
 
 class AddHeartbeat extends AddSomething {
@@ -176,8 +170,8 @@ class AddHeartbeat extends AddSomething {
     }
   }
 
-  override def onCreateDialog(savedInstanceState: Bundle): Dialog = {
-    val layout = l[VerticalLinearLayout](
+  override def onCreateDialog(savedInstanceState: Bundle) = dialog {
+    l[VerticalLinearLayout](
       w[TextView] ~> text(R.string.message_pulsehowto) ~> TextSize.medium,
       w[TextView] ~> beats.map(b ⇒ text(s"BPM: $b")),
       w[Button] ~> text("TAP") ~> On.click {
@@ -187,14 +181,10 @@ class AddHeartbeat extends AddSomething {
         x.setGravity(Gravity.CENTER)
       })
     )
-
-    new AlertDialog.Builder(getActivity) {
-      setView(layout)
-      setPositiveButton(android.R.string.ok, Some(beats.now).filter(_ > 0).foreach { bpm ⇒
-        typewriter ! Typewriter.Heartbeat(bpm)
-      })
-      setNegativeButton(android.R.string.cancel, ())
-    }.create()
-  }
+  } ~> positiveOk {
+    Some(beats.now).filter(_ > 0).foreach { bpm ⇒
+      typewriter ! Typewriter.Heartbeat(bpm)
+    }
+  } ~> negativeCancel() ~> create
 }
 

@@ -26,6 +26,7 @@ import scala.Some
 import net.routestory.model.Story.Chapter
 import org.macroid.{ AppContext, ActivityContext }
 import org.macroid.viewable.{ FillableViewable, FillableViewableAdapter }
+import net.routestory.disp.{ Markerables, Markerable }
 
 class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(implicit ctx: ActivityContext, appCtx: AppContext)
   extends MapManager(map, displaySize) {
@@ -34,9 +35,8 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
   var hideOverlays = false
   val maxIconSize = ((800 dp) :: displaySize).min / 4
 
-  abstract class MarkerItem(chapter: Chapter, val timestamp: Int) {
+  sealed trait MarkerItem {
     var marker: Option[Marker] = None
-    val coords = chapter.locationAt(timestamp)
     var doi: Float = 0
 
     // hide the marker
@@ -45,154 +45,106 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
     }
 
     def createMarker = {
-      marker = Some(map.addMarker(new MarkerOptions().position(coords).anchor(0.5f, 0.5f)))
+      marker = Some(map.addMarker(new MarkerOptions().position(location).anchor(0.5f, 0.5f)))
       marker.get
     }
 
     // create the marker if not created and show it
     def showMarker(dispatch: Map[Marker, MarkerItem]) = {
       val m = marker.getOrElse(createMarker)
-      getIcon(scale = true).foreachUi(icon ⇒ m.setIcon(BitmapDescriptorFactory.fromBitmap(icon)))
+      icon(scale = true).foreachUi(i ⇒ m.setIcon(BitmapDescriptorFactory.fromBitmap(i)))
       marker.foreach(_.setVisible(true))
       dispatch + (m → this)
     }
 
     // add to list of markers to visualize
     def addToMarkerLists(shown: List[MarkerItem], hidden: List[MarkerItem], hide: Boolean = false): (List[MarkerItem], List[MarkerItem]) = {
-      lazy val visible = map.getProjection.getVisibleRegion.latLngBounds.contains(coords)
+      lazy val visible = map.getProjection.getVisibleRegion.latLngBounds.contains(location)
       if (hide || !visible) (shown, this :: hidden) else (this :: shown, hidden)
     }
 
-    // override these
-    def getIcon(scale: Boolean): Future[Bitmap]
-    def onClick() {}
+    // implement these
+    def timestamp: Int
+    def location: LatLng
+    def icon(scale: Boolean): Future[Bitmap]
+    def iconType: Option[Int]
+    def click(): Unit
   }
 
-  // Image marker
-  class ImageMarkerItem(chapter: Chapter, data: Story.Image)
-    extends MarkerItem(chapter, data.timestamp) {
+  class SingleMarkerItem[A](data: A, val timestamp: Int)(implicit markerable: Markerable[A]) extends MarkerItem {
+    val location = markerable.location(data)
+    val _icon = markerable.icon(data, maxIconSize)
+    val iconType = markerable.iconType(data)
+    def icon(scale: Boolean) = _icon
+    def click() = markerable.click(data)
+  }
 
-    private val icon = data.fetchAndLoad(maxIconSize)
-
-    override def getIcon(scale: Boolean) = if (!scale) {
-      icon
-    } else icon.map { i ⇒
+  class ImageMarkerItem[A](data: A, val timestamp: Int)(implicit markerable: Markerable[A]) extends MarkerItem {
+    val location = markerable.location(data)
+    val _icon = markerable.icon(data, maxIconSize)
+    val iconType = markerable.iconType(data)
+    def icon(scale: Boolean) = if (!scale) {
+      _icon
+    } else _icon map { i ⇒
       BitmapUtils.createScaledTransparentBitmap(i, (maxIconSize * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, border = true)
     }
-
-    override def onClick() {
-      onImageClick(data)
-    }
-  }
-
-  object IconMarkerItem {
-    var iconPool = Map[Int, Bitmap]()
-    def loadIcon(resourceId: Int): Bitmap = {
-      if (!iconPool.contains(resourceId)) {
-        iconPool += resourceId → BitmapFactory.decodeResource(appCtx.get.getResources, resourceId)
-      }
-      iconPool(resourceId)
-    }
-  }
-  abstract class IconMarkerItem(chapter: Chapter, data: Story.Media, resourceId: Int)
-    extends MarkerItem(chapter, data.timestamp) {
-
-    private lazy val icon = IconMarkerItem.loadIcon(resourceId)
-    override def getIcon(scale: Boolean) = Future.successful(icon)
-  }
-
-  // Audio marker
-  class AudioMarkerItem(chapter: Chapter, data: Story.Audio, resourceId: Int)
-    extends IconMarkerItem(chapter, data, resourceId) {
-
-    override def onClick() {
-      onAudioClick(data)
-    }
-  }
-
-  class SoundMarkerItem(chapter: Chapter, data: Story.Sound) extends AudioMarkerItem(chapter, data, R.drawable.sound)
-  class VoiceMarkerItem(chapter: Chapter, data: Story.VoiceNote) extends AudioMarkerItem(chapter, data, R.drawable.voice_note)
-
-  // Text note marker
-  class TextMarkerItem(chapter: Chapter, data: Story.TextNote)
-    extends IconMarkerItem(chapter, data, R.drawable.text_note) {
-
-    override def onClick() {
-      onTextNoteClick(data)
-    }
-  }
-
-  // Foursquare venue marker
-  class VenueMarkerItem(chapter: Chapter, data: Story.Venue)
-    extends IconMarkerItem(chapter, data, R.drawable.foursquare_bigger) {
-
-    override def onClick() {
-      onVenueClick(data)
-    }
-  }
-
-  // Heartbeat marker
-  class HeartbeatMarkerItem(chapter: Chapter, data: Story.Heartbeat)
-    extends IconMarkerItem(chapter, data, R.drawable.heart) {
-
-    override def onClick() {
-      onHeartbeatClick(data)
-    }
+    def click() = markerable.click(data)
   }
 
   object GroupMarkerItem {
-    import FlatMapManager.distance
-    def apply(chapter: Chapter, item1: MarkerItem, item2: MarkerItem): GroupMarkerItem = {
+    import FlatMapManager._
+    def apply(item1: MarkerItem, item2: MarkerItem): GroupMarkerItem = {
       def mergeBounds(coords1: LatLng, coords2: LatLng) = LatLngBounds.builder.include(coords1).include(coords2).build()
-      val (children: List[MarkerItem], closest: Double, bounds: LatLngBounds) = (item1, item2) match {
+      val (children: Vector[MarkerItem], closest: Double, bounds: LatLngBounds) = (item1, item2) match {
         // if one of the items is a grouping marker, and the other is not
         // the grouping one can absorb the non-grouping one
         // format: OFF
         case (group1: GroupMarkerItem, group2: GroupMarkerItem) ⇒ (
-          List(group1, group2),
-          distance(group1.coords, group2.coords),
-          mergeBounds(group1.coords, group2.coords)
+          Vector(group1, group2),
+          distance(group1.location, group2.location),
+          mergeBounds(group1.location, group2.location)
         )
-        case (group: GroupMarkerItem, single) if group.children.forall(item ⇒ distance(item.coords, single.coords) <= 2*group.closest) ⇒
-          (single :: group.children, group.closest, group.bounds)
-        case (single, group: GroupMarkerItem) if group.children.forall(item ⇒ distance(item.coords, single.coords) <= 2*group.closest) ⇒
-          (single :: group.children, group.closest, group.bounds)
+        case (group: GroupMarkerItem, single) if group.children.forall(item ⇒ distance(item.location, single.location) <= 2*group.closest) ⇒
+          (single +: group.children, group.closest, group.bounds.including(single.location))
+        case (single, group: GroupMarkerItem) if group.children.forall(item ⇒ distance(item.location, single.location) <= 2*group.closest) ⇒
+          (single +: group.children, group.closest, group.bounds.including(single.location))
         case (single1, single2) ⇒ (
-          List(single1, single2),
-          distance(single1.coords, single2.coords),
-          mergeBounds(single1.coords, single2.coords)
+          Vector(single1, single2),
+          distance(single1.location, single2.location),
+          mergeBounds(single1.location, single2.location)
         )
         // format: ON
       }
-      new GroupMarkerItem(chapter, children, closest, bounds)
+      new GroupMarkerItem(children, closest, bounds)
     }
   }
 
   // Grouping marker
-  class GroupMarkerItem(chapter: Chapter, val children: List[MarkerItem], val closest: Double, val bounds: LatLngBounds)
-    extends MarkerItem(chapter, children.map(_.timestamp).sum / children.length) {
-    lazy val leafList: List[MarkerItem] = children flatMap {
-      case g: GroupMarkerItem ⇒ g.leafList
-      case i ⇒ i :: Nil
+  class GroupMarkerItem(val children: Vector[MarkerItem], val closest: Double, val bounds: LatLngBounds)
+    extends MarkerItem {
+
+    val location = bounds.getCenter
+    val timestamp = children.map(_.timestamp).sum / children.length
+
+    lazy val leaves: Vector[MarkerItem] = children flatMap {
+      case g: GroupMarkerItem ⇒ g.leaves
+      case i ⇒ Vector(i)
     }
 
-    lazy val icon = {
+    val iconType = None
+    lazy val _icon = {
       // group and count markers of each type
-      val Image = classOf[ImageMarkerItem]
-      val bitmaps = leafList.groupBy(_.getClass).toList.flatMap {
-        case (Image, items) ⇒ items.map(_.getIcon(scale = false))
-        case (c, head :: items) ⇒ if (items.length > 0) {
-          head.getIcon(scale = false).map(BitmapUtils.createCountedBitmap(_, items.length + 1)) :: Nil
-        } else {
-          head.getIcon(scale = false) :: Nil
-        }
-        case (_, Nil) ⇒ Nil // make compiler happy
+      val bitmaps = leaves.groupBy(_.iconType).toVector.flatMap {
+        case (None, items) ⇒
+          items.map(_.icon(scale = false))
+        case (_, items @ Vector(i, j, _*)) ⇒
+          items.take(1).map(_.icon(scale = false).map(BitmapUtils.createCountedBitmap(_, items.length)))
+        case (_, items @ Vector(i)) ⇒
+          items.take(1).map(_.icon(scale = false))
       }
-      Future.sequence(bitmaps).map(MagicGrid.create(_, maxIconSize)) recover {
-        case t ⇒ t.printStackTrace(); throw t
-      }
+      Future.sequence(bitmaps).map(MagicGrid.create(_, maxIconSize))
     }
-    lazy val iconSize = icon.map(i ⇒ Math.min(Math.max(i.getWidth, i.getHeight), maxIconSize))
+    lazy val iconSize = _icon.map(i ⇒ Math.min(Math.max(i.getWidth, i.getHeight), maxIconSize))
 
     override def addToMarkerLists(shown: List[MarkerItem], hidden: List[MarkerItem], hide: Boolean = false): (List[MarkerItem], List[MarkerItem]) = {
       val fits = seemsToFit()
@@ -211,16 +163,16 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
       wasExpanded
     }
 
-    override def getIcon(scale: Boolean) = (icon zip iconSize) map {
+    def icon(scale: Boolean) = (_icon zip iconSize) map {
       case (i, s) ⇒
-        BitmapUtils.createScaledTransparentBitmap(i, (s * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, true)
+        BitmapUtils.createScaledTransparentBitmap(i, (s * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, border = true)
     }
 
-    override def onClick() {
+    def click() = {
       val List(ne, sw) = List(bounds.northeast, bounds.southwest) map { map.getProjection.toScreenLocation }
       // check if there is a zoom level at which we can expand
       if (FlatMapManager.manhattanDistance(ne, sw) * Math.pow(2, map.getMaxZoomLevel - 2 - map.getCameraPosition.zoom) < maxIconSize) {
-        Future.sequence(leafList.map(_.getIcon(scale = false))) foreachUi { icons ⇒
+        Future.sequence(leaves.map(_.icon(scale = false))) foreachUi { icons ⇒
           //show a confusion resolving dialog
           new AlertDialog.Builder(ctx.get)
             .setAdapter(FillableViewableAdapter(icons)(FillableViewable.tw(
@@ -230,7 +182,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
               }
             )), new OnClickListener() {
               def onClick(dialog: DialogInterface, which: Int) {
-                leafList(which).onClick()
+                leaves(which).click()
               }
             }).create().show()
         }
@@ -246,15 +198,19 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
 
   def add(chapter: Chapter) {
     super.addRoute(chapter)
-    val markerItems: Vector[MarkerItem] = chapter.media.toVector.flatMap {
-      case m: Story.Image ⇒ new ImageMarkerItem(chapter, m) +: Vector.empty
-      case m: Story.Sound ⇒ new SoundMarkerItem(chapter, m) +: Vector.empty
-      case m: Story.VoiceNote ⇒ new VoiceMarkerItem(chapter, m) +: Vector.empty
-      case m: Story.TextNote ⇒ new TextMarkerItem(chapter, m) +: Vector.empty
-      case m: Story.Heartbeat ⇒ new HeartbeatMarkerItem(chapter, m) +: Vector.empty
-      case m: Story.Venue ⇒ new VenueMarkerItem(chapter, m) +: Vector.empty
-      case _ ⇒ Vector.empty
+
+    // import typeclass instances
+    val markerables = new Markerables(displaySize, chapter)
+    import markerables._
+
+    // create marker items
+    val markerItems: Vector[MarkerItem] = chapter.media.toVector flatMap {
+      case m: Story.UnknownMedia ⇒ Vector.empty
+      case m: Story.Image ⇒ new ImageMarkerItem(m, m.timestamp) +: Vector.empty
+      case m: Story.KnownMedia ⇒ new SingleMarkerItem(m, m.timestamp) +: Vector.empty
     }
+
+    // cluster
     future {
       rootMarkerItem = markerItems.length match {
         case 0 ⇒ None
@@ -280,7 +236,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
           } filterNot { neighbor ⇒
             distanceTable.contains((current, neighbor))
           } map { neighbor ⇒
-            (current, neighbor) → FlatMapManager.distance(current.coords, neighbor.coords)
+            (current, neighbor) → FlatMapManager.distance(current.location, neighbor.location)
           } toMap)
         }
       }
@@ -296,7 +252,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
       }
 
       // merge them
-      val group = GroupMarkerItem(chapter, closest._1, closest._2)
+      val group = GroupMarkerItem(closest._1, closest._2)
       val index = markerItems lastIndexWhere { _.timestamp <= group.timestamp }
       val (left, right) = markerItems.splitAt(index + 1)
       markerItems = left ++ Vector(group) ++ right
@@ -305,10 +261,10 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
       // format: OFF
       distanceTable ++=
         ((right takeWhile { _.timestamp < group.timestamp + clusterRadius }) map { item ⇒
-          (group, item) → FlatMapManager.distance(group.coords, item.coords)
+          (group, item) → FlatMapManager.distance(group.location, item.location)
         } toMap) ++
         ((left dropWhile { _.timestamp < group.timestamp - clusterRadius }) map { item ⇒
-          (item, group) → FlatMapManager.distance(item.coords, group.coords)
+          (item, group) → FlatMapManager.distance(item.location, group.location)
         } toMap)
       // format: ON
     }
@@ -329,13 +285,13 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
     val radius = Math.min(width, height) / 5
     val _center = new Point(width / 2, height / 2)
     val center = markerItems map { item ⇒
-      (item, FlatMapManager.chebyshevDistance(p.toScreenLocation(item.coords), _center))
+      (item, FlatMapManager.chebyshevDistance(p.toScreenLocation(item.location), _center))
     } filter {
-      case ((_: ImageMarkerItem | _: GroupMarkerItem), d) if d < radius ⇒ true
+      case ((_: ImageMarkerItem[_] | _: GroupMarkerItem), d) if d < radius ⇒ true
       case _ ⇒ false
     } match {
       case l if l.length == 0 ⇒ _center
-      case l ⇒ p.toScreenLocation(l.minBy(_._2)._1.coords)
+      case l ⇒ p.toScreenLocation(l.minBy(_._2)._1.location)
     }
 
     // assign degrees of interest
@@ -343,7 +299,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
     markerItems foreach { item ⇒
       // Manhattan distance is used for optimization, and also due to the fact that
       // the images are rectangular and therefore produce less confusion when moved apart diagonally
-      val d = FlatMapManager.manhattanDistance(p.toScreenLocation(item.coords), center) / n
+      val d = FlatMapManager.manhattanDistance(p.toScreenLocation(item.location), center) / n
       item.doi = 1 - 1.5f * d
     }
   }
@@ -375,7 +331,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
     markerDispatch.keys.foreach(_.remove())
   }
 
-  lazy val onMarkerClick = { marker: Marker ⇒ markerDispatch.get(marker).exists { x ⇒ x.onClick(); true } }
+  lazy val onMarkerClick = { marker: Marker ⇒ markerDispatch.get(marker).exists { x ⇒ x.click(); true } }
 }
 
 object FlatMapManager {

@@ -75,11 +75,11 @@ class SearchActivity extends RouteStoryActivity
   }
 
   def textQuery(q: String) = { bookmark: Option[String] ⇒
-    app.api.NeedSearch(q, storiesByPage, bookmark).go
+    app.api.search(q, storiesByPage, bookmark).go
   }
 
   def tagQuery(tag: String) = { bookmark: Option[String] ⇒
-    app.api.NeedTagged(tag, storiesByPage, bookmark).go
+    app.api.tagged(tag, storiesByPage, bookmark).go
   }
 
   override def onCreate(savedInstanceState: Bundle) {

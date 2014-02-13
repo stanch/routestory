@@ -56,10 +56,10 @@ class DisplayActivity extends RouteStoryActivity with FragmentDataProvider[Futur
       finish(); ""
   }
 
-  lazy val story = app.api.NeedStory(id).go
+  lazy val story = app.api.story(id).go
   lazy val media = story map { s ⇒
     s.chapters(0).media flatMap {
-      case m: Story.ExternalMedia ⇒ m.fetch :: Nil
+      case m: Story.HeavyMedia ⇒ m.data :: Nil
       case _ ⇒ Nil
     }
   }

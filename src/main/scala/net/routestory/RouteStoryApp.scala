@@ -36,7 +36,7 @@ class RouteStoryApp extends Application with Couch with Apis { self ⇒
 
   //  def setAuthData(s: Option[Array[String]]) = signIn(s.map(_(1)), s.map(_(0)))
   //
-  def author = authorId.now.map(id ⇒ api.NeedAuthor(id).go)
+  def author = authorId.now.map(id ⇒ api.author(id).go)
 
   def isOnline = {
     val cm = getSystemService(Context.CONNECTIVITY_SERVICE).asInstanceOf[ConnectivityManager]

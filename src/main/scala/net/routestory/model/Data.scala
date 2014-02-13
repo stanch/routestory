@@ -8,6 +8,8 @@ import java.io.File
 import java.util.concurrent.Executors
 import org.macroid.AppContext
 import net.routestory.RouteStoryApp
+import android.util.Log
+import net.routestory.needs.BitmapPool
 
 object Story {
   sealed trait Timed {
@@ -20,49 +22,27 @@ object Story {
     def location(implicit chapter: Chapter) = chapter.locationAt(timestamp)
   }
 
-  lazy val externalMediaEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
+  sealed trait KnownMedia extends Media
 
-  sealed trait ExternalMedia extends Media {
+  sealed trait HeavyMedia extends KnownMedia {
     val url: String
-
-    private val _fetchingLock = new Object
-    private var _fetched: Option[Future[File]] = None
-    def fetch(implicit ctx: AppContext) = _fetchingLock.synchronized {
-      val app = ctx.get.asInstanceOf[RouteStoryApp]
-      _fetched getOrElse {
-        _fetched = Some(app.api.NeedMedia(url).go(externalMediaEc))
-        _fetched.get
-      }
-    }
+    val data: Future[File]
   }
 
-  sealed trait Audio extends ExternalMedia
-  case class Sound(timestamp: Int, url: String) extends Audio
-  case class VoiceNote(timestamp: Int, url: String) extends Audio
+  sealed trait Audio extends HeavyMedia
+  case class Sound(timestamp: Int, url: String, data: Future[File]) extends Audio
+  case class VoiceNote(timestamp: Int, url: String, data: Future[File]) extends Audio
 
-  sealed trait Image extends ExternalMedia {
-    def fetchAndLoad(maxSize: Int)(implicit ctx: AppContext) =
-      fetch.map(BitmapUtils.decodeFile(_, maxSize))(externalMediaEc).collect { case b if b != null ⇒ b }(externalMediaEc)
-  }
-  case class Photo(timestamp: Int, url: String) extends Image
+  sealed trait Image extends HeavyMedia
+  case class Photo(timestamp: Int, url: String, data: Future[File]) extends Image
 
-  case class TextNote(timestamp: Int, text: String) extends Media
+  case class TextNote(timestamp: Int, text: String) extends KnownMedia
 
-  case class Venue(timestamp: Int, id: String, name: String, coordinates: LatLng) extends Media
+  case class Venue(timestamp: Int, id: String, name: String, coordinates: LatLng) extends KnownMedia
 
-  case class Heartbeat(timestamp: Int, bpm: Int) extends Media {
-    def vibrationPattern(times: Int): Array[Long] = {
-      val p_wave = 80L
-      val t_wave = 100L
-      val short_interval = 150L
-      val beat_interval = 60 * 1000L / bpm
-      val long_interval = Math.max(beat_interval - short_interval - p_wave - t_wave, 0)
-      val pattern = List(p_wave, short_interval) ::: List.fill(99)(1L) ::: long_interval :: Nil
-      (0L :: List.fill(Math.max(times, 1))(pattern).flatten).toArray
-    }
-  }
+  case class Heartbeat(timestamp: Int, bpm: Int) extends KnownMedia
 
-  case class Unknown(timestamp: Int, `type`: String, raw: JsValue) extends Media
+  case class UnknownMedia(timestamp: Int, `type`: String, raw: JsValue) extends Media
 
   case class Chapter(start: Long, duration: Int, locations: List[Location], media: List[Media]) {
     def locationAt(time: Double): LatLng = {
@@ -85,8 +65,32 @@ object Story {
   case class Meta(title: Option[String], description: Option[String], tags: List[String] = Nil)
 }
 
+object MediaOps {
+  implicit class ImageOps(image: Story.Image) {
+    def bitmap(maxSize: Int)(implicit ec: ExecutionContext) =
+      image.data.map(BitmapPool.get(maxSize)).collect { case b if b != null ⇒ b }
+  }
+
+  implicit class HeartbeatOps(heartbeat: Story.Heartbeat) {
+    def vibrationPattern(times: Int): Array[Long] = {
+      val p_wave = 80L
+      val t_wave = 100L
+      val short_interval = 150L
+      val beat_interval = 60 * 1000L / heartbeat.bpm
+      val long_interval = Math.max(beat_interval - short_interval - p_wave - t_wave, 0)
+      val pattern = List(p_wave, short_interval) ::: List.fill(99)(1L) ::: long_interval :: Nil
+      (0L :: List.fill(Math.max(times, 1))(pattern).flatten).toArray
+    }
+  }
+
+  implicit class AuthorOps(author: Author) {
+    def bitmap(maxSize: Int)(implicit ec: ExecutionContext) =
+      author.picture.map(_.map(BitmapPool.get(maxSize)).collect { case b if b != null ⇒ b })
+  }
+}
+
 case class Story(id: String, meta: Story.Meta, chapters: List[Story.Chapter], author: Option[Author], `private`: Boolean = true)
 
 case class StoryPreview(id: String, title: Option[String], tags: List[String], author: Option[Author])
 
-case class Author(id: String, name: String, link: Option[String], picture: Option[String])
+case class Author(id: String, name: String, link: Option[String], picture: Option[Future[File]])

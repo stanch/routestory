@@ -16,7 +16,7 @@ import org.macroid.FullDsl._
 import org.macroid.contrib.ExtraTweaks
 import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
 
-import net.routestory.{ R, RouteStoryApp, SettingsActivity }
+import net.routestory.{ R, RouteStoryApp }
 import net.routestory.explore.{ ExploreActivity, MyStoriesActivity }
 import net.routestory.recording.RecordActivity
 import net.routestory.ui.Styles._
@@ -54,8 +54,7 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
     val data = Seq(
       ("Explore", clicker[ExploreActivity]),
       ("Create a story", clicker[RecordActivity]),
-      ("My stories", clicker[MyStoriesActivity]),
-      ("Settings", clicker[SettingsActivity])
+      ("My stories", clicker[MyStoriesActivity])
     )
     val adapter = FillableViewableAdapter(data)(FillableViewable.text(
       TextSize.medium + TextStyle.boldItalic + padding(all = 10 dp),

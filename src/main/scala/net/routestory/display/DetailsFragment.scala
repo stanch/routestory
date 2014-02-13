@@ -13,10 +13,10 @@ import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 
 import net.routestory.R
-import net.routestory.explore.PreviewRow
 import net.routestory.model.Story
 import net.routestory.ui.{ RouteStoryFragment, Styles }
 import net.routestory.util.FragmentData
+import net.routestory.disp.StoryPreviewViewable
 
 class DetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
   lazy val story = getFragmentData
@@ -72,7 +72,7 @@ class DetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]
       description ~> text(d)
 
       Option(s.meta.tags).filter(!_.isEmpty) map { t ⇒
-        PreviewRow.fillTags(tagRows, width - 20, t.map((_, None)))
+        StoryPreviewViewable.fillTags(tagRows, width - 20, t.map((_, None)))
       } getOrElse {
         tagStuff ~> hide
       }

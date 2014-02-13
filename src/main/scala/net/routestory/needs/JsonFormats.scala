@@ -1,151 +1,190 @@
 package net.routestory.needs
 
 import com.google.android.gms.maps.model.LatLng
-import org.needs.Fulfillable
+import org.needs.Resolvable
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import play.api.data.mapping.json.Rules._
+import play.api.data.mapping.json.Writes._
 
 import net.routestory.model._
+import play.api.data.mapping._
+import play.api.libs.functional.FunctionalBuilder
+import scala.concurrent.Future
+import java.io.File
 
 // format: OFF
 
 trait AuxiliaryFormats {
-  implicit object latLngFormat extends Format[LatLng] {
-    def reads(json: JsValue) = json match {
-      case JsArray(Seq(JsNumber(lat), JsNumber(lng))) ⇒ JsSuccess(new LatLng(lat.toDouble, lng.toDouble))
-      case _ ⇒ JsError()
-    }
-    def writes(latLng: LatLng) = Json.arr(latLng.latitude, latLng.longitude)
+  implicit val latLngRule = Rule[JsValue, LatLng] {
+    case JsArray(Seq(JsNumber(lat), JsNumber(lng))) ⇒ Success(new LatLng(lat.toDouble, lng.toDouble))
+    case _ ⇒ Failure(Seq())
+  }
+
+  implicit val latLngWrite = Write[LatLng, JsValue] { latLng ⇒
+    Json.arr(latLng.latitude, latLng.longitude)
   }
 }
 
-trait MediaFormats extends AuxiliaryFormats {
+trait MediaReads extends AuxiliaryFormats { self: Needs ⇒
   import Story._
   
-  /* Locations */
+  implicit val locationRule = Rule.gen[JsValue, Location]
 
-  implicit val locationReads = Json.reads[Location]
-  implicit object locationWrites extends Writes[Location] {
-    def writes(loc: Location) = Json.obj(
-      "timestamp" → loc.timestamp,
-      "coordinates" → loc.coordinates,
-      "type" → "Point"
+  val unknownMediaRule = Resolvable.subtypeRule[JsValue, UnknownMedia, Media] { __ ⇒
+    (__ \ "timestamp").read[Int] and
+    (__ \ "type").read[String] and
+    __.read[JsValue]
+  }
+
+  val heavyMediaRuleBuilder = { __ : Reader[JsValue] ⇒
+    (__ \ "timestamp").read[Int] and
+    (__ \ "url").read[String] and
+    (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
+  }
+
+  def mediaTypeRule[A](tp: String)(rule: Rule[JsValue, A]) = From[JsValue] { __ ⇒
+    (__ \ "type").read(Rules.equalTo(tp)) ~> rule
+  }
+
+  val soundRule = mediaTypeRule("sound")(Resolvable.subtypeRule[JsValue, Sound, Media](heavyMediaRuleBuilder))
+  val voiceNoteRule = mediaTypeRule("voice-note")(Resolvable.subtypeRule[JsValue, VoiceNote, Media](heavyMediaRuleBuilder))
+  val photoRule = mediaTypeRule("photo")(Resolvable.subtypeRule[JsValue, Photo, Media](heavyMediaRuleBuilder))
+  val textNoteRule = mediaTypeRule("text-note")(Resolvable.pureRule(Rule.genForSubtype[JsValue, TextNote, Media]))
+  val venueRule = mediaTypeRule("venue")(Resolvable.pureRule(Rule.genForSubtype[JsValue, Venue, Media]))
+  val heartbeatRule = mediaTypeRule("heartbeat")(Resolvable.pureRule(Rule.genForSubtype[JsValue, Heartbeat, Media]))
+
+  implicit val mediaRule =
+    soundRule orElse
+    voiceNoteRule orElse
+    photoRule orElse
+    textNoteRule orElse
+    venueRule orElse
+    heartbeatRule orElse
+    unknownMediaRule
+
+  implicit val metaRule = Rule.gen[JsValue, Meta]
+}
+
+trait MediaWrites extends AuxiliaryFormats {
+  import Story._
+
+  implicit val locationWrite = Write.gen[Location, JsObject].map(_ + ("type" → JsString("Point")))
+
+  val unknownMediaWrite = Write.zero[JsValue].contramap { x: UnknownMedia ⇒ x.raw }
+
+  def heavyMediaWrite[A <: HeavyMedia] = Write[A, JsValue] { m ⇒
+    Json.obj(
+      "timestamp" → m.timestamp,
+      "url" → m.url
     )
   }
 
-  /* Media */
+  val soundWrite = heavyMediaWrite[Sound]
+  val voiceNoteWrite = heavyMediaWrite[VoiceNote]
+  val photoWrite = heavyMediaWrite[Photo]
+  val textNoteWrite = Write.gen[TextNote, JsObject]
+  val venueWrite = Write.gen[Venue, JsObject]
+  val heartbeatWrite = Write.gen[Heartbeat, JsObject]
 
-  implicit object mediaFormat extends Format[Media] {
-    def reads(json: JsValue) = json \ "type" match {
-      case JsString("sound") ⇒ json.validate[Sound]
-      case JsString("voice-note") ⇒ json.validate[VoiceNote]
-      case JsString("photo") ⇒ json.validate[Photo]
-      case JsString("text-note") ⇒ json.validate[TextNote]
-      case JsString("venue") ⇒ json.validate[Venue]
-      case JsString("heartbeat") ⇒ json.validate[Heartbeat]
-      case _ ⇒ json.validate[Unknown]
+  implicit val metaWrite = Write.gen[Meta, JsObject]
+
+  implicit val mediaWrite = Write[Media, JsObject] { media ⇒
+    val (j, t) = media match {
+      case m @ Sound(_, _, _) ⇒ (soundWrite.writes(m), "sound")
+      case m @ VoiceNote(_, _, _) ⇒ (voiceNoteWrite.writes(m), "voice-note")
+      case m @ Photo(_, _, _) ⇒ (photoWrite.writes(m), "photo")
+      case m @ TextNote(_, _) ⇒ (textNoteWrite.writes(m), "text-note")
+      case m @ Venue(_, _, _, _) ⇒ (venueWrite.writes(m), "venue")
+      case m @ Heartbeat(_, _) ⇒ (heartbeatWrite.writes(m), "heartbeat")
+      case m @ UnknownMedia(_, tp, _) ⇒ (unknownMediaWrite.writes(m), tp)
     }
-    def writes(media: Media) = {
-      val (j, t) = media match {
-        case m @ Sound(_, _) ⇒ (soundFormat.writes(m), "sound")
-        case m @ VoiceNote(_, _) ⇒ (voiceNoteFormat.writes(m), "voice-note")
-        case m @ Photo(_, _) ⇒ (photoFormat.writes(m), "photo")
-        case m @ TextNote(_, _) ⇒ (textNoteFormat.writes(m), "text-note")
-        case m @ Venue(_, _, _, _) ⇒ (venueFormat.writes(m), "venue")
-        case m @ Heartbeat(_, _) ⇒ (heartBeatFormat.writes(m), "heartbeat")
-        case m @ Unknown(_, tp, _) ⇒ (unknownWrites.writes(m), tp)
-      }
-      j.as[JsObject] ++ Json.obj("type" → t)
-    }
+    j.as[JsObject] ++ Json.obj("type" → t)
+  }
+}
+
+object SavingFormats extends MediaWrites {
+  import Story._
+
+  implicit val chapterWrite = Write.gen[Chapter, JsObject]
+
+  implicit val storyWrite = To[JsObject] { __ ⇒
+    ((__ \ "_id").write[String] and
+    (__ \ "meta").write[Meta] and
+    (__ \ "chapters").write[List[Chapter]] and
+    (__ \ "authorId").write[Option[String]].contramap { a: Option[Author] ⇒ a.map(_.id) } and
+    (__ \ "private").write[Boolean])(unlift(Story.unapply))
+  }
+}
+
+trait LoadingFormats extends MediaReads { self: Shared with Needs ⇒
+  import Story._
+
+  /* Chapter */
+
+  implicit val chapterRule: Rule[JsValue, Resolvable[Chapter]] = Resolvable.rule[JsValue, Chapter] { __ ⇒
+    (__ \ "start").read[Long] and
+    (__ \ "duration").read[Int] and
+    (__ \ "locations").read[List[Location]] and
+    (__ \ "media").read[List[Resolvable[Media]]].fmap(Resolvable.fromList)
   }
 
-  implicit val unknownReads = (
-    (__ \ 'timestamp).read[Int] and
-    (__ \ 'type).read[String] and
-    __.read[JsValue]
-  )(Unknown.apply _)
-
-  implicit val unknownWrites = __.write[JsValue].contramap[Unknown](_.raw)
-
-  implicit val soundFormat = Json.format[Sound]
-  implicit val voiceNoteFormat = Json.format[VoiceNote]
-  implicit val photoFormat = Json.format[Photo]
-  implicit val textNoteFormat = Json.format[TextNote]
-  implicit val venueFormat = Json.format[Venue]
-  implicit val heartBeatFormat = Json.format[Heartbeat]
-  implicit val chapterFormat = Json.format[Chapter]
-  implicit val metaFormat = Json.format[Meta]
-}
-
-object SavingFormats extends MediaFormats {
-  implicit val storyWrites = (
-    (__ \ '_id).write[String] and
-    (__ \ 'meta).write[Story.Meta] and
-    (__ \ 'chapters).write[List[Story.Chapter]] and
-    (__ \ 'authorId).write[Option[String]].contramap { a: Option[Author] ⇒ a.map(_.id) } and
-    (__ \ 'private).write[Boolean]
-  )(unlift(Story.unapply))
-}
-
-trait LoadingFormats extends MediaFormats { self: Shared with Needs ⇒
   /* Story */
 
-  implicit def storyReads = Fulfillable.reads[Story] {
-    (__ \ '_id).read[String] and
-    (__ \ 'meta).read[Story.Meta] and
-    (__ \ 'chapters).read[List[Story.Chapter]] and
-    (__ \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption) and
-    (__ \ 'private).read[Boolean]
+  implicit val storyRule = Resolvable.rule[JsValue, Story] { __ ⇒
+    (__ \ "_id").read[String] and
+    (__ \ "meta").read[Meta] and
+    (__ \ "chapters").read[List[Resolvable[Chapter]]].fmap(Resolvable.fromList) and
+    (__ \ "authorId").read[Option[String]].fmap(_.map(author)).fmap(Resolvable.fromOption) and
+    (__ \ "private").read[Boolean]
   }
 
   /* Story preview */
 
   object storyPreviewReadsLatest {
-    implicit def storyPreviewReads = Fulfillable.reads[StoryPreview] {
-      (__ \ 'id).read[String] and
-      (__ \ 'value \ 'title).read[Option[String]] and
-      (__ \ 'value \ 'tags).read[List[String]] and
-      (__ \ 'value \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
+    implicit val storyPreviewRule = Resolvable.rule[JsValue, StoryPreview] { __ ⇒
+      (__ \ "id").read[String] and
+      (__ \ "value" \ "title").read[Option[String]] and
+      (__ \ "value" \ "tags").read[List[String]] and
+      (__ \ "value" \ "authorId").read[Option[String]].fmap(_.map(author)).fmap(Resolvable.fromOption)
     }
   }
 
   object storyPreviewReadsSearched {
-    implicit def storyPreviewReads = Fulfillable.reads[StoryPreview] {
-      (__ \ 'id).read[String] and
-      (__ \ 'fields \ 'title).read[Option[String]] and
-      ((__ \ 'fields \ 'tags).read[List[String]] orElse (__ \ 'fields \ 'tags).read[String].map(_ :: Nil)) and
-      (__ \ 'fields \ 'authorId).read[Option[String]].map(_.map(NeedAuthor)).map(Fulfillable.jumpOption)
+    implicit val storyPreviewRule = Resolvable.rule[JsValue, StoryPreview] { __ ⇒
+      (__ \ "id").read[String] and
+      (__ \ "fields" \ "title").read[Option[String]] and
+      ((__ \ "fields" \ "tags").read[List[String]] orElse (__ \ "fields" \ "tags").read[String].fmap(_ :: Nil)) and
+      (__ \ "fields" \ "authorId").read[Option[String]].fmap(_.map(author)).fmap(Resolvable.fromOption)
     }
   }
 
   /* Author */
 
-  implicit val authorReads = Fulfillable.reads[Author] {
-    (__ \ '_id).read[String] and
-    (__ \ 'name).read[String] and
-    (__ \ 'link).read[Option[String]] and
-    (__ \ 'picture).read[Option[String]]
+  implicit val authorRule = Resolvable.rule[JsValue, Author] { __ ⇒
+    (__ \ "_id").read[String] and
+    (__ \ "name").read[String] and
+    (__ \ "link").read[Option[String]] and
+    (__ \ "picture").read[Option[String]].fmap(_.map(media).map(Resolvable.defer)).fmap(Resolvable.fromOption)
   }
 
   /* Collections */
 
-  implicit def latestReads = Fulfillable.reads[Latest] {
+  implicit val latestRule = Resolvable.rule[JsValue, Latest] { __ ⇒
     import storyPreviewReadsLatest._
-    (__ \ 'total_rows).read[Int] and
-    (__ \ 'rows).read[List[Fulfillable[StoryPreview]]].map(Fulfillable.jumpList)
+    (__ \ "total_rows").read[Int] and
+    (__ \ "rows").read[List[Resolvable[StoryPreview]]].fmap(Resolvable.fromList)
   }
 
-  implicit def searchedReads = Fulfillable.reads[Searched] {
+  implicit val searchedRule = Resolvable.rule[JsValue, Searched] { __ ⇒
     import storyPreviewReadsSearched._
-    (__ \ 'total_rows).read[Int] and
-    (__ \ 'bookmark).read[String] and
-    (__ \ 'rows).read[List[Fulfillable[StoryPreview]]].map(Fulfillable.jumpList)
+    (__ \ "total_rows").read[Int] and
+    (__ \ "bookmark").read[String] and
+    (__ \ "rows").read[List[Resolvable[StoryPreview]]].fmap(Resolvable.fromList)
   }
 
-  implicit val tagReads = (
-    (__ \ 'key).read[String] and
-    (__ \ 'value).read[Int]
-  )(Tag.apply _)
-
-  implicit val manyTagsReads = (__ \ 'rows).read[List[Tag]]
+  implicit val tagRule: Rule[JsValue, Resolvable[Tag]] = Resolvable.rule[JsValue, Tag] { __ ⇒
+    (__ \ "key").read[String] and
+    (__ \ "value").read[Int]
+  }
 }

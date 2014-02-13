@@ -13,6 +13,7 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.ui.Styles._
+import net.routestory.disp.StoryPreviewViewable
 
 class TagsFragment extends RouteStoryFragment {
   var rows = slot[LinearLayout]
@@ -27,12 +28,12 @@ class TagsFragment extends RouteStoryFragment {
     val displaySize = new Point
     getActivity.getWindowManager.getDefaultDisplay.getSize(displaySize)
 
-    app.api.NeedTags().go foreachUi { tags ⇒
+    app.api.tags.go foreachUi { tags ⇒
       val shuffled = Random.shuffle(tags).take(50)
       val (max, min) = (shuffled.maxBy(_.count).count, shuffled.minBy(_.count).count)
       def n(x: Int) = if (max == min) 1 else (x - min).toDouble / (max - min)
       val norm = shuffled.map(t ⇒ (t.tag, Some(n(t.count))))
-      PreviewRow.fillTags(rows, displaySize.x - (20 dp), norm)
+      StoryPreviewViewable.fillTags(rows, displaySize.x - (20 dp), norm)
     }
   }
 }

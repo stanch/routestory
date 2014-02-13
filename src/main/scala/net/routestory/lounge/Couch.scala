@@ -9,6 +9,7 @@ import net.routestory.needs.SavingFormats
 import net.routestory.RouteStoryApp
 import java.io.File
 import net.routestory.util.Shortuuid
+import play.api.data.mapping.To
 
 object Couch {
   implicit class RichJsObject(js: JsObject) {
@@ -45,7 +46,7 @@ trait Couch { self: RouteStoryApp ⇒
     var files = Map.empty[String, String]
     val updated = story.copy(chapters = story.chapters.map { chapter ⇒
       chapter.copy(media = chapter.media.map {
-        case m: Story.ExternalMedia if new File(m.url).isAbsolute ⇒
+        case m: Story.HeavyMedia if new File(m.url).isAbsolute ⇒
           val url = story.id + "/" + Shortuuid.make("media")
           files += url → m.url
           m match {
@@ -56,7 +57,7 @@ trait Couch { self: RouteStoryApp ⇒
         case x ⇒ x
       })
     })
-    val json = Json.toJson(updated).as[JsObject].toJavaMap
+    val json = To[Story, JsObject](updated).toJavaMap
     val doc = couchDb.getDocument(story.id)
     val rev = doc.putProperties(json).createRevision()
     //files.foreach { case (u, f) ⇒ rev.addAttachment(new Attachment()) }

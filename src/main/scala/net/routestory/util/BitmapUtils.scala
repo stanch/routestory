@@ -8,6 +8,8 @@ import android.graphics._
 import android.graphics.Bitmap.Config
 import android.graphics.Paint.Align
 import android.graphics.Region.Op
+import scala.annotation.tailrec
+import android.util.Log
 
 object BitmapUtils {
   // see [http://stackoverflow.com/questions/477572/android-strange-out-of-memory-issue-while-loading-an-image-to-a-bitmap-object]
@@ -22,7 +24,7 @@ object BitmapUtils {
     o2.inSampleSize = scale
     val temp = BitmapFactory.decodeStream(new FileInputStream(f), null, o2)
     val scaled = createScaledBitmap(temp, size)
-    temp.recycle()
+    if (scaled ne temp) temp.recycle()
     scaled
   }
 
@@ -65,24 +67,24 @@ object BitmapUtils {
   object MagicGrid {
     val spacing = 2
 
-    def grouped[A](xs: List[A], minSize: Int) = {
+    def grouped[A](xs: Vector[A], minSize: Int) = {
       val rest = xs.length % minSize
-      xs.take(rest) :: xs.drop(rest).grouped(minSize).toList
+      xs.take(rest) +: xs.drop(rest).grouped(minSize).toVector
     }
 
-    def create(bitmaps: List[Bitmap], size: Int) = {
+    def create(bitmaps: Vector[Bitmap], size: Int) = {
       val root = bitmaps match {
-        case a :: Nil ⇒ Cell(a)
-        case a :: b :: Nil ⇒ Row(Cell(a), Cell(b))
-        case a :: b :: c :: Nil ⇒ Row(Cell(a), Col(Cell(b), Cell(c)))
-        case a :: b :: c :: d :: Nil ⇒ Col(Row(Cell(a), Cell(b)), Row(Cell(c), Cell(d)))
+        case Vector(a) ⇒ Cell(a)
+        case Vector(a, b) ⇒ Row(Cell(a), Cell(b))
+        case Vector(a, b, c) ⇒ Row(Cell(a), Col(Cell(b), Cell(c)))
+        case Vector(a, b, c, d) ⇒ Col(Row(Cell(a), Cell(b)), Row(Cell(c), Cell(d)))
         case xs ⇒
           val d = Math.sqrt(xs.length).toInt
           Col(grouped(xs, d + 1).map(bs ⇒ Row(bs.map(Cell))))
       }
       val s = root.widthFrom(size)
       val (width, height) = if (s > size) (size, root.heightFrom(size)) else (s, size)
-      def make(w: Int, h: Int): Bitmap = {
+      @tailrec def make(w: Int, h: Int): Bitmap = {
         val target = Bitmap.createBitmap(Math.max(w, 1), Math.max(h, 1), Config.ARGB_8888)
         val canvas = new Canvas(target)
         root.draw(canvas, 0, 0, Some(Math.max(w, 1)), None) match {
@@ -125,7 +127,7 @@ object BitmapUtils {
       }
     }
 
-    class Line(children: List[RectObject], horizontal: Boolean) extends RectObject {
+    class Line(children: Vector[RectObject], horizontal: Boolean) extends RectObject {
       lazy val ratio = children.foldLeft((0.0, spacing.toDouble * (children.length - 1))) { (r, ch) ⇒
         val r2 = if (horizontal) ch.heightToWidth else ch.widthToHeight
         (r._1 + r2._1, r._2 + r2._2)
@@ -151,13 +153,13 @@ object BitmapUtils {
       }
     }
 
-    case class Row(children: List[RectObject]) extends Line(children, true)
+    case class Row(children: Vector[RectObject]) extends Line(children, true)
     object Row {
-      def apply(children: RectObject*): Row = apply(children.toList)
+      def apply(children: RectObject*): Row = apply(children.toVector)
     }
-    case class Col(children: List[RectObject]) extends Line(children, false)
+    case class Col(children: Vector[RectObject]) extends Line(children, false)
     object Col {
-      def apply(children: RectObject*): Col = apply(children.toList)
+      def apply(children: RectObject*): Col = apply(children.toVector)
     }
   }
 }

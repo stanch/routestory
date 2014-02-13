@@ -9,12 +9,16 @@ import org.needs.flickr.FlickrApi
 
 trait Apis { self: RouteStoryApp ⇒
   object endpointLogger extends EndpointLogger {
-    def logFetching(pt: Endpoint) = Log.d("Needs", s"--> Downloading $pt")
+    def logStart(pt: Endpoint) = Log.d("Needs", s"--> Downloading $pt")
+    def logFailure(pt: Endpoint)(error: Throwable) = {
+      Log.d("Needs", s"--x Failed $pt")
+    }
+    def logSuccess(pt: Endpoint)(data: pt.Data) = ()
   }
 
   object api extends needs.Api {
     val endpointLogger = self.endpointLogger
-    val httpClient = AndroidClient(new AsyncHttpClient())
+    val httpClient = AndroidClient(new AsyncHttpClient)
     val appCtx = self
     val couchDb = self.couchDb
   }

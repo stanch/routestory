@@ -3,16 +3,20 @@ package net.routestory.recording
 import akka.actor.{ Actor, Props }
 import com.google.android.gms.maps.model.LatLng
 import org.macroid.AppContext
-import org.macroid.Toasts._
+import org.macroid.ToastDsl._
+import org.macroid.Loafs._
 import org.needs.foursquare
 import net.routestory.model.Story
+import net.routestory.Apis
+import java.io.File
+import scala.concurrent.Future
 
 object Typewriter {
   case class Location(coords: LatLng)
-  case class Sound(url: String)
-  case class Photo(url: String)
+  case class Sound(file: File)
+  case class Photo(file: File)
   case class TextNote(text: String)
-  case class VoiceNote(url: String)
+  case class VoiceNote(file: File)
   case class Heartbeat(bpm: Int)
   case object Backup
   case class Restore(chapter: Story.Chapter)
@@ -31,20 +35,20 @@ class Typewriter(implicit ctx: AppContext) extends Actor {
   def addMedia(m: Story.Media) = chapter = chapter.copy(media = m :: chapter.media)
 
   val addingStuff: Receive = {
-    case Photo(url) ⇒
-      addMedia(Story.Photo(ts, url))
+    case Photo(file) ⇒
+      addMedia(Story.Photo(ts, file.getAbsolutePath, Future.successful(file)))
       toast("Added a photo!") ~> fry
 
-    case Sound(url) ⇒
-      addMedia(Story.Sound(ts, url))
+    case Sound(file) ⇒
+      addMedia(Story.Sound(ts, file.getAbsolutePath, Future.successful(file)))
       toast("Added background sound!") ~> fry
 
     case TextNote(text) ⇒
       addMedia(Story.TextNote(ts, text))
       toast("Added a text note!") ~> fry
 
-    case VoiceNote(url) ⇒
-      addMedia(Story.VoiceNote(ts, url))
+    case VoiceNote(file) ⇒
+      addMedia(Story.VoiceNote(ts, file.getAbsolutePath, Future.successful(file)))
       toast("Added a voice note!") ~> fry
 
     case Heartbeat(bpm) ⇒

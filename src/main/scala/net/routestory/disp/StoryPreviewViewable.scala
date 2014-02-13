@@ -1,26 +1,32 @@
-package net.routestory.explore
+package net.routestory.disp
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import android.content.Intent
 import android.text.SpannableString
 import android.text.style.UnderlineSpan
 import android.view.View
 import android.view.ViewGroup.LayoutParams._
-import android.widget.{ LinearLayout, TextView }
+import android.widget.{ ImageView, LinearLayout, TextView }
 
 import org.macroid.FullDsl._
-import org.macroid.{ IdGeneration, AppContext, ActivityContext }
+import org.macroid.{ AppContext, ActivityContext }
 import org.macroid.contrib.ExtraTweaks._
 import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import org.macroid.viewable.SlottedFillableViewable
 
 import net.routestory.R
 import net.routestory.ui.Styles
 import net.routestory.ui.Styles._
 import net.routestory.model.StoryPreview
-import org.macroid.viewable.SlottedFillableViewable
+import net.routestory.explore.SearchActivity
+import net.routestory.util.BitmapUtils
+import net.routestory.model.MediaOps._
+import net.routestory.needs.BitmapPool
 
-object PreviewRow {
+object StoryPreviewViewable {
   def underlined(s: String) = new SpannableString(s) {
-    setSpan(new UnderlineSpan(), 0, length, 0)
+    setSpan(new UnderlineSpan, 0, length, 0)
   }
 
   def fillTags(tagRowsView: Option[LinearLayout], maxWidth: Int, tags: List[(String, Option[Double])])(implicit ctx: ActivityContext, appCtx: AppContext) {
@@ -63,12 +69,13 @@ object PreviewRow {
   }
 }
 
-class PreviewRow(maxWidth: Int) extends SlottedFillableViewable[StoryPreview] {
-  import PreviewRow._
+class StoryPreviewViewable(maxWidth: Int) extends SlottedFillableViewable[StoryPreview] {
+  import StoryPreviewViewable._
 
   class Slots {
     var title = slot[TextView]
-    var author = slot[TextView]
+    var authorName = slot[TextView]
+    var authorPicture = slot[ImageView]
     var tags = slot[LinearLayout]
     var tagRows = slot[LinearLayout]
   }
@@ -78,9 +85,9 @@ class PreviewRow(maxWidth: Int) extends SlottedFillableViewable[StoryPreview] {
     val layout = l[VerticalLinearLayout](
       w[TextView] ~> wire(slots.title) ~> Styles.title ~> lp(WRAP_CONTENT, WRAP_CONTENT),
       l[HorizontalLinearLayout](
-        w[TextView] ~> text(R.string.by) ~> Styles.caption,
-        w[TextView] ~> wire(slots.author) ~> TextSize.medium
-      ),
+        w[ImageView] ~> wire(slots.authorPicture) ~> lp(28 dp, 28 dp) ~> padding(right = 4 dp),
+        w[TextView] ~> wire(slots.authorName) ~> TextSize.medium
+      ) ~> padding(left = storyShift),
       l[HorizontalLinearLayout](
         l[VerticalLinearLayout]() ~> wire(slots.tagRows)
       ) ~> wire(slots.tags) ~> padding(left = storyShift)
@@ -101,7 +108,9 @@ class PreviewRow(maxWidth: Int) extends SlottedFillableViewable[StoryPreview] {
 
     // author
     val author = story.author.map(_.name).toRight(R.string.me)
-    slots.author ~> text(author)
+    slots.authorName ~> text(author)
+    val picture = story.author.flatMap(_.bitmap(28 dp))
+    slots.authorPicture ~> picture.map(_.map(Image.bitmap))
 
     // tags
     slots.tags ~> (Some(story.tags).filter(!_.isEmpty) map { tags ⇒

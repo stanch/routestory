@@ -19,13 +19,15 @@ resolvers ++= Seq(
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases/",
   "Stanch" at "http://dl.bintray.com/stanch/maven",
   Resolver.sonatypeRepo("snapshots"),
-  Resolver.sonatypeRepo("releases")
+  Resolver.sonatypeRepo("releases"),
+  Resolver.file("local-play", file("c:/projects/Play20/repository/local"))(Resolver.ivyStylePatterns)
 )
 
 libraryDependencies ++= Seq(
   "org.macroid" %% "macroid" % "2.0.0-SNAPSHOT",
   "org.macroid" %% "macroid-viewable" % "1.0.0-SNAPSHOT",
-  "org.needs" %% "needs" % "1.0.0-RC4",
+  "org.macroid" %% "macroid-svg" % "1.0.0-SNAPSHOT",
+  "org.needs" %% "needs" % "2.0.0-M1",
   "org.needs" %% "needs-flickr" % "1.0.0-SNAPSHOT",
   "org.needs" %% "needs-foursquare" % "1.0.0-SNAPSHOT",
   "com.scalarx" %% "scalarx" % "0.1" exclude ("com.typesafe.akka", "akka-actor"),

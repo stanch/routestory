@@ -54,7 +54,7 @@ class AuthorActivity extends RouteStoryActivity
   override def onStart() {
     super.onStart()
     async {
-      val author = await(app.api.NeedAuthor(id).go)
+      val author = await(app.api.author(id).go)
       name ~> text(author.name)
     }
     //if (stories.now.isCompleted) stories.update(fetchStories)

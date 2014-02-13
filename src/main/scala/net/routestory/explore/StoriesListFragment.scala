@@ -20,6 +20,7 @@ import net.routestory.R
 import net.routestory.model.StoryPreview
 import net.routestory.ui.RouteStoryFragment
 import org.macroid.viewable.FillableViewableAdapter
+import net.routestory.disp.StoryPreviewViewable
 
 class StoriesListFragment extends ListFragment
   with RouteStoryFragment
@@ -41,7 +42,7 @@ class StoriesListFragment extends ListFragment
   var nextButton = slot[Button]
   var prevButton = slot[Button]
 
-  implicit lazy val viewable = new PreviewRow(displaySize(1))
+  implicit lazy val viewable = new StoryPreviewViewable(displaySize(1))
   var adapter: Option[FillableViewableAdapter[StoryPreview]] = None
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {

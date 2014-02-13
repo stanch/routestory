@@ -21,6 +21,7 @@ import rx.Var
 import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.model.Story._
+import net.routestory.model.MediaOps._
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.ui.Styles._
 import net.routestory.util.FragmentData
@@ -192,7 +193,7 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     (photos zip spans) foreach {
       case (photo, span) if span > 2 * photoFade ⇒
         handler.postAtTime({
-          photo.fetchAndLoad(displaySize.min) foreach { bitmap ⇒
+          photo.bitmap(displaySize.min) foreach { bitmap ⇒
             imageView ~> Image.bitmap(bitmap) ~@> fadeIn(photoFade)
             handler.postDelayed(imageView ~@> fadeOut(photoFade), List(span - 2 * photoFade, photoDuration).min)
           }

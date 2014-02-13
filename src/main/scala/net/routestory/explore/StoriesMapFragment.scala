@@ -17,6 +17,7 @@ import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.Implicits._
 import org.macroid.IdGeneration
 import android.support.v4.app.Fragment
+import net.routestory.disp.StoryPreviewViewable
 
 class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment with IdGeneration {
   lazy val map = findFrag[SupportMapFragment](Tag.resultsMap).get.getMap
@@ -41,7 +42,7 @@ class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment
       val story = markers(marker)
       // TODO: wtf? how to measure one?
       val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8
-      val view = new PreviewRow(a.toInt).layout(story)
+      val view = new StoryPreviewViewable(a.toInt).layout(story)
       new AlertDialog.Builder(getActivity).setView(view).create().show()
       true
     }

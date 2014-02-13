@@ -1,76 +1,37 @@
 package net.routestory.needs
 
 import java.io.File
-import scala.concurrent.ExecutionContext
 import org.needs._
+import play.api.data.mapping.json.Rules._
 
 import net.routestory.model._
-import org.macroid.AppContext
 
 trait Needs { self: Shared with Endpoints with LoadingFormats ⇒
-  case class NeedAuthor(id: String) extends Need[Author] with rest.Probing[Author] {
-    use(LocalAuthor(id), RemoteAuthor(id))
-    from {
-      singleResource[RemoteAuthor]
-    }
-    from {
-      case e @ LocalAuthor(`id`) ⇒ e.probeAs[Author]
-    }
-    prioritize {
-      case LocalAuthor(_) ⇒ Seq(1)
-    }
-  }
+  def author(id: String): Resolvable[Author] =
+    Source[Author].from(LocalAuthor(id)) orElse
+      Source[Author].from(RemoteAuthor(id))
 
-  case class NeedStory(id: String) extends Need[Story] with rest.Probing[Story] {
-    use(LocalStory(id), RemoteStory(id))
-    from {
-      singleResource[RemoteStory]
-    }
-    from {
-      case e @ LocalStory(`id`) ⇒ e.probeAs[Story]
-    }
-    prioritize {
-      case LocalStory(_) ⇒ Seq(1)
-    }
-  }
+  def story(id: String): Resolvable[Story] =
+    Source[Story].from(LocalStory(id)) orElse
+      Source[Story].from(RemoteStory(id))
 
-  case class NeedLatest(num: Int)
-    extends json.SelfFulfillingNeed[Latest] with RemoteEndpoint {
-    def fetch(implicit ec: ExecutionContext) =
-      client.getJson("http://routestory.herokuapp.com/api/stories/latest", Map("limit" → num.toString))
-  }
+  def latest(num: Int): Resolvable[Latest] =
+    Source[Latest].from(RemoteLatest(num))
 
-  case class NeedSearch(query: String, limit: Int = 4, bookmark: Option[String] = None)
-    extends json.SelfFulfillingNeed[Searched] with RemoteEndpoint {
-    def fetch(implicit ec: ExecutionContext) =
-      client.getJson(s"http://routestory.herokuapp.com/api/stories/search/$query",
-        Map("limit" → limit.toString) ++ bookmark.map(b ⇒ Map("bookmark" → b)).getOrElse(Map.empty))
-  }
+  def search(query: String, limit: Int = 4, bookmark: Option[String] = None): Resolvable[Searched] =
+    Source[Searched].from(RemoteSearch(query, limit, bookmark))
 
-  case class NeedTagged(tag: String, limit: Int = 4, bookmark: Option[String] = None)
-    extends json.SelfFulfillingNeed[Searched] with RemoteEndpoint {
-    def fetch(implicit ec: ExecutionContext) =
-      client.getJson(s"http://routestory.herokuapp.com/api/tags/$tag/stories",
-        Map("limit" → limit.toString) ++ bookmark.map(b ⇒ Map("bookmark" → b)).getOrElse(Map.empty))
-  }
+  def tagged(tag: String, limit: Int = 4, bookmark: Option[String] = None): Resolvable[Searched] =
+    Source[Searched].from(RemoteTagged(tag, limit, bookmark))
 
-  case class NeedTags() extends json.SelfFulfillingNeed[List[Tag]] with RemoteEndpoint {
-    def fetch(implicit ec: ExecutionContext) =
-      client.getJson("http://routestory.herokuapp.com/api/tags")
-  }
+  def tags: Resolvable[List[Tag]] =
+    Source[List[Resolvable[Tag]]].from(RemoteTags()).flatMap(Resolvable.fromList)
 
-  case class NeedMedia(url: String) extends Need[File] {
-    use { RemoteMedia(url) }
-    use { LocalCachedMedia(url) }
-    use { LocalTempMedia(url) }
-    from {
-      case e @ LocalTempMedia(`url`) ⇒ e.probe
-      case e @ LocalCachedMedia(`url`) ⇒ e.probe
-      case e @ RemoteMedia(`url`) ⇒ e.probe
-    }
-    prioritize {
-      case LocalCachedMedia(_) ⇒ Seq(2)
-      case LocalTempMedia(_) ⇒ Seq(1)
-    }
+  def media(url: String): Resolvable[File] = if (url.startsWith("/")) {
+    Source[File].from(LocalTempMedia(url))
+  } else if (url.startsWith("http")) {
+    Source[File].from(LocalCachedMedia(url)) orElse Source[File].from(RemoteExternalMedia(url))
+  } else {
+    Source[File].from(LocalCachedMedia(url)) orElse Source[File].from(RemoteMedia(url))
   }
 }
