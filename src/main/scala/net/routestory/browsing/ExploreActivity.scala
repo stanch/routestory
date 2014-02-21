@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.browsing
 
 import android.content.Intent
 import android.os.Bundle
@@ -51,7 +51,7 @@ class ExploreActivity extends RouteStoryActivity with FragmentPaging with IdGene
     //    }
 
     setContentView(drawer(getTabs(
-      "Latest" → f[LatestFragment].pass("number" → 10).factory,
+      "Latest" → f[LatestStoriesFragment].pass("number" → 10).factory,
       "Popular tags" → f[TagsFragment].factory
     )))
   }

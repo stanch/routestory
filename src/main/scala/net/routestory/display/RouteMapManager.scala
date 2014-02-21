@@ -1,6 +1,6 @@
 package net.routestory.display
 
-import scala.concurrent.{ Future, ExecutionContext }
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.google.android.gms.maps.GoogleMap
@@ -11,8 +11,6 @@ import net.routestory.R
 import net.routestory.model.Story._
 import net.routestory.util.Implicits._
 import org.macroid.{ AppContext, ActivityContext }
-import net.routestory.disp.{ Markerables, Markerable }
-import android.util.Log
 
 class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int = displaySize.min / 4)(implicit ctx: ActivityContext, appCtx: AppContext)
   extends MapManager(map, displaySize) {

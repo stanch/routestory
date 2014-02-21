@@ -25,7 +25,6 @@ import play.api.libs.json.{ JsValue, Json, JsObject }
 import play.api.data.mapping.{ From, To }
 
 import net.routestory.R
-import net.routestory.display.DisplayActivity
 import net.routestory.model.Story
 import net.routestory.needs.SavingFormats._
 import net.routestory.recording.manual.AddMediaFragment
@@ -37,6 +36,7 @@ import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
 import net.routestory.recording.logged.{ Dictaphone, ControlPanelFragment }
 import android.support.v4.view.ViewPager
 import org.needs.Resolvable
+import net.routestory.browsing.StoryActivity
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -162,7 +162,7 @@ class RecordActivity extends RouteStoryActivity with LocationHandler with IdGene
       val chapter = await((typewriter ? Typewriter.Backup).mapTo[Story.Chapter])
       val story = Story(id, Story.Meta(None, None), List(chapter), None)
       app.createStory(story)
-      val intent = new Intent(this, classOf[DisplayActivity])
+      val intent = new Intent(this, classOf[StoryActivity])
       intent.putExtra("id", id)
       intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
       ui(startActivity(intent))

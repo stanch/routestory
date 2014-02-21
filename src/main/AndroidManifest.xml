@@ -36,7 +36,7 @@
             android:value="AIzaSyBUmeF_sZDVdds70AZDNM9l5LllGvkDB6Q" />
         <meta-data
             android:name="android.app.default_searchable"
-            android:value="net.routestory.explore.SearchActivity" />
+            android:value="net.routestory.browsing.SearchActivity" />
 
         <activity
             android:name="net.routestory.recording.RecordActivity"
@@ -44,14 +44,14 @@
             android:launchMode="singleTask">
         </activity>
         <activity
-            android:name="net.routestory.explore.MyStoriesActivity"
+            android:name="net.routestory.browsing.MyStoriesActivity"
             android:label="@string/title_activity_mystories" >
         </activity>
         <activity
             android:name=".editing.DescriptionActivity"
             android:label="@string/title_activity_description" >
         </activity>
-        <activity android:name="net.routestory.display.DisplayActivity">
+        <activity android:name=".browsing.StoryActivity">
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -66,7 +66,7 @@
 			    <action android:name="android.intent.action.VIEW" />
 			</intent-filter>
         </activity>
-        <activity android:name="net.routestory.explore.SearchActivity">
+        <activity android:name="net.routestory.browsing.SearchActivity">
         	<intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
@@ -75,7 +75,7 @@
                 android:resource="@xml/searchable" />
         </activity>
         <activity
-            android:name="net.routestory.explore.ExploreActivity"
+            android:name="net.routestory.browsing.ExploreActivity"
             android:label="@string/title_activity_explore" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

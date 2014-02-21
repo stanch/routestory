@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.browsing
 
 import scala.concurrent.Future
 

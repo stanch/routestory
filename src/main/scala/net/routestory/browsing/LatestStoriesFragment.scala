@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.browsing
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -9,7 +9,7 @@ import rx.Var
 
 import net.routestory.model.StoryPreview
 
-class LatestFragment extends StoriesListFragment with HazStories {
+class LatestStoriesFragment extends StoriesListFragment with HazStories {
   override lazy val stories: Var[Future[List[StoryPreview]]] = Var {
     Log.d("Latest", "init")
     fetchStories

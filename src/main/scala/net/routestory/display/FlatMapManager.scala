@@ -4,10 +4,10 @@ import scala.collection.JavaConversions._
 import scala.concurrent.{ Future, future }
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import android.app.{ Activity, AlertDialog }
-import android.content.{ Context, DialogInterface }
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.content.DialogInterface.OnClickListener
-import android.graphics.{ Bitmap, BitmapFactory, Point }
+import android.graphics.{ Bitmap, Point }
 import android.view.View
 import android.widget._
 
@@ -16,17 +16,13 @@ import com.google.android.gms.maps.model._
 import org.macroid.FullDsl._
 import org.macroid.contrib.ExtraTweaks._
 
-import net.routestory.R
 import net.routestory.model.Story
-import net.routestory.model.Story.Chapter
 import net.routestory.util.BitmapUtils
 import net.routestory.util.BitmapUtils.MagicGrid
 import net.routestory.util.Implicits._
-import scala.Some
 import net.routestory.model.Story.Chapter
 import org.macroid.{ AppContext, ActivityContext }
 import org.macroid.viewable.{ FillableViewable, FillableViewableAdapter }
-import net.routestory.disp.{ Markerables, Markerable }
 
 class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(implicit ctx: ActivityContext, appCtx: AppContext)
   extends MapManager(map, displaySize) {

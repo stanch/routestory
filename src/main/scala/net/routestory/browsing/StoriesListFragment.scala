@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.browsing
 
 import scala.async.Async.{ async, await }
 import scala.concurrent.Future
@@ -20,7 +20,7 @@ import net.routestory.R
 import net.routestory.model.StoryPreview
 import net.routestory.ui.RouteStoryFragment
 import org.macroid.viewable.FillableViewableAdapter
-import net.routestory.disp.StoryPreviewViewable
+import net.routestory.display.StoryPreviewViewable
 
 class StoriesListFragment extends ListFragment
   with RouteStoryFragment

@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.browsing
 
 import scala.Some
 import scala.async.Async._

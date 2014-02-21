@@ -22,7 +22,7 @@ import net.routestory.ui.Styles._
 import net.routestory.util.{ BitmapUtils, FragmentData }
 import android.os.Bundle
 import org.macroid.{ Tweak, AppContext, ActivityContext }
-import net.routestory.disp.Suggestables
+import net.routestory.display.Suggestables
 
 class SuggestionsFragment extends RouteStoryFragment with FragmentData[ActorSystem] {
   lazy val suggester = getFragmentData.actorSelection("/user/suggester")

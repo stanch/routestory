@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.browsing
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
@@ -13,7 +13,7 @@ import org.macroid.contrib.Layouts.VerticalLinearLayout
 
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.ui.Styles._
-import net.routestory.disp.StoryPreviewViewable
+import net.routestory.display.StoryPreviewViewable
 
 class TagsFragment extends RouteStoryFragment {
   var rows = slot[LinearLayout]

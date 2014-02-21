@@ -17,7 +17,7 @@ import org.macroid.contrib.ExtraTweaks
 import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
 
 import net.routestory.{ R, RouteStoryApp }
-import net.routestory.explore.{ ExploreActivity, MyStoriesActivity }
+import net.routestory.browsing.{ ExploreActivity, MyStoriesActivity }
 import net.routestory.recording.RecordActivity
 import net.routestory.ui.Styles._
 import org.macroid.{ Tweak, Contexts }

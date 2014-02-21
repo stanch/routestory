@@ -1,4 +1,4 @@
-package net.routestory.display
+package net.routestory.browsing
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -27,6 +27,7 @@ import net.routestory.ui.Styles._
 import net.routestory.util.FragmentData
 import net.routestory.util.Implicits._
 import org.macroid.{ IdGeneration, Tweak }
+import net.routestory.display.RouteMapManager
 
 object DiveFragment {
   val photoDuration = 1500

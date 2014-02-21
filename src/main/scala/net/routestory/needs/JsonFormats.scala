@@ -43,16 +43,16 @@ trait MediaReads extends AuxiliaryFormats { self: Needs ⇒
     (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
   }
 
-  def mediaTypeRule[A](tp: String)(rule: Rule[JsValue, A]) = From[JsValue] { __ ⇒
-    (__ \ "type").read(Rules.equalTo(tp)) ~> rule
+  def mediaTypeRule[A <: Resolvable[Media]](tp: String)(rule: Rule[JsValue, A]) = From[JsValue] { __ ⇒
+    (__ \ "type").read(Rules.equalTo(tp)) ~> rule.fmap(x ⇒ x: Resolvable[Media])
   }
 
-  val soundRule = mediaTypeRule("sound")(Resolvable.subtypeRule[JsValue, Sound, Media](heavyMediaRuleBuilder))
-  val voiceNoteRule = mediaTypeRule("voice-note")(Resolvable.subtypeRule[JsValue, VoiceNote, Media](heavyMediaRuleBuilder))
-  val photoRule = mediaTypeRule("photo")(Resolvable.subtypeRule[JsValue, Photo, Media](heavyMediaRuleBuilder))
-  val textNoteRule = mediaTypeRule("text-note")(Resolvable.pureRule(Rule.genForSubtype[JsValue, TextNote, Media]))
-  val venueRule = mediaTypeRule("venue")(Resolvable.pureRule(Rule.genForSubtype[JsValue, Venue, Media]))
-  val heartbeatRule = mediaTypeRule("heartbeat")(Resolvable.pureRule(Rule.genForSubtype[JsValue, Heartbeat, Media]))
+  val soundRule = mediaTypeRule("sound")(Resolvable.rule[JsValue, Sound](heavyMediaRuleBuilder))
+  val voiceNoteRule = mediaTypeRule("voice-note")(Resolvable.rule[JsValue, VoiceNote](heavyMediaRuleBuilder))
+  val photoRule = mediaTypeRule("photo")(Resolvable.rule[JsValue, Photo](heavyMediaRuleBuilder))
+  val textNoteRule = mediaTypeRule("text-note")(Resolvable.pureRule(Rule.gen[JsValue, TextNote]))
+  val venueRule = mediaTypeRule("venue")(Resolvable.pureRule(Rule.gen[JsValue, Venue]))
+  val heartbeatRule = mediaTypeRule("heartbeat")(Resolvable.pureRule(Rule.gen[JsValue, Heartbeat]))
 
   implicit val mediaRule =
     soundRule orElse

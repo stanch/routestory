@@ -11,10 +11,10 @@ import com.google.android.gms.maps.model.{ CameraPosition, LatLng, Marker }
 import org.macroid._
 import org.macroid.FullDsl._
 
-import net.routestory.display.RouteMapManager
 import net.routestory.model.Story
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.FragmentData
+import net.routestory.display.RouteMapManager
 
 class CartographyFragment extends RouteStoryFragment with FragmentData[ActorSystem] with IdGeneration {
   lazy val cartographer = getFragmentData.actorSelection("/user/cartographer")

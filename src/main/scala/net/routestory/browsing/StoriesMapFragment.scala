@@ -1,4 +1,4 @@
-package net.routestory.explore
+package net.routestory.browsing
 
 import scala.async.Async.{ async, await }
 import scala.concurrent.Future
@@ -17,7 +17,7 @@ import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.Implicits._
 import org.macroid.IdGeneration
 import android.support.v4.app.Fragment
-import net.routestory.disp.StoryPreviewViewable
+import net.routestory.display.StoryPreviewViewable
 
 class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment with IdGeneration {
   lazy val map = findFrag[SupportMapFragment](Tag.resultsMap).get.getMap

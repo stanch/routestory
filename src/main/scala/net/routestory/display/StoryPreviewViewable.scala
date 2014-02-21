@@ -1,4 +1,4 @@
-package net.routestory.disp
+package net.routestory.display
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -19,7 +19,7 @@ import net.routestory.R
 import net.routestory.ui.Styles
 import net.routestory.ui.Styles._
 import net.routestory.model.StoryPreview
-import net.routestory.explore.SearchActivity
+import net.routestory.browsing.{ StoryActivity, SearchActivity }
 import net.routestory.util.BitmapUtils
 import net.routestory.model.MediaOps._
 import net.routestory.needs.BitmapPool
@@ -100,7 +100,7 @@ class StoryPreviewViewable(maxWidth: Int) extends SlottedFillableViewable[StoryP
     val title = story.title.filter(!_.isEmpty).toRight(R.string.untitled)
     slots.title ~> text(title) ~> On.click {
       ctx.activity.get.map { a ⇒
-        val intent = new Intent(a, classOf[net.routestory.display.DisplayActivity])
+        val intent = new Intent(a, classOf[StoryActivity])
         intent.putExtra("id", story.id)
         a.startActivityForResult(intent, 0)
       }

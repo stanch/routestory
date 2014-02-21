@@ -1,4 +1,4 @@
-package net.routestory.display
+package net.routestory.browsing
 
 import java.io.IOException
 import java.nio.charset.Charset
@@ -24,7 +24,7 @@ import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util._
 import org.macroid.IdGeneration
 
-object DisplayActivity {
+object StoryActivity {
   object NfcIntent {
     def unapply(i: Intent) = Option(i).filter(_.getAction == NfcAdapter.ACTION_NDEF_DISCOVERED).flatMap { intent ⇒
       Option(intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)) map { rawMsgs ⇒
@@ -42,8 +42,8 @@ object DisplayActivity {
   }
 }
 
-class DisplayActivity extends RouteStoryActivity with FragmentDataProvider[Future[Story]] with FragmentPaging with IdGeneration {
-  import DisplayActivity._
+class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[Story]] with FragmentPaging with IdGeneration {
+  import StoryActivity._
 
   private lazy val id = getIntent match {
     case NfcIntent(uri) ⇒
@@ -80,8 +80,8 @@ class DisplayActivity extends RouteStoryActivity with FragmentDataProvider[Futur
         activityProgress ~> wire(progress),
         getTabs(
           "Dive" → f[DiveFragment].factory,
-          "Details" → f[DetailsFragment].factory,
-          "Flat view" → f[FlatFragment].factory
+          "Details" → f[StoryDetailsFragment].factory,
+          "Flat view" → f[StoryFlatFragment].factory
         )
       )
     ))
@@ -128,7 +128,7 @@ class DisplayActivity extends RouteStoryActivity with FragmentDataProvider[Futur
     super.onOptionsItemSelected(item)
     item.getItemId match {
       case R.id.storeNfc ⇒
-        val intent = PendingIntent.getActivity(this, 0, new Intent(this, classOf[DisplayActivity]).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0)
+        val intent = PendingIntent.getActivity(this, 0, new Intent(this, classOf[StoryActivity]).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0)
         val filter = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED)
         val techs = Array(Array(classOf[NdefFormatable].getName, classOf[Ndef].getName))
         nfcAdapter.foreach(_.enableForegroundDispatch(this, intent, Array(filter), techs))

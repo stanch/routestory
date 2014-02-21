@@ -1,4 +1,4 @@
-package net.routestory.display
+package net.routestory.browsing
 
 import scala.concurrent._
 
@@ -16,9 +16,9 @@ import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.ui.{ RouteStoryFragment, Styles }
 import net.routestory.util.FragmentData
-import net.routestory.disp.StoryPreviewViewable
+import net.routestory.display.StoryPreviewViewable
 
-class DetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
+class StoryDetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
   lazy val story = getFragmentData
 
   var authorPicture = slot[ImageView]

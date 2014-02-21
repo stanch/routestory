@@ -1,4 +1,4 @@
-package net.routestory.disp
+package net.routestory.display
 
 import org.macroid.{ Tweak, AppContext, ActivityContext }
 import org.macroid.FullDsl._

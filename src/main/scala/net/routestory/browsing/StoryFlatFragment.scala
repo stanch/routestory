@@ -1,8 +1,7 @@
-package net.routestory.display
+package net.routestory.browsing
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.ref.WeakReference
 
 import android.os.Bundle
 import android.view.{ Gravity, LayoutInflater, View, ViewGroup }
@@ -18,8 +17,9 @@ import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.FragmentData
 import net.routestory.util.Implicits._
 import org.macroid.IdGeneration
+import net.routestory.display.FlatMapManager
 
-class FlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] with IdGeneration {
+class StoryFlatFragment extends RouteStoryFragment with FragmentData[Future[Story]] with IdGeneration {
   lazy val story = getFragmentData
   lazy val mapView = findFrag[SupportMapFragment](Tag.overviewMap).get.getView
   lazy val map = findFrag[SupportMapFragment](Tag.overviewMap).get.getMap
