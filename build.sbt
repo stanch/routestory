@@ -27,6 +27,7 @@ libraryDependencies ++= Seq(
   "org.macroid" %% "macroid" % "2.0.0-SNAPSHOT",
   "org.macroid" %% "macroid-viewable" % "1.0.0-SNAPSHOT",
   "org.macroid" %% "macroid-svg" % "1.0.0-SNAPSHOT",
+  "org.macroid" %% "akka-fragments" % "1.0.0-SNAPSHOT",
   "org.needs" %% "needs" % "2.0.0-M1",
   "org.needs" %% "needs-flickr" % "1.0.0-SNAPSHOT",
   "org.needs" %% "needs-foursquare" % "1.0.0-SNAPSHOT",
@@ -45,7 +46,8 @@ libraryDependencies ++= Seq(
   "com.couchbase.lite" %% "couchbase-lite-android-core" % "1.0.0-SNAPSHOT",
   //aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),
   aarlib("com.google.android.gms" % "play-services" % "4.0.30"),
-  apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4")
+  apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4"),
+  aarlib("com.github.chrisbanes.actionbarpulltorefresh" % "library" % "0.9.3")
 )
 
 proguardOptions ++= Seq(
@@ -80,6 +82,6 @@ proguardOptions ++= Seq(
   "-keep class akka.actor.LocalActorRefProvider$SystemGuardian { *; }",
   "-keep class akka.dispatch.UnboundedMailbox { *; }",
   "-keep class akka.actor.DefaultSupervisorStrategy { *; }",
-  "-keep class net.routestory.util.AkkaAndroidLogger { *; }",
+  "-keep class org.macroid.akkafragments.AkkaAndroidLogger { *; }",
   "-keep class akka.event.Logging$LogExt { *; }"
 )

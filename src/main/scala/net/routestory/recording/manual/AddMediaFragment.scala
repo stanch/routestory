@@ -33,10 +33,12 @@ import org.macroid.{ IdGeneration, Tweak, Transformer, Layout }
 import net.routestory.util.FragmentData
 import akka.actor.{ ActorSystem, ActorRef }
 import org.macroid.viewable.{ FillableViewableAdapter, FillableViewable }
+import org.macroid.akkafragments.AkkaFragment
 
-class AddMediaFragment extends RouteStoryFragment with IdGeneration with FragmentData[ActorSystem] {
+class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFragment {
   lazy val photoFile = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir)
-  lazy val typewriter = getFragmentData.actorSelection("/user/typewriter")
+  lazy val typewriter = actorSystem.actorSelection("/user/typewriter")
+  val actor = None
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
     def clicker(factory: Thunk[DialogFragment], tag: String) = Thunk {
@@ -81,15 +83,16 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with Fragmen
   }
 }
 
-class AddSomething extends DialogFragment with RouteStoryFragment with FragmentData[ActorSystem] {
-  lazy val typewriter = getFragmentData.actorSelection("/user/typewriter")
-  lazy val cartographer = getFragmentData.actorSelection("/user/cartographer")
+class AddSomething extends DialogFragment with RouteStoryFragment with AkkaFragment {
+  lazy val typewriter = actorSystem.actorSelection("/user/typewriter")
+  lazy val cartographer = actorSystem.actorSelection("/user/cartographer")
+  val actor = None
 }
 
 class AddTextNote extends AddSomething {
   var input = slot[EditText]
 
-  override def onCreateDialog(savedInstanceState: Bundle) = dialog {
+  override def onCreateDialog(savedInstanceState: Bundle) = createDialog {
     w[EditText] ~> Tweak[EditText] { x ⇒
       x.setHint(R.string.message_typenotehere)
       x.setMinLines(5)
@@ -135,7 +138,7 @@ class AddVoiceNote extends AddSomething {
     mStartStop ~> text("Click if you want to try again")
   }
 
-  override def onCreateDialog(savedInstanceState: Bundle) = dialog {
+  override def onCreateDialog(savedInstanceState: Bundle) = createDialog {
     w[Button] ~> text("Start recording") ~> wire(mStartStop) ~> On.click {
       if (!mRecording) start() else stop()
     }
@@ -170,7 +173,7 @@ class AddHeartbeat extends AddSomething {
     }
   }
 
-  override def onCreateDialog(savedInstanceState: Bundle) = dialog {
+  override def onCreateDialog(savedInstanceState: Bundle) = createDialog {
     l[VerticalLinearLayout](
       w[TextView] ~> text(R.string.message_pulsehowto) ~> TextSize.medium,
       w[TextView] ~> beats.map(b ⇒ text(s"BPM: $b")),

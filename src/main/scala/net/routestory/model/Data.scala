@@ -3,12 +3,7 @@ package net.routestory.model
 import com.google.android.gms.maps.model.LatLng
 import play.api.libs.json.JsValue
 import scala.concurrent.{ Future, ExecutionContext }
-import net.routestory.util.BitmapUtils
 import java.io.File
-import java.util.concurrent.Executors
-import org.macroid.AppContext
-import net.routestory.RouteStoryApp
-import android.util.Log
 import net.routestory.needs.BitmapPool
 
 object Story {
@@ -94,3 +89,9 @@ case class Story(id: String, meta: Story.Meta, chapters: List[Story.Chapter], au
 case class StoryPreview(id: String, title: Option[String], tags: List[String], author: Option[Author])
 
 case class Author(id: String, name: String, link: Option[String], picture: Option[Future[File]])
+
+case class Tag(tag: String, count: Int)
+
+case class Latest(total: Int, stories: List[StoryPreview])
+
+case class Searched(total: Int, bookmark: String, stories: List[StoryPreview])

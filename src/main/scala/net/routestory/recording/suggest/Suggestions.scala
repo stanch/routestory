@@ -19,14 +19,14 @@ import net.routestory.{ RouteStoryApp, R, Apis }
 import net.routestory.recording.Cartographer
 import net.routestory.ui.{ CollapsedListView, RouteStoryFragment }
 import net.routestory.ui.Styles._
-import net.routestory.util.{ BitmapUtils, FragmentData }
 import android.os.Bundle
 import org.macroid.{ Tweak, AppContext, ActivityContext }
 import net.routestory.display.Suggestables
+import org.macroid.akkafragments.{ AkkaFragment, FragmentActor }
 
-class SuggestionsFragment extends RouteStoryFragment with FragmentData[ActorSystem] {
-  lazy val suggester = getFragmentData.actorSelection("/user/suggester")
-  lazy val typewriter = getFragmentData.actorSelection("../typewriter")
+class SuggestionsFragment extends RouteStoryFragment with AkkaFragment {
+  lazy val actor = Some(actorSystem.actorSelection("/user/suggester"))
+  lazy val typewriter = actorSystem.actorSelection("/user/typewriter")
 
   lazy val suggestables = Suggestables(app, typewriter)
   import suggestables._
@@ -46,43 +46,29 @@ class SuggestionsFragment extends RouteStoryFragment with FragmentData[ActorSyst
       )
     )
   }
-
-  override def onStart() {
-    super.onStart()
-    suggester ! Suggester.AttachUi(this)
-  }
-
-  override def onStop() {
-    super.onStop()
-    suggester ! Suggester.DetachUi
-  }
 }
 
 object Suggester {
-  case class AttachUi(fragment: SuggestionsFragment)
-  case object DetachUi
   case object Ping
   case class Venues(venues: List[foursquare.Venue])
   case class Photos(photos: List[flickr.Photo])
   def props(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) = Props(new Suggester(apis))
 }
 
-class Suggester(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) extends Actor with ActorLogging {
+class Suggester(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) extends FragmentActor[SuggestionsFragment] with ActorLogging {
   import Suggester._
+  import FragmentActor._
 
-  var attachedUi: Option[SuggestionsFragment] = None
   var pings: Option[Cancellable] = None
 
   lazy val typewriter = context.actorSelection("../typewriter")
   lazy val cartographer = context.actorSelection("../cartographer")
 
-  def receive = {
-    case AttachUi(fragment) ⇒
-      attachedUi = Some(fragment)
+  def receive = receiveUi andThen {
+    case AttachUi(_) ⇒
       pings = Some(context.system.scheduler.schedule(5 seconds, 5 seconds, self, Ping))
 
     case DetachUi ⇒
-      attachedUi = None
       pings.foreach(_.cancel())
 
     case Ping ⇒
@@ -92,16 +78,12 @@ class Suggester(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) e
       apis.foursquareApi.nearbyVenues(l.latitude, l.longitude, 100).go.map(Venues) pipeTo self
       apis.flickrApi.nearbyPhotos(l.latitude, l.longitude, 10).go.map(Photos) pipeTo self
 
-    case Venues(venues) ⇒ attachedUi foreach { f ⇒
-      ui {
-        f.venues.get.setData(venues)
-      }
+    case Venues(venues) ⇒ withUi { f ⇒
+      f.venues.get.setData(venues)
     }
 
-    case Photos(photos) ⇒ attachedUi foreach { f ⇒
-      ui {
-        f.photos.get.setData(photos)
-      }
+    case Photos(photos) ⇒ withUi { f ⇒
+      f.photos.get.setData(photos)
     }
 
     case _ ⇒

@@ -31,11 +31,11 @@ trait MediaReads extends AuxiliaryFormats { self: Needs ⇒
   
   implicit val locationRule = Rule.gen[JsValue, Location]
 
-  val unknownMediaRule = Resolvable.subtypeRule[JsValue, UnknownMedia, Media] { __ ⇒
+  val unknownMediaRule = Resolvable.rule[JsValue, UnknownMedia] { __ ⇒
     (__ \ "timestamp").read[Int] and
     (__ \ "type").read[String] and
     __.read[JsValue]
-  }
+  }.fmap(x ⇒ x: Resolvable[Media])
 
   val heavyMediaRuleBuilder = { __ : Reader[JsValue] ⇒
     (__ \ "timestamp").read[Int] and

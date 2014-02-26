@@ -13,31 +13,19 @@ import org.macroid.FullDsl._
 
 import net.routestory.model.Story
 import net.routestory.ui.RouteStoryFragment
-import net.routestory.util.FragmentData
 import net.routestory.display.RouteMapManager
+import org.macroid.akkafragments.{ AkkaFragment, FragmentActor }
 
-class CartographyFragment extends RouteStoryFragment with FragmentData[ActorSystem] with IdGeneration {
-  lazy val cartographer = getFragmentData.actorSelection("/user/cartographer")
+class CartographyFragment extends RouteStoryFragment with AkkaFragment with IdGeneration {
+  lazy val actor = Some(actorSystem.actorSelection("/user/cartographer"))
   lazy val map = findFrag[SupportMapFragment](Tag.map).get.getMap
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
     f[SupportMapFragment].framed(Id.map, Tag.map)
   }
-
-  override def onStart() {
-    super.onStart()
-    cartographer ! Cartographer.AttachUi(this)
-  }
-
-  override def onStop() {
-    super.onStop()
-    cartographer ! Cartographer.DetachUi
-  }
 }
 
 object Cartographer {
-  case class AttachUi(fragment: CartographyFragment)
-  case object DetachUi
   case class Location(coords: LatLng, bearing: Float)
   case class Update(chapter: Story.Chapter)
   case object QueryLastLocation
@@ -45,40 +33,37 @@ object Cartographer {
 }
 
 /** An actor that updates the map with the chapter data, as well as current location */
-class Cartographer(implicit ctx: ActivityContext, appCtx: AppContext) extends Actor with ActorLogging {
+class Cartographer(implicit ctx: ActivityContext, appCtx: AppContext) extends FragmentActor[CartographyFragment] with ActorLogging {
   import Cartographer._
+  import FragmentActor._
 
-  var attachedUi: Option[CartographyFragment] = None
-  def map = attachedUi.map(_.map)
   var mapManager: Option[RouteMapManager] = None
   var last: Option[LatLng] = None
 
   lazy val typewriter = context.actorSelection("../typewriter")
 
-  def receive = {
-    case AttachUi(fragment) ⇒ ui {
-      attachedUi = Some(fragment)
-      mapManager = Some(new RouteMapManager(fragment.map, fragment.displaySize)(fragment.displaySize.min / 8))
+  def receive = receiveUi andThen {
+    case AttachUi(_) ⇒ withUi { f ⇒
+      mapManager = Some(new RouteMapManager(f.map, f.displaySize)(f.displaySize.min / 8))
     }
 
-    case DetachUi ⇒ ui {
-      attachedUi = None
+    case DetachUi ⇒ withUi { f ⇒
       mapManager.foreach(_.remove())
       mapManager = None
     }
 
-    case Update(chapter) ⇒ ui {
+    case Update(chapter) ⇒ withUi { f ⇒
       mapManager.foreach(_.add(chapter))
     }
 
-    case Location(coords, bearing) ⇒ ui {
+    case Location(coords, bearing) ⇒ withUi { f ⇒
       // update the map
       log.debug("Received location")
       last = Some(coords)
       mapManager.foreach(_.updateMan(coords))
-      map.foreach(m ⇒ m.animateCamera(CameraUpdateFactory.newCameraPosition {
-        CameraPosition.builder(m.getCameraPosition).target(coords).tilt(45).zoom(19).bearing(bearing).build()
-      }))
+      f.map.animateCamera(CameraUpdateFactory.newCameraPosition {
+        CameraPosition.builder(f.map.getCameraPosition).target(coords).tilt(45).zoom(19).bearing(bearing).build()
+      })
       typewriter ! Typewriter.Location(coords)
     }
 

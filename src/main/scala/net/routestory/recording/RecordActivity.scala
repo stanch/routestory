@@ -29,7 +29,7 @@ import net.routestory.model.Story
 import net.routestory.needs.SavingFormats._
 import net.routestory.recording.manual.AddMediaFragment
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
-import net.routestory.util.{ FragmentDataProvider, FragmentData, Shortuuid }
+import net.routestory.util.Shortuuid
 import net.routestory.util.Implicits._
 import org.macroid.{ Tweak, IdGeneration }
 import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
@@ -37,6 +37,7 @@ import net.routestory.recording.logged.{ Dictaphone, ControlPanelFragment }
 import android.support.v4.view.ViewPager
 import org.needs.Resolvable
 import net.routestory.browsing.StoryActivity
+import org.macroid.akkafragments.AkkaActivity
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -81,19 +82,19 @@ trait LocationHandler
   }
 }
 
-class RecordActivity extends RouteStoryActivity with LocationHandler with IdGeneration with FragmentPaging with FragmentDataProvider[ActorSystem] {
+class RecordActivity extends RouteStoryActivity
+  with LocationHandler with IdGeneration with FragmentPaging
+  with AkkaActivity {
+
   val rqGmsConnectionFailureResolution = RecordActivity.REQUEST_CONNECTION_FAILURE_RESOLUTION
   var progress = slot[ProgressBar]
   lazy val pager = this.find[ViewPager](Id.pager)
 
-  lazy val actorSystem = ActorSystem("RecordingActorSystem", app.config, app.getClassLoader)
-  implicit lazy val uiActor = actorSystem.actorOf(Props.empty, "ui")
+  val actorSystemName = "recording"
   lazy val cartographer: ActorRef = actorSystem.actorOf(Cartographer.props, "cartographer")
   lazy val typewriter: ActorRef = actorSystem.actorOf(Typewriter.props, "typewriter")
   lazy val suggester: ActorRef = actorSystem.actorOf(Suggester.props(app), "suggester")
   lazy val dictaphone: ActorRef = actorSystem.actorOf(Dictaphone.props, "dictaphone")
-
-  def getFragmentData(tag: String) = actorSystem
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)

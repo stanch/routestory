@@ -38,7 +38,7 @@ class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int 
     // add markers
     chapter.media foreach {
       case m: UnknownMedia ⇒ ()
-      case m: KnownMedia if !markers.contains(m) ⇒ addMarker(m)
+      case m: KnownMedia ⇒ if (!markers.contains(m)) addMarker(m)
     }
 
     // update clicking
