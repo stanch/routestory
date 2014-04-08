@@ -8,6 +8,7 @@ import android.widget.TextView
 import android.content.DialogInterface
 import android.content.DialogInterface.OnDismissListener
 import android.location.Location
+import macroid.util.Ui
 
 object Implicits {
   implicit class RichLatLng(l: LatLng) {
@@ -35,19 +36,11 @@ object Implicits {
     def onDismiss(d: DialogInterface) = f
   }
 
-  implicit def thunk2OnClickListener(f: ⇒ Any) = new DialogInterface.OnClickListener {
-    def onClick(d: DialogInterface, w: Int) = f
-  }
-
-  implicit def func2OnClickListener(f: (DialogInterface, Int) ⇒ Any) = new DialogInterface.OnClickListener {
-    def onClick(d: DialogInterface, w: Int) = f(d, w)
-  }
-
   implicit def thunk2OnCancelListener(f: ⇒ Any) = new DialogInterface.OnCancelListener {
     def onCancel(d: DialogInterface) { f }
   }
 
-  implicit def runnableSAM(f: ⇒ Any) = new Runnable {
-    def run() = f
+  implicit def runnableUi(f: Ui[Any]) = new Runnable {
+    def run() = f.get
   }
 }

@@ -19,8 +19,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.google.android.gms.common._
 import com.google.android.gms.location.{ LocationClient, LocationListener, LocationRequest }
-import org.macroid.FullDsl._
-import org.macroid.contrib.Layouts.VerticalLinearLayout
+import macroid.FullDsl._
+import macroid.contrib.Layouts.VerticalLinearLayout
 import play.api.libs.json.{ JsValue, Json, JsObject }
 import play.api.data.mapping.{ From, To }
 
@@ -31,13 +31,15 @@ import net.routestory.recording.manual.AddMediaFragment
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.Shortuuid
 import net.routestory.util.Implicits._
-import org.macroid.{ Tweak, IdGeneration }
+import macroid.{ Tweak, IdGeneration }
 import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
 import net.routestory.recording.logged.{ Dictaphone, ControlPanelFragment }
 import android.support.v4.view.ViewPager
 import org.needs.Resolvable
 import net.routestory.browsing.StoryActivity
 import org.macroid.akkafragments.AkkaActivity
+import macroid.util.Ui
+import scala.util.control.NonFatal
 
 object RecordActivity {
   val REQUEST_CODE_TAKE_PICTURE = 0
@@ -55,29 +57,31 @@ trait LocationHandler
   lazy val locationClient = new LocationClient(this, this, this)
   val firstLocationPromise = Promise[Unit]()
 
-  def trackLocation() {
+  def trackLocation() = {
     Option(locationClient).filter(!_.isConnected).foreach(_.connect())
   }
-  def looseLocation() {
+  def looseLocation() = {
     Option(locationClient).filter(_.isConnected).foreach { c ⇒ c.removeLocationUpdates(this); c.disconnect() }
   }
 
-  def onConnected(bundle: Bundle) {
+  def onConnected(bundle: Bundle) = {
     val request = LocationRequest.create()
       .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
       .setInterval(5000) // 5 seconds
       .setFastestInterval(5000) // 5 seconds
     locationClient.requestLocationUpdates(request, this)
   }
-  def onDisconnected() {}
-  def onConnectionFailed(connectionResult: ConnectionResult) {
+  def onDisconnected() = ()
+  def onConnectionFailed(connectionResult: ConnectionResult) = {
     if (connectionResult.hasResolution) {
       Try {
         connectionResult.startResolutionForResult(this, rqGmsConnectionFailureResolution)
       } recover { case t ⇒ t.printStackTrace() }
     } else {
       // TODO: show error
-      toast(connectionResult.getErrorCode.toString) ~> fry
+      runUi {
+        toast(connectionResult.getErrorCode.toString) <~ fry
+      }
     }
   }
 }
@@ -96,13 +100,13 @@ class RecordActivity extends RouteStoryActivity
   lazy val suggester: ActorRef = actorSystem.actorOf(Suggester.props(app), "suggester")
   lazy val dictaphone: ActorRef = actorSystem.actorOf(Dictaphone.props, "dictaphone")
 
-  override def onCreate(savedInstanceState: Bundle) {
+  override def onCreate(savedInstanceState: Bundle) = {
     super.onCreate(savedInstanceState)
 
-    setContentView {
+    setContentView(getUi {
       l[VerticalLinearLayout](
-        activityProgress ~>
-          wire(progress) ~>
+        activityProgress <~
+          wire(progress) <~
           showProgress(firstLocationPromise.future),
         getTabs(
           "Add stuff" → f[AddMediaFragment].factory,
@@ -111,7 +115,7 @@ class RecordActivity extends RouteStoryActivity
           "Control panel" → f[ControlPanelFragment].factory
         )
       )
-    }
+    })
 
     // setup action bar
     bar.setDisplayShowTitleEnabled(true)
@@ -127,19 +131,19 @@ class RecordActivity extends RouteStoryActivity
     }
   }
 
-  override def onStart() {
+  override def onStart() = {
     super.onStart()
-    pager ~> Tweak[ViewPager](_.setCurrentItem(1))
+    (pager <~ Tweak[ViewPager](_.setCurrentItem(1))).run
     (cartographer, typewriter, suggester, dictaphone) // start actors
     trackLocation()
   }
 
-  override def onStop() {
+  override def onStop() = {
     super.onStop()
     looseLocation()
   }
 
-  def onLocationChanged(location: AndroidLocation) {
+  def onLocationChanged(location: AndroidLocation) = {
     firstLocationPromise.trySuccess(())
     cartographer ! Cartographer.Location(location, location.getBearing)
   }
@@ -152,12 +156,10 @@ class RecordActivity extends RouteStoryActivity
     super.onSaveInstanceState(outState)
   }
 
-  def giveUp() {
-    finish()
-  }
+  def giveUp = Ui(finish())
 
-  def createNew() {
-    progress ~@> waitProgress(async {
+  def createNew = {
+    progress <@~ waitProgress(async {
       implicit val timeout = Timeout(5 seconds)
       val id = Shortuuid.make("story")
       val chapter = await((typewriter ? Typewriter.Backup).mapTo[Story.Chapter])
@@ -166,33 +168,37 @@ class RecordActivity extends RouteStoryActivity
       val intent = new Intent(this, classOf[StoryActivity])
       intent.putExtra("id", id)
       intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-      ui(startActivity(intent))
+      Ui(startActivity(intent)).run
     } recover {
-      case t ⇒ t.printStackTrace(); throw t
+      case NonFatal(t) ⇒ t.printStackTrace(); throw t
     })
   }
 
   override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
     case R.id.addStuff ⇒
-      pager ~> Tweak[ViewPager](_.setCurrentItem(0))
+      runUi {
+        pager <~ Tweak[ViewPager](_.setCurrentItem(0))
+      }
       true
     case R.id.controlPanel ⇒
-      pager ~> Tweak[ViewPager](_.setCurrentItem(3))
+      runUi {
+        pager <~ Tweak[ViewPager](_.setCurrentItem(3))
+      }
       true
     case R.id.stopRecord ⇒
-      new AlertDialog.Builder(this) {
-        setMessage(R.string.message_stoprecord)
-        setPositiveButton(android.R.string.yes, createNew())
-        setNegativeButton(android.R.string.no, ())
-        create()
-      }.show()
+      runUi {
+        dialog(getResources.getString(R.string.message_stoprecord)) <~ positiveYes(createNew) <~ negativeNo(Ui(())) <~ speak
+      }
       true
     case _ ⇒ super.onOptionsItemSelected(item)
   }
 
   override def onKeyDown(keyCode: Int, event: KeyEvent) = keyCode match {
-    case KeyEvent.KEYCODE_BACK ⇒ giveUp(); false
-    case _ ⇒ super.onKeyDown(keyCode, event)
+    case KeyEvent.KEYCODE_BACK ⇒
+      runUi(giveUp)
+      false
+    case _ ⇒
+      super.onKeyDown(keyCode, event)
   }
 
   override def onCreateOptionsMenu(menu: Menu) = {

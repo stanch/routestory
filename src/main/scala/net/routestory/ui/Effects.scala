@@ -1,6 +1,6 @@
 package net.routestory.ui
 
-import org.macroid.Snails
+import macroid.Snails
 import scala.concurrent.ExecutionContext
 
 object Effects {

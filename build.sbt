@@ -1,18 +1,19 @@
-androidDefaults
+import android.Keys._
+import android.Dependencies.{apklib, aar}
+
+android.Plugin.androidBuild
 
 name := "RouteStory"
 
-version := "1.0"
+net.virtualvoid.sbt.graph.Plugin.graphSettings
 
-versionCode := 0
+version := "1.0"
 
 scalaVersion := "2.10.3"
 
-platformName := "android-19"
+platformTarget in Android := "android-19"
 
 compileOrder := CompileOrder.JavaThenScala
-
-//scalacOptions += "-Ymacro-debug-lite"
 
 resolvers ++= Seq(
   "Couchbase" at "http://files.couchbase.com/maven2/",
@@ -24,43 +25,74 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.macroid" %% "macroid" % "2.0.0-SNAPSHOT",
+  "org.macroid" %% "macroid" % "2.0.0-20140407",
   "org.macroid" %% "macroid-viewable" % "1.0.0-SNAPSHOT",
-  "org.macroid" %% "macroid-svg" % "1.0.0-SNAPSHOT",
   "org.macroid" %% "akka-fragments" % "1.0.0-SNAPSHOT",
-  "org.needs" %% "needs" % "2.0.0-M1",
+  compilerPlugin("org.brianmckenna" %% "wartremover" % "0.9-SNAPSHOT"),
+  "org.brianmckenna" %% "wartremover" % "0.9-SNAPSHOT",
+  "org.needs" %% "needs" % "2.0.0-M3",
   "org.needs" %% "needs-flickr" % "1.0.0-SNAPSHOT",
   "org.needs" %% "needs-foursquare" % "1.0.0-SNAPSHOT",
   "com.scalarx" %% "scalarx" % "0.1" exclude ("com.typesafe.akka", "akka-actor"),
-  "com.typesafe.play" %% "play-json" % "2.2.0",
   "com.typesafe.akka" %% "akka-actor" % "2.2.3",
-  "org.scala-lang.modules" %% "scala-async" % "0.9.0-M4",
+  "org.scala-lang.modules" %% "scala-async" % "0.9.1",
   "org.apache.commons" % "commons-io" % "1.3.2"
+)
+
+scalacOptions in (Compile, compile) ++= Seq(
+  "-P:wartremover:cp:" + (dependencyClasspath in Compile).value.files.map(_.toURL.toString).find(_.contains("org.macroid/macroid_")).get,
+  "-P:wartremover:traverser:macroid.warts.CheckUi"
 )
 
 // Android stuff
 libraryDependencies ++= Seq(
   "com.loopj.android" % "android-async-http" % "1.4.4",
-  "com.android.support" % "support-v13" % "19.0.0",
+  "com.android.support" % "support-v13" % "19.1.0",
   "com.github.chrisbanes.photoview" % "library" % "1.2.1",
   "com.couchbase.lite" %% "couchbase-lite-android-core" % "1.0.0-SNAPSHOT",
   //aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),
-  aarlib("com.google.android.gms" % "play-services" % "4.0.30"),
-  apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4"),
-  aarlib("com.github.chrisbanes.actionbarpulltorefresh" % "library" % "0.9.3")
+  aar("com.google.android.gms" % "play-services" % "4.0.30"),
+  aar("org.apmem.tools" % "layouts" % "1.0"),
+  apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4")
 )
 
-proguardOptions ++= Seq(
+unmanagedClasspath in Compile <<= (unmanagedClasspath in Compile) map { cp =>
+  cp filterNot (_.data.getName == "android-support-v4.jar")
+}
+
+apkbuildExcludes in Android ++= Seq(
+  "META-INF/LICENSE.txt",
+  "META-INF/LICENSE",
+  "META-INF/NOTICE.txt",
+  "META-INF/NOTICE"
+)
+
+dexMaxHeap in Android := "2000m"
+
+proguardScala in Android := true
+
+proguardCache in Android ++= Seq(
+  ProguardCache("akka.actor") % "com.typesafe.akka",
+  ProguardCache("android.support.v4") % "com.android.support"
+)
+
+proguardOptions in Android ++= Seq(
+  "-ignorewarnings",
+  "-keep class scala.Dynamic",
+  "-keep class scala.reflect.ScalaSignature",
+  "-keep class scala.Function0",
+  "-keep class scala.Function1",
   "-keepattributes *Annotation*,EnclosingMethod",
   "-keep public enum * { public static **[] values(); public static ** valueOf(java.lang.String); }",
   "-keepnames class com.codehaus.jackson.** { *; }",
+  "-keepnames class com.fasterxml.jackson.** { *; }",
   "-keep class com.couchbase.cblite.router.CBLRouter { *; }",
   "-keep class com.couchbase.touchdb.TDCollateJSON { *; }",
   "-keepclasseswithmembers class * { native <methods>; }"
 )
 
 // play services
-proguardOptions ++= Seq(
+proguardOptions in Android ++= Seq(
   "-keep class * extends java.util.ListResourceBundle { protected Object[][] getContents(); }",
   "-keep public class com.google.android.gms.common.internal.safeparcel.SafeParcelable { public static final *** NULL; }",
   "-keepnames @com.google.android.gms.common.annotation.KeepName class *",
@@ -69,7 +101,7 @@ proguardOptions ++= Seq(
 )
 
 // akka
-proguardOptions ++= Seq(
+proguardOptions in Android ++= Seq(
   "-keep class akka.actor.LightArrayRevolverScheduler { *; }",
   "-keep class akka.actor.LocalActorRefProvider { *; }",
   "-keep class akka.actor.CreatorFunctionConsumer { *; }",

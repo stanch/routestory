@@ -10,17 +10,17 @@ import android.view.{ LayoutInflater, View, ViewGroup }
 import com.google.android.gms.maps._
 import com.google.android.gms.maps.model.{ f ⇒ _, _ }
 
-import org.macroid.FullDsl._
+import macroid.FullDsl._
 
 import net.routestory.model.StoryPreview
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.Implicits._
-import org.macroid.IdGeneration
+import macroid.IdGeneration
 import android.support.v4.app.Fragment
 import net.routestory.display.StoryPreviewViewable
 
 class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment with IdGeneration {
-  lazy val map = findFrag[SupportMapFragment](Tag.resultsMap).get.getMap
+  lazy val map = this.findFrag[SupportMapFragment](Tag.resultsMap).get.get.getMap
   var markers = Map[Marker, StoryPreview]()
   var routes = List[Polyline]()
 
@@ -32,7 +32,7 @@ class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment
     "#93AA00", "#593315", "#F13A13", "#232C16"
   )
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
     f[SupportMapFragment].framed(Id.map, Tag.resultsMap)
   }
 
@@ -43,7 +43,7 @@ class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment
       // TODO: wtf? how to measure one?
       val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8
       val view = new StoryPreviewViewable(a.toInt).layout(story)
-      new AlertDialog.Builder(getActivity).setView(view).create().show()
+      runUi { dialog(view) <~ speak }
       true
     }
     observe()

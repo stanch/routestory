@@ -12,16 +12,17 @@ import android.view._
 import android.view.ViewGroup.LayoutParams._
 import android.widget.{ TextView, ListView, ProgressBar, SearchView }
 
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks
-import org.macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks
+import macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
 
 import net.routestory.{ R, RouteStoryApp }
 import net.routestory.browsing.{ ExploreActivity, MyStoriesActivity }
 import net.routestory.recording.RecordActivity
 import net.routestory.ui.Styles._
-import org.macroid.{ Tweak, Contexts }
-import org.macroid.viewable.{ FillableViewableAdapter, FillableViewable }
+import macroid.{ Tweak, Contexts }
+import macroid.viewable.{ FillableViewableAdapter, FillableViewable }
+import macroid.util.Ui
 
 trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity] {
   lazy val app = getApplication.asInstanceOf[RouteStoryApp]
@@ -43,13 +44,13 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
   }
 
   def activityProgress =
-    w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) ~>
-      lpOf[ViewGroup](MATCH_PARENT, WRAP_CONTENT)
+    w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) <~
+      lp[ViewGroup](MATCH_PARENT, WRAP_CONTENT)
 
-  def drawer(view: View) = {
-    def clicker[A <: Activity: ClassTag] = On.click {
+  def drawer(view: Ui[View]) = {
+    def clicker[A <: Activity: ClassTag] = On.click(Ui {
       startActivityForResult(new Intent(this, implicitly[ClassTag[A]].runtimeClass), 0)
-    }
+    })
     // format: OFF
     val data = Seq(
       ("Explore", clicker[ExploreActivity]),
@@ -62,17 +63,19 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
     ))
     // format: ON
     val layout = l[DrawerLayout](
-      view ~> lp(MATCH_PARENT, MATCH_PARENT),
-      w[ListView] ~>
-        adaptr(adapter) ~>
-        lp(240 dp, MATCH_PARENT, Gravity.START) ~>
+      view <~ lp[DrawerLayout](MATCH_PARENT, MATCH_PARENT),
+      w[ListView] <~
+        adaptr(adapter) <~
+        lp[DrawerLayout](240 dp, MATCH_PARENT, Gravity.START) <~
         ExtraTweaks.Bg.res(R.color.drawer)
     )
     drawerToggle = new ActionBarDrawerToggle(
-      this, layout, R.drawable.ic_navigation_drawer,
+      this, layout.get, R.drawable.ic_navigation_drawer,
       R.string.app_name, R.string.app_name
     )
-    layout.setDrawerListener(drawerToggle); layout
+    layout <~ Tweak[DrawerLayout] {
+      _.setDrawerListener(drawerToggle)
+    }
   }
 
   def setupSearch(menu: Menu) = {

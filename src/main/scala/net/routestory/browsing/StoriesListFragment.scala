@@ -11,16 +11,17 @@ import android.util.Log
 import android.view.{ Gravity, LayoutInflater, View, ViewGroup }
 import android.widget.{ ListAdapter ⇒ _, _ }
 
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
-import org.macroid.{ Tweak, ActivityContext, AppContext }
-import org.macroid.contrib.Layouts.HorizontalLinearLayout
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
+import macroid.{ Tweak, ActivityContext, AppContext }
+import macroid.contrib.Layouts.HorizontalLinearLayout
 
 import net.routestory.R
 import net.routestory.model.StoryPreview
 import net.routestory.ui.RouteStoryFragment
-import org.macroid.viewable.FillableViewableAdapter
+import macroid.viewable.FillableViewableAdapter
 import net.routestory.display.StoryPreviewViewable
+import macroid.util.Ui
 
 class StoriesListFragment extends ListFragment
   with RouteStoryFragment
@@ -45,18 +46,19 @@ class StoriesListFragment extends ListFragment
   implicit lazy val viewable = new StoryPreviewViewable(displaySize(1))
   var adapter: Option[FillableViewableAdapter[StoryPreview]] = None
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    val view = super.onCreateView(inflater, container, savedInstanceState) ~> Bg.res(R.drawable.caspa)
-    val list = view.find[ListView](android.R.id.list) ~> (tweak ~ (_.setDivider(null)))
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
+    val view = super.onCreateView(inflater, container, savedInstanceState) <~ Bg.res(R.drawable.caspa)
+    val list = view.find[ListView](android.R.id.list) <~ Tweak[ListView](_.setDivider(null))
     if (showControls) {
-      list.get.addFooterView {
-        l[HorizontalLinearLayout](
-          w[Button] ~> text("Prev") ~> wire(prevButton) ~> On.click(storyteller.prev()),
-          w[Button] ~> text("Next") ~> wire(nextButton) ~> On.click(storyteller.next())
-        ) ~> Tweak[HorizontalLinearLayout](_.setGravity(Gravity.CENTER_HORIZONTAL))
-      }
-      prevButton ~> enable(storyteller.hasPrev)
-      nextButton ~> enable(storyteller.hasNext)
+      runUi(for {
+        footer ← l[HorizontalLinearLayout](
+          w[Button] <~ text("Prev") <~ wire(prevButton) <~ On.click(Ui(storyteller.prev())),
+          w[Button] <~ text("Next") <~ wire(nextButton) <~ On.click(Ui(storyteller.next()))
+        ) <~ Tweak[HorizontalLinearLayout](_.setGravity(Gravity.CENTER_HORIZONTAL))
+        _ ← list <~ Tweak[ListView](_.addFooterView(footer))
+        _ ← prevButton <~ enable(storyteller.hasPrev)
+        _ ← nextButton <~ enable(storyteller.hasNext)
+      } yield ())
     }
     view
   }
@@ -73,26 +75,28 @@ class StoriesListFragment extends ListFragment
   }
 
   def update(data: Future[List[StoryPreview]]) = async {
-    if (showReload || Option(getListAdapter).exists(_.isEmpty)) await(ui(setListShown(false)))
+    if (showReload || Option(getListAdapter).exists(_.isEmpty)) await(Ui(setListShown(false)).run)
     Log.d("StoryList", s"Received future $data from $observer")
     val s = await(data mapUi {
       x ⇒ setEmptyText(emptyText); x
     } recoverUi {
       case t if !t.isInstanceOf[UninitializedError] ⇒ t.printStackTrace(); setEmptyText(errorText); Nil
     })
-    ui {
-      adapter map { a ⇒
-        a.clear()
-      } getOrElse {
-        adapter = Some(new FillableViewableAdapter[StoryPreview] {
-          override def isEnabled(position: Int) = false
-        })
-        setListAdapter(adapter.get)
-      }
-      adapter.map(_.addAll(s))
-      setListShown(true)
-    }
-    prevButton ~> enable(storyteller.hasPrev)
-    nextButton ~> enable(storyteller.hasNext)
+    Ui.sequence(
+      Ui {
+        adapter map { a ⇒
+          a.clear()
+        } getOrElse {
+          adapter = Some(new FillableViewableAdapter[StoryPreview] {
+            override def isEnabled(position: Int) = false
+          })
+          setListAdapter(adapter.get)
+        }
+        adapter.map(_.addAll(s))
+        setListShown(true)
+      },
+      prevButton <~ enable(storyteller.hasPrev),
+      nextButton <~ enable(storyteller.hasNext)
+    ).run
   }
 }

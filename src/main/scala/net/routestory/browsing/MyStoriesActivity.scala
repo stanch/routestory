@@ -6,14 +6,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import android.os.Bundle
 
-import org.macroid.FullDsl._
+import macroid.FullDsl._
 import rx.Var
 
 import net.routestory.R
 import net.routestory.model.StoryPreview
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.FragmentDataProvider
-import org.macroid.IdGeneration
+import macroid.IdGeneration
 
 class MyStoriesActivity extends RouteStoryActivity
   with HazStories
@@ -29,13 +29,13 @@ class MyStoriesActivity extends RouteStoryActivity
 
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
-    setContentView(drawer(getTabs(
+    setContentView(getUi(drawer(getTabs(
       "Stories" → f[StoriesListFragment].pass(
         "emptyText" → getResources.getText(R.string.empty_mystories),
         "errorText" → "Error occured :("
       ).factory //,
     //"Map" → f[ResultMapFragment].factory
-    )))
+    ))))
   }
 
   override def onStart() {

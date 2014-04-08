@@ -17,7 +17,7 @@ object Couch {
   }
 
   implicit class RichJavaMap(map: java.util.Map[String, Object]) {
-    def toJsObject = Json.parse((new ObjectMapper).writeValueAsString(map)).as[JsObject]
+    def toJsObject = Json.parse((new ObjectMapper).writeValueAsString(map)).asInstanceOf[JsObject]
   }
 }
 

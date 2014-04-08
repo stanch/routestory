@@ -13,16 +13,17 @@ import android.widget._
 
 import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap }
 import com.google.android.gms.maps.model._
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
 
 import net.routestory.model.Story
 import net.routestory.util.BitmapUtils
 import net.routestory.util.BitmapUtils.MagicGrid
 import net.routestory.util.Implicits._
 import net.routestory.model.Story.Chapter
-import org.macroid.{ AppContext, ActivityContext }
-import org.macroid.viewable.{ FillableViewable, FillableViewableAdapter }
+import macroid.{ AppContext, ActivityContext }
+import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
+import macroid.util.Ui
 
 class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(implicit ctx: ActivityContext, appCtx: AppContext)
   extends MapManager(map, displaySize) {
@@ -64,7 +65,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
     def location: LatLng
     def icon(scale: Boolean): Future[Bitmap]
     def iconType: Option[Int]
-    def click(): Unit
+    def click: Ui[Any]
   }
 
   class SingleMarkerItem[A](data: A, val timestamp: Int)(implicit markerable: Markerable[A]) extends MarkerItem {
@@ -72,7 +73,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
     val _icon = markerable.icon(data, maxIconSize)
     val iconType = markerable.iconType(data)
     def icon(scale: Boolean) = _icon
-    def click() = markerable.click(data)
+    def click = markerable.click(data)
   }
 
   class ImageMarkerItem[A](data: A, val timestamp: Int)(implicit markerable: Markerable[A]) extends MarkerItem {
@@ -84,7 +85,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
     } else _icon map { i ⇒
       BitmapUtils.createScaledTransparentBitmap(i, (maxIconSize * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, border = true)
     }
-    def click() = markerable.click(data)
+    def click = markerable.click(data)
   }
 
   object GroupMarkerItem {
@@ -164,23 +165,18 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
         BitmapUtils.createScaledTransparentBitmap(i, (s * (0.95 + doi * 0.05)).toInt, 0.5 + doi * 0.5, border = true)
     }
 
-    def click() = {
+    def click = Ui {
       val List(ne, sw) = List(bounds.northeast, bounds.southwest) map { map.getProjection.toScreenLocation }
       // check if there is a zoom level at which we can expand
       if (FlatMapManager.manhattanDistance(ne, sw) * Math.pow(2, map.getMaxZoomLevel - 2 - map.getCameraPosition.zoom) < maxIconSize) {
         Future.sequence(leaves.map(_.icon(scale = false))) foreachUi { icons ⇒
           //show a confusion resolving dialog
-          new AlertDialog.Builder(ctx.get)
-            .setAdapter(FillableViewableAdapter(icons)(FillableViewable.tw(
-              w[ImageView] ~> Image.adjustBounds,
-              icon ⇒ Image.bitmap {
-                BitmapUtils.createScaledBitmap(icon, Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize))
-              }
-            )), new OnClickListener() {
-              def onClick(dialog: DialogInterface, which: Int) {
-                leaves(which).click()
-              }
-            }).create().show()
+          val adapter = FillableViewableAdapter(icons)(FillableViewable.tw(w[ImageView] <~ Image.adjustBounds) { icon ⇒
+            Image.bitmap {
+              BitmapUtils.createScaledBitmap(icon, Math.min(Math.max(icon.getWidth, icon.getHeight), maxIconSize))
+            }
+          })
+          dialog(adapter) { (dialog: DialogInterface, which: Int) ⇒ leaves(which).click } <~ speak
         }
       } else {
         // expand
@@ -300,26 +296,26 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
     }
   }
 
-  def update() {
-    // short-circuiting
-    if (rootMarkerItem.isEmpty) return
-    if (hideOverlays) {
-      val (_, hidden) = rootMarkerItem.get.addToMarkerLists(Nil, Nil, hide = true)
-      hidden.foreach(_.hideMarker())
-      return
+  def update = Ui {
+    rootMarkerItem foreach { root ⇒
+      if (hideOverlays) {
+        // hide all markers
+        val (_, hidden) = root.addToMarkerLists(Nil, Nil, hide = true)
+        hidden.foreach(_.hideMarker())
+      } else {
+        // produce a list of markers to show and hide
+        val (shown, hidden) = root.addToMarkerLists(Nil, Nil)
+
+        // calculate degrees if interest
+        doiEvaluate(shown)
+
+        // hide hidden markers
+        hidden.foreach(_.hideMarker())
+
+        // show visible markers
+        markerDispatch = shown.foldLeft(markerDispatch)((d, i) ⇒ i.showMarker(d))
+      }
     }
-
-    // produce a list of markers to show and hide
-    val (shown, hidden) = rootMarkerItem.get.addToMarkerLists(Nil, Nil)
-
-    // calculate degrees if interest
-    doiEvaluate(shown)
-
-    // hide hidden markers
-    hidden.foreach(_.hideMarker())
-
-    // show visible markers
-    markerDispatch = shown.foldLeft(markerDispatch)((d, i) ⇒ i.showMarker(d))
   }
 
   def remove() {
@@ -327,7 +323,7 @@ class FlatMapManager(map: GoogleMap, mapView: View, displaySize: List[Int])(impl
     markerDispatch.keys.foreach(_.remove())
   }
 
-  lazy val onMarkerClick = { marker: Marker ⇒ markerDispatch.get(marker).exists { x ⇒ x.click(); true } }
+  lazy val onMarkerClick = { marker: Marker ⇒ markerDispatch.get(marker).exists { x ⇒ x.click.get; true } }
 }
 
 object FlatMapManager {

@@ -25,7 +25,7 @@ trait Needs { self: Shared with Endpoints with LoadingFormats ⇒
     Source[Searched].from(RemoteTagged(tag, limit, bookmark))
 
   def tags: Resolvable[List[Tag]] =
-    Source[List[Resolvable[Tag]]].from(RemoteTags()).flatMap(Resolvable.fromList)
+    Source[List[Resolvable[Tag]]].fromPath(RemoteTags())(_ \ "rows").flatMap(Resolvable.fromList)
 
   def media(url: String): Resolvable[File] = if (url.startsWith("/")) {
     Source[File].from(LocalTempMedia(url))

@@ -5,15 +5,17 @@ import android.content.Context
 import android.view.{ ViewGroup, View }
 import android.support.v4.app.{ FragmentActivity, FragmentPagerAdapter, FragmentManager, Fragment }
 
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.Layouts.VerticalLinearLayout
-import org.macroid.util.Thunk
-import org.macroid.{ ManagerContext, IdGeneration, ActivityContext, AppContext }
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
+import macroid.contrib.Layouts.VerticalLinearLayout
+import macroid._
 
 import com.viewpagerindicator.TitlePageIndicator
 import ViewGroup.LayoutParams._
 import net.routestory.R
+import macroid.util.Ui
+import macroid.AppContext
+import macroid.FragmentManagerContext
 
 class MapAwareViewPager(ctx: Context) extends ViewPager(ctx) {
   override def canScroll(scrollingView: View, checkV: Boolean, dx: Int, x: Int, y: Int) = {
@@ -26,24 +28,26 @@ class MapAwareViewPager(ctx: Context) extends ViewPager(ctx) {
   }
 }
 
-case class PagingAdapter(fm: FragmentManager, frags: Seq[(CharSequence, Thunk[Fragment])]) extends FragmentPagerAdapter(fm) {
+case class PagingAdapter(fm: FragmentManager, frags: Seq[(CharSequence, Ui[Fragment])]) extends FragmentPagerAdapter(fm) {
   def getCount = frags.length
-  def getItem(position: Int) = frags(position)._2()
+  def getItem(position: Int) = frags(position)._2.get
   override def getPageTitle(position: Int): CharSequence = frags(position)._1
 }
 
 trait FragmentPaging { self: IdGeneration ⇒
-  def getTabs(frags: (CharSequence, Thunk[Fragment])*)(implicit ctx: ActivityContext, manager: ManagerContext) = {
-    val pager = w[MapAwareViewPager] ~>
-      id(Id.pager) ~> (tweak doing { x ⇒
+  def getTabs(frags: (CharSequence, Ui[Fragment])*)(implicit ctx: ActivityContext, manager: FragmentManagerContext[Fragment, FragmentManager]) = {
+    val pager = w[MapAwareViewPager] <~
+      id(Id.pager) <~ Tweak[MapAwareViewPager] { x ⇒
         x.setAdapter(PagingAdapter(manager.get, frags))
-      })
-    val indicator = w[TitlePageIndicator] ~>
-      lpOf[ViewGroup](MATCH_PARENT, WRAP_CONTENT) ~>
-      Bg.res(R.color.dark) ~> (tweak doing { x ⇒
-        x.setViewPager(pager)
-        x.setFooterColor(ctx.get.getResources.getColor(R.color.aquadark))
-      })
-    l[VerticalLinearLayout](indicator, pager)
+      }
+    pager.flatMap { p ⇒
+      val indicator = w[TitlePageIndicator] <~
+        lp[ViewGroup](MATCH_PARENT, WRAP_CONTENT) <~
+        Bg.res(R.color.dark) <~ Tweak[TitlePageIndicator] { x ⇒
+          x.setViewPager(p)
+          x.setFooterColor(ctx.get.getResources.getColor(R.color.aquadark))
+        }
+      l[VerticalLinearLayout](indicator, Ui(p))
+    }
   }
 }

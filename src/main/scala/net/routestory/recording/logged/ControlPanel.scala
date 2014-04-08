@@ -2,10 +2,10 @@ package net.routestory.recording.logged
 
 import net.routestory.ui.RouteStoryFragment
 import akka.actor.Props
-import org.macroid.FullDsl._
+import macroid.FullDsl._
 import android.view.{ ViewGroup, LayoutInflater }
 import android.os.Bundle
-import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import android.widget.CheckBox
 import org.macroid.akkafragments.{ FragmentActor, AkkaFragment }
 
@@ -15,9 +15,9 @@ class ControlPanelFragment extends RouteStoryFragment with AkkaFragment {
 
   var dictaphoneOn = slot[CheckBox]
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     l[VerticalLinearLayout](
-      w[CheckBox] ~> wire(dictaphoneOn) ~> text("Dictaphone")
+      w[CheckBox] <~ wire(dictaphoneOn) <~ text("Dictaphone")
     )
   }
 }

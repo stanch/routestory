@@ -5,12 +5,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model._
-import org.macroid.UiThreading._
+import macroid.UiThreading._
 
 import net.routestory.R
 import net.routestory.model.Story._
 import net.routestory.util.Implicits._
-import org.macroid.{ AppContext, ActivityContext }
+import macroid.{ AppContext, ActivityContext }
+import macroid.util.Ui
 
 class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int = displaySize.min / 4)(implicit ctx: ActivityContext, appCtx: AppContext)
   extends MapManager(map, displaySize) {
@@ -19,7 +20,7 @@ class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int 
   var markers: Map[KnownMedia, Marker] = Map.empty
   var markerDispatch: Map[Marker, KnownMedia] = Map.empty
 
-  private def addMarker(data: KnownMedia)(implicit markerable: Markerable[KnownMedia]) = ui {
+  private def addMarker(data: KnownMedia)(implicit markerable: Markerable[KnownMedia]) = Ui {
     val marker = map.addMarker(new MarkerOptions().position(markerable.location(data)))
     markerable.icon(data, maxImageSize) foreachUi { bitmap ⇒
       marker.setIcon(BitmapDescriptorFactory.fromBitmap(bitmap))
@@ -38,12 +39,12 @@ class RouteMapManager(map: GoogleMap, displaySize: List[Int])(maxImageSize: Int 
     // add markers
     chapter.media foreach {
       case m: UnknownMedia ⇒ ()
-      case m: KnownMedia ⇒ if (!markers.contains(m)) addMarker(m)
+      case m: KnownMedia ⇒ if (!markers.contains(m)) addMarker(m).run
     }
 
     // update clicking
     map.onMarkerClick { marker ⇒
-      markerDispatch.get(marker).exists(m ⇒ { implicitly[Markerable[KnownMedia]].click(m); true })
+      markerDispatch.get(marker).exists(m ⇒ { implicitly[Markerable[KnownMedia]].click(m).run; true })
     }
   }
 

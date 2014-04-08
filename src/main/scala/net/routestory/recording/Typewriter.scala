@@ -2,9 +2,10 @@ package net.routestory.recording
 
 import akka.actor.{ Actor, Props }
 import com.google.android.gms.maps.model.LatLng
-import org.macroid.AppContext
-import org.macroid.ToastDsl._
-import org.macroid.Loafs._
+import macroid.AppContext
+import macroid.UiThreading._
+import macroid.ToastDsl._
+import macroid.Loafs._
 import org.needs.foursquare
 import net.routestory.model.Story
 import net.routestory.Apis
@@ -37,27 +38,39 @@ class Typewriter(implicit ctx: AppContext) extends Actor {
   val addingStuff: Receive = {
     case Photo(file) ⇒
       addMedia(Story.Photo(ts, file.getAbsolutePath, Future.successful(file)))
-      toast("Added a photo!") ~> fry
+      runUi {
+        toast("Added a photo!") <~ fry
+      }
 
     case Sound(file) ⇒
       addMedia(Story.Sound(ts, file.getAbsolutePath, Future.successful(file)))
-      toast("Added background sound!") ~> fry
+      runUi {
+        toast("Added background sound!") <~ fry
+      }
 
     case TextNote(text) ⇒
       addMedia(Story.TextNote(ts, text))
-      toast("Added a text note!") ~> fry
+      runUi {
+        toast("Added a text note!") <~ fry
+      }
 
     case VoiceNote(file) ⇒
       addMedia(Story.VoiceNote(ts, file.getAbsolutePath, Future.successful(file)))
-      toast("Added a voice note!") ~> fry
+      runUi {
+        toast("Added a voice note!") <~ fry
+      }
 
     case Heartbeat(bpm) ⇒
       addMedia(Story.Heartbeat(ts, bpm))
-      toast("Added heartbeat!") ~> fry
+      runUi {
+        toast("Added heartbeat!") <~ fry
+      }
 
     case foursquare.Venue(id, name, lat, lng) ⇒
       addMedia(Story.Venue(ts, id, name, new LatLng(lat, lng)))
-      toast("Added a venue!") ~> fry
+      runUi {
+        toast("Added a venue!") <~ fry
+      }
 
     case Location(coords) ⇒
       chapter = chapter.copy(locations = Story.Location(ts, coords) :: chapter.locations)

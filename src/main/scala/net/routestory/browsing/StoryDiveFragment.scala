@@ -13,9 +13,9 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 
 import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap, SupportMapFragment }
 import com.google.android.gms.maps.model.{ f ⇒ _, _ }
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
+import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import rx.Var
 
 import net.routestory.R
@@ -26,8 +26,9 @@ import net.routestory.ui.RouteStoryFragment
 import net.routestory.ui.Styles._
 import net.routestory.util.FragmentData
 import net.routestory.util.Implicits._
-import org.macroid.{ IdGeneration, Tweak }
+import macroid.{ IdGeneration, Tweak }
 import net.routestory.display.RouteMapManager
+import macroid.util.Ui
 
 object DiveFragment {
   val photoDuration = 1500
@@ -35,8 +36,10 @@ object DiveFragment {
 }
 
 class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] with IdGeneration {
+  import DiveFragment._
+
   lazy val story = getFragmentData
-  lazy val map = findFrag[SupportMapFragment](Tag.previewMap).get.getMap
+  lazy val map = this.findFrag[SupportMapFragment](Tag.previewMap).get.get.getMap
   lazy val mapManager = new RouteMapManager(map, displaySize)()
   lazy val handler = new Handler
 
@@ -55,86 +58,88 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
 
   var mediaPlayer: Option[MediaPlayer] = None
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
     l[VerticalLinearLayout](
       l[FrameLayout](
         l[FrameLayout](
           f[SupportMapFragment].framed(Id.map, Tag.previewMap)
         ),
         l[FrameLayout](
-          w[ImageView] ~> wire(imageView)
+          w[ImageView] <~ wire(imageView)
         ),
         l[FrameLayout](
-          w[Button] ~>
-            wire(playBig) ~>
-            lp(80 dp, 80 dp, Gravity.CENTER) ~>
-            Bg.res(R.drawable.play_big) ~>
-            story.map(s ⇒ On.click { playing.update(true); start(s.chapters(0)) })
+          w[Button] <~
+            wire(playBig) <~
+            lp[FrameLayout](80 dp, 80 dp, Gravity.CENTER) <~
+            Bg.res(R.drawable.play_big) <~
+            story.map(s ⇒ On.click(Ui.sequence(Ui(playing.update(true)), start(s.chapters(0)))))
         )
-      ) ~> lp(WRAP_CONTENT, WRAP_CONTENT, 1.0f),
+      ) <~ lp[LinearLayout](WRAP_CONTENT, WRAP_CONTENT, 1.0f),
       l[HorizontalLinearLayout](
-        w[Button] ~>
-          Bg.res(R.drawable.play) ~>
-          lp(32 dp, 32 dp) ~>
-          wire(play) ~>
-          story.map(s ⇒ On.click { playing.update(true); start(s.chapters(0)) }),
-        w[Button] ~>
-          Bg.res(R.drawable.pause) ~>
-          lp(32 dp, 32 dp) ~>
-          wire(pause) ~>
-          story.map(s ⇒ On.click { playing.update(false); stop(); }) ~> hide,
-        w[SeekBar] ~>
-          wire(seekBar) ~>
-          lp(MATCH_PARENT, WRAP_CONTENT)
-      ) ~> padding(left = 16 dp, right = 8 dp, top = 8 dp, bottom = 8 dp)
-    ) ~> wire(layout)
+        w[Button] <~
+          Bg.res(R.drawable.play) <~
+          lp[LinearLayout](32 dp, 32 dp) <~
+          wire(play) <~
+          story.map(s ⇒ On.click(Ui.sequence(Ui(playing.update(true)), start(s.chapters(0))))),
+        w[Button] <~
+          Bg.res(R.drawable.pause) <~
+          lp[LinearLayout](32 dp, 32 dp) <~
+          wire(pause) <~
+          story.map(s ⇒ On.click(Ui.sequence(Ui(playing.update(false)), stop))) <~ hide,
+        w[SeekBar] <~
+          wire(seekBar) <~
+          lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT)
+      ) <~ padding(left = 16 dp, right = 8 dp, top = 8 dp, bottom = 8 dp)
+    ) <~ wire(layout)
   }
 
   var positioned = false
-  override def onStart() {
+  override def onStart() = {
     super.onStart()
 
     if (!positioned) {
       positioned = true
       map.setMapType(GoogleMap.MAP_TYPE_NORMAL)
-      story foreachUi { s ⇒
+      story foreach { s ⇒
         val chapter = s.chapters(0)
-        positionMap(chapter, 0, tiltZoom = true)
-        mapManager.add(chapter)
-        mapManager.updateMan(mapManager.start.get)
+        runUi(
+          positionMap(chapter, 0, tiltZoom = true),
+          Ui(mapManager.add(chapter)),
+          Ui(mapManager.updateMan(mapManager.start.get))
+        )
       }
     }
 
-    story foreachUi { s ⇒
+    story foreach { s ⇒
       val chapter = s.chapters(0)
-      seekBar ~> Tweak[SeekBar] { bar ⇒
-        bar.setMax(bar.getWidth)
-        bar.setOnSeekBarChangeListener(new OnSeekBarChangeListener {
-          def onProgressChanged(bar: SeekBar, position: Int, fromUser: Boolean) {
-            cue.update(1.0 * position / bar.getMax)
-            if (fromUser) {
-              val ts = Math.ceil(cue.now * chapter.duration / ratio.now).toInt
-              positionMap(chapter, ts, animate = false)
-              positionMan(chapter, ts)
+      runUi {
+        seekBar <~ Tweak[SeekBar] { bar ⇒
+          bar.setMax(bar.getWidth)
+          bar.setOnSeekBarChangeListener(new OnSeekBarChangeListener {
+            def onProgressChanged(bar: SeekBar, position: Int, fromUser: Boolean) {
+              cue.update(1.0 * position / bar.getMax)
+              if (fromUser) {
+                val ts = Math.ceil(cue.now * chapter.duration / ratio.now).toInt
+                runUi(
+                  positionMap(chapter, ts, animate = false),
+                  positionMan(chapter, ts)
+                )
+              }
             }
-          }
-          def onStopTrackingTouch(bar: SeekBar) {
-            if (playing.now) start(chapter)
-          }
-          def onStartTrackingTouch(bar: SeekBar) {
-            stop()
-          }
-        })
+            def onStopTrackingTouch(bar: SeekBar) = if (playing.now) getUi(start(chapter))
+            def onStartTrackingTouch(bar: SeekBar) = getUi(stop)
+          })
+        }
       }
     }
   }
 
-  override def onStop() {
+  override def onStop() = {
     super.onStop()
     handler.removeCallbacksAndMessages(null)
   }
 
-  def positionMap(chapter: Chapter, ts: Long, animate: Boolean = true, tiltZoom: Boolean = false) {
+  def positionMap(chapter: Chapter, ts: Long, animate: Boolean = true, tiltZoom: Boolean = false) = Ui {
     val now = chapter.locationAt(ts * ratio.now)
     val bearing = List(3800, 4200).map(t ⇒ now.bearingTo(chapter.locationAt((ts + t) * ratio.now))).sum / 2
     val position = CameraUpdateFactory.newCameraPosition(if (tiltZoom) {
@@ -145,24 +150,27 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     if (animate) map.animateCamera(position) else map.moveCamera(position)
   }
 
-  def positionMan(chapter: Chapter, ts: Long) {
+  def positionMan(chapter: Chapter, ts: Long) = Ui {
     val now = chapter.locationAt(ts * ratio.now)
     mapManager.updateMan(now)
   }
 
-  def stop() {
-    pause ~> hide
-    play ~> show
-    imageView ~> hide
-    handler.removeCallbacksAndMessages(null)
-    layout ~> unImmerse
-  }
+  def stop = Ui.sequence(
+    pause <~ hide,
+    play <~ show,
+    imageView <~ hide,
+    layout <~ unImmerse,
+    Ui(handler.removeCallbacksAndMessages(null))
+  )
 
-  def start(chapter: Chapter) {
-    playBig ~> hide
-    play ~> hide
-    pause ~> show
-    layout ~> immerse
+  def start(chapter: Chapter) = Ui {
+    runUi(
+      playBig <~ hide,
+      play <~ hide,
+      pause <~ show,
+      layout <~ immerse
+    )
+
     val duration = Math.ceil(chapter.duration / ratio.now).toInt
     val from = Math.ceil(cue.now * duration)
     val start = SystemClock.uptimeMillis
@@ -175,16 +183,15 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
       val at = m.timestamp / ratio.now - from
       if (at > 0) m match {
         case TextNote(_, text) ⇒
-          handler.postAtTime(toast(text) ~> fry, start + at.toInt)
+          handler.postAtTime(toast(text) <~ fry, start + at.toInt)
         case beat: Heartbeat ⇒
-          handler.postAtTime(vibrator.vibrate(beat.vibrationPattern(4), -1), start + at.toInt)
+          handler.postAtTime(Ui(vibrator.vibrate(beat.vibrationPattern(4), -1)), start + at.toInt)
         case photo: Photo ⇒
           photos :+= photo
         case _ ⇒
       }
     }
 
-    import DiveFragment._
     // calculate timespans between photos
     val spans = photos.map(_.timestamp / ratio.now).sliding(2).map {
       case Vector(a, b) ⇒ (b - a).toInt
@@ -193,38 +200,43 @@ class DiveFragment extends RouteStoryFragment with FragmentData[Future[Story]] w
     // only show a photo if there’s time to fade it in and out
     (photos zip spans) foreach {
       case (photo, span) if span > 2 * photoFade ⇒
-        handler.postAtTime({
+        handler.postAtTime(Ui {
           photo.bitmap(displaySize.min) foreach { bitmap ⇒
-            imageView ~> Image.bitmap(bitmap) ~@> fadeIn(photoFade)
-            handler.postDelayed(imageView ~@> fadeOut(photoFade), List(span - 2 * photoFade, photoDuration).min)
+            (imageView <~ Image.bitmap(bitmap) <@~ fadeIn(photoFade)).run
+            handler.postDelayed(imageView <@~ fadeOut(photoFade), List(span - 2 * photoFade, photoDuration).min)
           }
         }, start + (photo.timestamp / ratio.now - from).toInt)
       case _ ⇒
     }
 
-    def move() {
-      positionMap(chapter, SystemClock.uptimeMillis - start + from.toInt)
-      handler.postDelayed(move, 500)
+    def move: Ui[Any] = {
+      val ts = SystemClock.uptimeMillis - start + from.toInt
+      Ui.sequence(
+        positionMap(chapter, ts),
+        Ui(handler.postDelayed(move, 500))
+      )
     }
     handler.postAtTime(move, start)
 
-    def walk() {
+    def walk: Ui[Any] = {
       val ts = SystemClock.uptimeMillis - start + from.toInt
-      seekBar ~> seek((ts * seekBar.get.getMax / duration).toInt)
-      positionMan(chapter, ts)
-      if (ts <= duration) handler.postDelayed(walk, 100) else handler.postDelayed(rewind(chapter), 1000)
+      Ui.sequence(
+        seekBar <~ seek((ts * seekBar.get.getMax / duration).toInt),
+        positionMan(chapter, ts),
+        Ui(if (ts <= duration) handler.postDelayed(walk, 100) else handler.postDelayed(rewind(chapter), 1000))
+      )
     }
     handler.postAtTime(walk, start)
   }
 
-  def rewind(chapter: Chapter) {
-    playBig ~> show
-    play ~> show
-    pause ~> hide
-    playing.update(false)
-    seekBar ~> seek(0)
-    stop()
-    positionMap(chapter, 0, tiltZoom = true)
+  def rewind(chapter: Chapter) = Ui.sequence(
+    playBig <~ show,
+    play <~ show,
+    pause <~ hide,
+    seekBar <~ seek(0),
+    Ui(playing.update(false)),
+    stop,
+    positionMap(chapter, 0, tiltZoom = true),
     positionMan(chapter, 0)
-  }
+  )
 }

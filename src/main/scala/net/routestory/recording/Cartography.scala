@@ -8,8 +8,8 @@ import android.view.{ LayoutInflater, ViewGroup }
 import akka.actor.{ ActorLogging, Actor, ActorSystem, Props }
 import com.google.android.gms.maps.{ CameraUpdateFactory, SupportMapFragment }
 import com.google.android.gms.maps.model.{ CameraPosition, LatLng, Marker }
-import org.macroid._
-import org.macroid.FullDsl._
+import macroid._
+import macroid.FullDsl._
 
 import net.routestory.model.Story
 import net.routestory.ui.RouteStoryFragment
@@ -18,9 +18,9 @@ import org.macroid.akkafragments.{ AkkaFragment, FragmentActor }
 
 class CartographyFragment extends RouteStoryFragment with AkkaFragment with IdGeneration {
   lazy val actor = Some(actorSystem.actorSelection("/user/cartographer"))
-  lazy val map = findFrag[SupportMapFragment](Tag.map).get.getMap
+  lazy val map = this.findFrag[SupportMapFragment](Tag.map).get.get.getMap
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     f[SupportMapFragment].framed(Id.map, Tag.map)
   }
 }

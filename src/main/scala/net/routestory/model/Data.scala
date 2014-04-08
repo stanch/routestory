@@ -1,7 +1,7 @@
 package net.routestory.model
 
 import com.google.android.gms.maps.model.LatLng
-import play.api.libs.json.JsValue
+import play.api.libs.json.{ JsObject, JsValue }
 import scala.concurrent.{ Future, ExecutionContext }
 import java.io.File
 import net.routestory.needs.BitmapPool
@@ -37,7 +37,7 @@ object Story {
 
   case class Heartbeat(timestamp: Int, bpm: Int) extends KnownMedia
 
-  case class UnknownMedia(timestamp: Int, `type`: String, raw: JsValue) extends Media
+  case class UnknownMedia(timestamp: Int, `type`: String, raw: JsObject) extends Media
 
   case class Chapter(start: Long, duration: Int, locations: List[Location], media: List[Media]) {
     def locationAt(time: Double): LatLng = {

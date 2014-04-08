@@ -18,10 +18,10 @@ import android.widget._
 
 import akka.pattern.ask
 import akka.util.Timeout
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import org.macroid.util.{ Effector, Thunk }
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
+import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import macroid.util.{ Ui, Effector }
 import rx.{ Rx, Var }
 
 import net.routestory.R
@@ -29,10 +29,10 @@ import net.routestory.recording.{ RecordActivity, Typewriter }
 import net.routestory.ui.{ Effects, RouteStoryFragment }
 import net.routestory.ui.Styles._
 import net.routestory.util.Implicits._
-import org.macroid.{ IdGeneration, Tweak, Transformer, Layout }
+import macroid.{ IdGeneration, Tweak, Transformer, Layout }
 import net.routestory.util.FragmentData
 import akka.actor.{ ActorSystem, ActorRef }
-import org.macroid.viewable.{ FillableViewableAdapter, FillableViewable }
+import macroid.viewable.{ FillableViewableAdapter, FillableViewable }
 import org.macroid.akkafragments.AkkaFragment
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFragment {
@@ -40,12 +40,11 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFra
   lazy val typewriter = actorSystem.actorSelection("/user/typewriter")
   val actor = None
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
-    def clicker(factory: Thunk[DialogFragment], tag: String) = Thunk {
-      factory().show(getChildFragmentManager, tag)
-    }
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
+    def clicker(factory: Ui[DialogFragment], tag: String) =
+      factory.map(_.show(getChildFragmentManager, tag))
 
-    val cameraClicker = Thunk {
+    val cameraClicker = Ui {
       val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
       intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile))
       startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
@@ -61,16 +60,16 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFra
     val adapter = FillableViewableAdapter(buttons)(FillableViewable.tr(
       l[HorizontalLinearLayout](
         w[ImageView],
-        w[TextView] ~> TextSize.large
-      ) ~> padding(top = 12 dp, bottom = 12 dp, left = 8 dp),
-      button ⇒ Transformer {
-        case img: ImageView ⇒ img ~> (tweak(W[ImageView]) ~ (_.setImageResource(button._1)))
-        case txt: TextView ⇒ txt ~> text(button._2)
-        case l @ Layout(_*) ⇒ l ~> ThunkOn.click(button._3)
-      }
-    ))
+        w[TextView] <~ TextSize.large
+      ) <~ padding(top = 12 dp, bottom = 12 dp, left = 8 dp)) { button ⇒
+        Transformer {
+          case img: ImageView ⇒ img <~ Tweak[ImageView](_.setImageResource(button._1))
+          case txt: TextView ⇒ txt <~ text(button._2)
+          case l @ Layout(_*) ⇒ l <~ On.click(button._3)
+        }
+      })
 
-    w[ListView] ~> adaptr(adapter)
+    w[ListView] <~ adaptr(adapter)
   }
 
   override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
@@ -92,17 +91,17 @@ class AddSomething extends DialogFragment with RouteStoryFragment with AkkaFragm
 class AddTextNote extends AddSomething {
   var input = slot[EditText]
 
-  override def onCreateDialog(savedInstanceState: Bundle) = createDialog {
-    w[EditText] ~> Tweak[EditText] { x ⇒
+  override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
+    w[EditText] <~ Tweak[EditText] { x ⇒
       x.setHint(R.string.message_typenotehere)
       x.setMinLines(5)
       x.setGravity(Gravity.TOP)
-    } ~> wire(input)
-  } ~> positiveOk {
+    } <~ wire(input)
+  } <~ positiveOk(Ui {
     Some(input.get.getText.toString).filter(!_.isEmpty).foreach { text ⇒
       typewriter ! Typewriter.TextNote(text)
     }
-  } ~> negativeCancel() ~> create
+  }) <~ negativeCancel(Ui.nop)).create()
 }
 
 class AddVoiceNote extends AddSomething {
@@ -124,7 +123,9 @@ class AddVoiceNote extends AddSomething {
       mMediaRecorder.start()
       mRecording = true
       mRecorded = true
-      mStartStop ~> text("Stop recording")
+      runUi {
+        mStartStop <~ text("Stop recording")
+      }
     } catch {
       case e: Throwable ⇒ e.printStackTrace()
     }
@@ -135,14 +136,16 @@ class AddVoiceNote extends AddSomething {
     mMediaRecorder.release()
     mMediaRecorder = null
     mRecording = false
-    mStartStop ~> text("Click if you want to try again")
+    runUi {
+      mStartStop <~ text("Click if you want to try again")
+    }
   }
 
-  override def onCreateDialog(savedInstanceState: Bundle) = createDialog {
-    w[Button] ~> text("Start recording") ~> wire(mStartStop) ~> On.click {
+  override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
+    w[Button] <~ text("Start recording") <~ wire(mStartStop) <~ On.click(Ui {
       if (!mRecording) start() else stop()
-    }
-  } ~> positiveOk {
+    })
+  } <~ positiveOk(Ui {
     if (mRecording) {
       stop()
     }
@@ -150,11 +153,11 @@ class AddVoiceNote extends AddSomething {
       typewriter ! Typewriter.VoiceNote(new File(mOutputPath))
       //activity.addVoice(mOutputPath)
     }
-  } ~> negativeCancel {
+  }) <~ negativeCancel(Ui {
     if (mRecording) {
       stop()
     }
-  } ~> create
+  })).create()
 }
 
 class AddHeartbeat extends AddSomething {
@@ -173,21 +176,21 @@ class AddHeartbeat extends AddSomething {
     }
   }
 
-  override def onCreateDialog(savedInstanceState: Bundle) = createDialog {
+  override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
     l[VerticalLinearLayout](
-      w[TextView] ~> text(R.string.message_pulsehowto) ~> TextSize.medium,
-      w[TextView] ~> beats.map(b ⇒ text(s"BPM: $b")),
-      w[Button] ~> text("TAP") ~> On.click {
+      w[TextView] <~ text(R.string.message_pulsehowto) <~ TextSize.medium,
+      w[TextView] <~ beats.map(b ⇒ text(s"BPM: $b")),
+      w[Button] <~ text("TAP") <~ On.click(Ui {
         taps.update(System.currentTimeMillis() :: taps().take(4))
-      } ~> (tweak doing { x ⇒
+      }) <~ Tweak[Button] { x ⇒
         x.setHeight(100 dp)
         x.setGravity(Gravity.CENTER)
-      })
+      }
     )
-  } ~> positiveOk {
+  } <~ positiveOk(Ui {
     Some(beats.now).filter(_ > 0).foreach { bpm ⇒
       typewriter ! Typewriter.Heartbeat(bpm)
     }
-  } ~> negativeCancel() ~> create
+  }) <~ negativeCancel(Ui.nop)).create()
 }
 

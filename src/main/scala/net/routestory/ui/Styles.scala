@@ -3,9 +3,9 @@ package net.routestory.ui
 import android.widget.{ ListView, ListAdapter, SeekBar, TextView }
 import android.view.View
 import net.routestory.R
-import org.macroid.{ Tweak, AppContext }
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
+import macroid.{ Tweak, AppContext }
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
 
 object Styles {
   def p8dding(implicit ctx: AppContext) = padding(all = 8 dp)
@@ -19,8 +19,7 @@ object Styles {
   def header(noPadding: Boolean = false)(implicit ctx: AppContext) =
     TextStyle.bold + TextSize.sp(25) + Tweak[TextView] { x ⇒
       x.setTextColor(ctx.get.getResources.getColor(R.color.orange))
-      if (!noPadding) x ~> padding(top = 15 sp)
-    }
+    } + (if (!noPadding) padding(top = 15 sp) else Tweak.blank)
 
   def storyShift(implicit ctx: AppContext) = 10.dp
 

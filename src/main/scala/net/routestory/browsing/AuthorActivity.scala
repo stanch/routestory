@@ -6,17 +6,17 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import android.os.Bundle
 import android.view.ViewGroup.LayoutParams._
-import android.widget.{ ImageView, TextView }
+import android.widget.{ LinearLayout, ImageView, TextView }
 
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.Layouts.VerticalLinearLayout
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
+import macroid.contrib.Layouts.VerticalLinearLayout
 import rx.Var
 
 import net.routestory.model.StoryPreview
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.FragmentDataProvider
-import org.macroid.IdGeneration
+import macroid.IdGeneration
 
 class AuthorActivity extends RouteStoryActivity
   with HazStories
@@ -37,10 +37,10 @@ class AuthorActivity extends RouteStoryActivity
 
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
-    setContentView(drawer(
+    setContentView(getUi(drawer(
       l[VerticalLinearLayout](
-        w[ImageView] ~> lp(100 dp, WRAP_CONTENT) ~> wire(picture) ~> hide,
-        w[TextView] ~> lp(MATCH_PARENT, WRAP_CONTENT) ~> wire(name) ~> TextSize.medium,
+        w[ImageView] <~ lp[LinearLayout](100 dp, WRAP_CONTENT) <~ wire(picture) <~ hide,
+        w[TextView] <~ lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT) <~ wire(name) <~ TextSize.medium,
         getTabs(
           "Stories" → f[StoriesListFragment].pass(
             "emptyText" → "No stories yet...",
@@ -48,14 +48,14 @@ class AuthorActivity extends RouteStoryActivity
           ).factory
         )
       )
-    ))
+    )))
   }
 
   override def onStart() {
     super.onStart()
     async {
       val author = await(app.api.author(id).go)
-      name ~> text(author.name)
+      name <~ text(author.name)
     }
     //if (stories.now.isCompleted) stories.update(fetchStories)
   }

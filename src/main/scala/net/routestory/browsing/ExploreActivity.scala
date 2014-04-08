@@ -5,13 +5,13 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.{ Menu, MenuItem }
 
-import org.macroid.LayoutDsl._
+import macroid.FullDsl._
 import com.google.android.gms.common.{ ConnectionResult, GooglePlayServicesUtil }
 
 import net.routestory.R
 import net.routestory.recording.RecordActivity
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
-import org.macroid.IdGeneration
+import macroid.IdGeneration
 import android.widget.{ ImageView, FrameLayout }
 import android.util.Log
 import net.routestory.util.BitmapUtils
@@ -35,7 +35,7 @@ class ExploreActivity extends RouteStoryActivity with FragmentPaging with IdGene
     bar.setHomeButtonEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     //    setContentView {
-    //      w[ImageView] ~>
+    //      w[ImageView] <~
     //        app.api.RemoteExternalMedia("https://lh4.googleusercontent.com/-WKu4S1JqD14/AAAAAAAAAAI/AAAAAAAAACI/1D1wvUBC_q0/photo.jpg").probe.go.map {
     //          BitmapUtils.decodeFile(_, 300)
     //        }.map {
@@ -50,10 +50,10 @@ class ExploreActivity extends RouteStoryActivity with FragmentPaging with IdGene
     //      case t ⇒ t.printStackTrace(); throw t
     //    }
 
-    setContentView(drawer(getTabs(
+    setContentView(getUi(drawer(getTabs(
       "Latest" → f[LatestStoriesFragment].pass("number" → 10).factory,
       "Popular tags" → f[TagsFragment].factory
-    )))
+    ))))
   }
 
   override def onCreateOptionsMenu(menu: Menu) = {

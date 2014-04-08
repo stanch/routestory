@@ -8,7 +8,7 @@ import java.io.{ FileOutputStream, File }
 import org.apache.commons.io.FileUtils
 import java.nio.{ ByteOrder, ByteBuffer }
 import com.todoroo.aacenc.AACEncoder
-import org.macroid.AppContext
+import macroid.AppContext
 import scala.concurrent.duration._
 import net.routestory.recording.Typewriter
 
@@ -76,7 +76,8 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
 
   when(Off) {
     case Event(SwitchOn, _) ⇒ goto(Idle)
-    case Event(SwitchOff, _) ⇒ sender ! SwitchedOff; stay()
+    case Event(SwitchOff, _) ⇒
+      sender ! SwitchedOff; stay()
     case _ ⇒ stay()
   }
 

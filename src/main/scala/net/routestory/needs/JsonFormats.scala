@@ -12,6 +12,7 @@ import play.api.data.mapping._
 import play.api.libs.functional.FunctionalBuilder
 import scala.concurrent.Future
 import java.io.File
+import play.api.data.mapping.json.Rules
 
 // format: OFF
 
@@ -34,7 +35,7 @@ trait MediaReads extends AuxiliaryFormats { self: Needs ⇒
   val unknownMediaRule = Resolvable.rule[JsValue, UnknownMedia] { __ ⇒
     (__ \ "timestamp").read[Int] and
     (__ \ "type").read[String] and
-    __.read[JsValue]
+    __.read[JsObject]
   }.fmap(x ⇒ x: Resolvable[Media])
 
   val heavyMediaRuleBuilder = { __ : Reader[JsValue] ⇒
@@ -71,9 +72,9 @@ trait MediaWrites extends AuxiliaryFormats {
 
   implicit val locationWrite = Write.gen[Location, JsObject].map(_ + ("type" → JsString("Point")))
 
-  val unknownMediaWrite = Write.zero[JsValue].contramap { x: UnknownMedia ⇒ x.raw }
+  val unknownMediaWrite = Write.zero[JsObject].contramap { x: UnknownMedia ⇒ x.raw }
 
-  def heavyMediaWrite[A <: HeavyMedia] = Write[A, JsValue] { m ⇒
+  def heavyMediaWrite[A <: HeavyMedia] = Write[A, JsObject] { m ⇒
     Json.obj(
       "timestamp" → m.timestamp,
       "url" → m.url
@@ -99,7 +100,7 @@ trait MediaWrites extends AuxiliaryFormats {
       case m @ Heartbeat(_, _) ⇒ (heartbeatWrite.writes(m), "heartbeat")
       case m @ UnknownMedia(_, tp, _) ⇒ (unknownMediaWrite.writes(m), tp)
     }
-    j.as[JsObject] ++ Json.obj("type" → t)
+    j ++ Json.obj("type" → t)
   }
 }
 

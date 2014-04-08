@@ -15,14 +15,14 @@ import android.os.Bundle
 import android.view.{ Menu, MenuItem }
 import android.widget.ProgressBar
 
-import org.macroid.FullDsl._
-import org.macroid.contrib.Layouts.VerticalLinearLayout
+import macroid.FullDsl._
+import macroid.contrib.Layouts.VerticalLinearLayout
 
 import net.routestory.R
 import net.routestory.model._
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util._
-import org.macroid.IdGeneration
+import macroid.IdGeneration
 
 object StoryActivity {
   object NfcIntent {
@@ -75,16 +75,16 @@ class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[
 
     media // start loading
 
-    setContentView(drawer(
+    setContentView(getUi(drawer(
       l[VerticalLinearLayout](
-        activityProgress ~> wire(progress),
+        activityProgress <~ wire(progress),
         getTabs(
           "Dive" → f[DiveFragment].factory,
           "Details" → f[StoryDetailsFragment].factory,
           "Flat view" → f[StoryFlatFragment].factory
         )
       )
-    ))
+    )))
 
     //    Retry.backoff(max = 10)(app.remoteContains(id)) foreachUi { _ ⇒
     //      shareable = true
@@ -93,7 +93,9 @@ class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[
 
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
-    progress ~@> waitProgress(story) ~@> media.map(waitProgress)
+    runUi {
+      progress <@~ waitProgress(story) <@~ media.map(waitProgress)
+    }
 
     story mapUi { s ⇒
       bar.setTitle(s.meta.title.filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))
@@ -101,7 +103,7 @@ class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[
     } onFailureUi {
       case t ⇒
         t.printStackTrace()
-        toast("Failed to load the story") ~> fry
+        runUi(toast("Failed to load the story") <~ fry)
         finish()
     }
   }
@@ -132,7 +134,7 @@ class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[
         val filter = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED)
         val techs = Array(Array(classOf[NdefFormatable].getName, classOf[Ndef].getName))
         nfcAdapter.foreach(_.enableForegroundDispatch(this, intent, Array(filter), techs))
-        toast("Waiting for the tag...") ~> fry // TODO: strings.xml
+        runUi(toast("Waiting for the tag...") <~ fry) // TODO: strings.xml
         true
       case R.id.shareStory ⇒
         val intent = new Intent(Intent.ACTION_SEND)
@@ -164,7 +166,7 @@ class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[
   }
 
   override def onNewIntent(intent: Intent) {
-    toast("Found a tag, writing...") ~> fry
+    runUi(toast("Found a tag, writing...") <~ fry)
     // TODO: strings.xml
     val tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG).asInstanceOf[Tag]
     val uri = ("http://www.routestory.net/" + id.replace("story-", "story/")).getBytes(Charset.forName("US-ASCII"))
@@ -181,7 +183,7 @@ class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[
     } catch {
       case e @ (_: FormatException | _: IOException) ⇒ e.printStackTrace()
     }
-    toast("Done!") ~> fry
+    runUi(toast("Done!") <~ fry)
   }
 
   override def onPause() {

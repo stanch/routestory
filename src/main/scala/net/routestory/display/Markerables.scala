@@ -1,9 +1,9 @@
 package net.routestory.display
 
-import org.macroid.{ Tweak, AppContext, ActivityContext }
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.Layouts.VerticalLinearLayout
+import macroid.{ Tweak, AppContext, ActivityContext }
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
+import macroid.contrib.Layouts.VerticalLinearLayout
 import net.routestory.ui.Styles._
 
 import net.routestory.model.Story
@@ -22,10 +22,11 @@ import net.routestory.R
 import com.google.android.gms.maps.model.LatLng
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.model.MediaOps._
+import macroid.util.Ui
 
 trait Markerable[A] {
   /** Handle marker click */
-  def click(data: A)(implicit ctx: ActivityContext, appCtx: AppContext): Unit
+  def click(data: A)(implicit ctx: ActivityContext, appCtx: AppContext): Ui[Any]
 
   /** Fetch marker icon */
   def icon(data: A, maxSize: Int)(implicit ctx: ActivityContext, appCtx: AppContext): Future[Bitmap]
@@ -51,16 +52,18 @@ class Markerables(displaySize: List[Int], chapter: Story.Chapter) {
   }
 
   implicit object ImageMarkerable extends TimedMarkerable[Story.Image] {
-    def click(data: Story.Image)(implicit ctx: ActivityContext, appCtx: AppContext) = {
+    def click(data: Story.Image)(implicit ctx: ActivityContext, appCtx: AppContext) = Ui {
       data.bitmap(displaySize.max) foreachUi { bitmap ⇒
-        val view = w[ImageView] ~> Image.bitmap(bitmap) ~> Image.adjustBounds ~> lowProfile
-        new PhotoViewAttacher(view).update()
+        val view = w[ImageView] <~ Image.bitmap(bitmap) <~ Image.adjustBounds <~ lowProfile
+        new PhotoViewAttacher(getUi(view)).update()
         // TODO: recycle the bitmap on dismiss?
-        dialog(android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
-          l[FrameLayout](
-            view ~> lp(MATCH_PARENT, MATCH_PARENT, Gravity.CENTER)
-          )
-        } ~> speak
+        getUi {
+          dialog(android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
+            l[FrameLayout](
+              view <~ lp[FrameLayout](MATCH_PARENT, MATCH_PARENT, Gravity.CENTER)
+            )
+          } <~ speak
+        }
       }
     }
     def icon(data: Story.Image, maxSize: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = data.bitmap(maxSize)
@@ -69,7 +72,7 @@ class Markerables(displaySize: List[Int], chapter: Story.Chapter) {
 
   implicit object AudioMarkerable extends TimedMarkerable[Story.Audio] {
     private var mediaPlayer: Option[MediaPlayer] = None
-    def click(data: Story.Audio)(implicit ctx: ActivityContext, appCtx: AppContext) = {
+    def click(data: Story.Audio)(implicit ctx: ActivityContext, appCtx: AppContext) = Ui {
       mediaPlayer = Some(new MediaPlayer)
       data.data foreachUi { file ⇒
         Try {
@@ -96,15 +99,15 @@ class Markerables(displaySize: List[Int], chapter: Story.Chapter) {
   implicit object TextNoteMarkerable extends TimedMarkerable[Story.TextNote] with StockIconMarkerable[Story.TextNote] {
     def click(data: Story.TextNote)(implicit ctx: ActivityContext, appCtx: AppContext) = {
       dialog {
-        w[TextView] ~> text(data.text) ~> TextSize.medium ~> p8dding ~>
+        w[TextView] <~ text(data.text) <~ TextSize.medium <~ p8dding <~
           Tweak[TextView](_.setMaxWidth((displaySize(0) * 0.75).toInt))
-      } ~> speak
+      } <~ speak
     }
     val iconResource = R.drawable.text_note
   }
 
   implicit object HeartbeatMarkerable extends TimedMarkerable[Story.Heartbeat] with StockIconMarkerable[Story.Heartbeat] {
-    def click(data: Story.Heartbeat)(implicit ctx: ActivityContext, appCtx: AppContext) = {
+    def click(data: Story.Heartbeat)(implicit ctx: ActivityContext, appCtx: AppContext) = Ui {
       ctx.get.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator].vibrate(data.vibrationPattern(5), -1)
     }
     val iconResource = R.drawable.heart
@@ -114,14 +117,14 @@ class Markerables(displaySize: List[Int], chapter: Story.Chapter) {
     def click(data: Story.Venue)(implicit ctx: ActivityContext, appCtx: AppContext) = {
       dialog {
         l[VerticalLinearLayout](
-          w[TextView] ~> text(data.name) ~> TextSize.large ~> padding(left = 3 sp),
-          w[Button] ~> text("Open in Foursquare®") ~> On.click {
+          w[TextView] <~ text(data.name) <~ TextSize.large <~ padding(left = 3 sp),
+          w[Button] <~ text("Open in Foursquare®") <~ On.click(Ui {
             val intent = new Intent(Intent.ACTION_VIEW)
             intent.setData(Uri.parse(s"https://foursquare.com/v/${data.id}"))
             ctx.get.startActivityForResult(intent, 0)
-          }
+          })
         )
-      } ~> speak
+      } <~ speak
     }
     val iconResource = R.drawable.foursquare
   }

@@ -11,14 +11,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 
-import org.macroid.LayoutDsl._
+import macroid.FullDsl._
 import rx.Var
 
 import net.routestory.R
 import net.routestory.model.StoryPreview
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.FragmentDataProvider
-import org.macroid.IdGeneration
+import macroid.IdGeneration
 
 object SearchActivity {
   object SearchIntent {
@@ -87,14 +87,14 @@ class SearchActivity extends RouteStoryActivity
 
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
-    setContentView(drawer(getTabs(
+    setContentView(getUi(drawer(getTabs(
       "Results" → f[StoriesListFragment].pass(
         "emptyText" → "Couldn’t find anything :(",
         "errorText" → "Error occured :(",
         "showControls" → true,
         "showReload" → true
       ).factory
-    )))
+    ))))
   }
 
   override def onStart() {

@@ -8,15 +8,18 @@ import android.view.ViewGroup.LayoutParams._
 import android.widget.{ ImageView, LinearLayout, ScrollView, TextView }
 
 import ExecutionContext.Implicits.global
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import macroid.Tweak
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
+import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 
 import net.routestory.R
 import net.routestory.model.Story
 import net.routestory.ui.{ RouteStoryFragment, Styles }
 import net.routestory.util.FragmentData
 import net.routestory.display.StoryPreviewViewable
+import org.apmem.tools.layouts.FlowLayout
+import macroid.util.Ui
 
 class StoryDetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
   lazy val story = getFragmentData
@@ -25,25 +28,23 @@ class StoryDetailsFragment extends RouteStoryFragment with FragmentData[Future[S
   var authorName = slot[TextView]
   var description = slot[TextView]
   var tagStuff = slot[LinearLayout]
-  var tagRows = slot[LinearLayout]
+  var tags = slot[FlowLayout]
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
     l[ScrollView](
       l[VerticalLinearLayout](
-        w[TextView] ~> text("Author") ~> Styles.header(noPadding = true),
-        w[ImageView] ~> lp(100 dp, WRAP_CONTENT) ~> wire(authorPicture),
-        w[TextView] ~> lp(MATCH_PARENT, WRAP_CONTENT) ~> wire(authorName) ~> TextSize.medium,
+        w[TextView] <~ text("Author") <~ Styles.header(noPadding = true),
+        w[ImageView] <~ lp[LinearLayout](100 dp, WRAP_CONTENT) <~ wire(authorPicture),
+        w[TextView] <~ lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT) <~ wire(authorName) <~ TextSize.medium,
 
-        w[TextView] ~> text(R.string.description) ~> Styles.header(),
-        w[TextView] ~> lp(MATCH_PARENT, WRAP_CONTENT) ~> wire(description) ~> TextSize.medium,
+        w[TextView] <~ text(R.string.description) <~ Styles.header(),
+        w[TextView] <~ lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT) <~ wire(description) <~ TextSize.medium,
 
         l[VerticalLinearLayout](
-          w[TextView] ~> text(R.string.tags) ~> Styles.header(),
-          l[HorizontalLinearLayout](
-            l[VerticalLinearLayout]() ~> wire(tagRows)
-          )
-        ) ~> wire(tagStuff)
-      ) ~> padding(left = 8 dp)
+          w[TextView] <~ text(R.string.tags) <~ Styles.header(),
+          l[FlowLayout]() <~ wire(tags)
+        ) <~ wire(tagStuff)
+      ) <~ padding(left = 8 dp)
     )
   }
 
@@ -54,28 +55,31 @@ class StoryDetailsFragment extends RouteStoryFragment with FragmentData[Future[S
       // get screen width
       val width = displaySize(0)
 
-      s.author map { a ⇒
-        authorPicture ~> (tweak doing { x ⇒
-          x.setScaleType(ImageView.ScaleType.FIT_START)
-          x.setAdjustViewBounds(true)
-        })
-        authorName ~> text(a.name)
-        //        a.pictureCache.get foreach {
-        //          picture ⇒ Option(picture).map(b ⇒ authorPicture ~> (_.setImageBitmap(b))).getOrElse(authorPicture ~> hide)
-        //        }
+      val fillAuthor = s.author map { a ⇒
+        Ui.sequence(
+          authorPicture <~ Tweak[ImageView] { x ⇒
+            x.setScaleType(ImageView.ScaleType.FIT_START)
+            x.setAdjustViewBounds(true)
+          },
+          authorName <~ text(a.name)
+        )
       } getOrElse {
-        authorName ~> text("Me")
-        authorPicture ~> hide
+        Ui.sequence(
+          authorName <~ text("Me"),
+          authorPicture <~ hide
+        )
       }
 
       val d = s.meta.description.filter(!_.isEmpty).getOrElse("No description.")
-      description ~> text(d)
+      val fillDescription = description <~ text(d)
 
-      Option(s.meta.tags).filter(!_.isEmpty) map { t ⇒
-        StoryPreviewViewable.fillTags(tagRows, width - 20, t.map((_, None)))
+      val fillTags = Option(s.meta.tags).filter(!_.isEmpty) map { t ⇒
+        tags <~ addViews(t.map(StoryPreviewViewable.tag(_, None)), removeOld = true)
       } getOrElse {
-        tagStuff ~> hide
+        tagStuff <~ hide
       }
+
+      runUi(fillAuthor, fillDescription, fillTags)
     }
   }
 }

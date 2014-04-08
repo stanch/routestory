@@ -6,7 +6,7 @@ import android.graphics.Color
 
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.{ LatLngBounds, Polyline, PolylineOptions }
-import org.macroid.{ AppContext, ActivityContext }
+import macroid.{ AppContext, ActivityContext }
 
 import net.routestory.model.Story.Chapter
 

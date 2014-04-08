@@ -10,9 +10,9 @@ import android.widget._
 import akka.actor._
 import akka.pattern.pipe
 import com.google.android.gms.maps.model.LatLng
-import org.macroid.FullDsl._
-import org.macroid.contrib.ExtraTweaks._
-import org.macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import macroid.FullDsl._
+import macroid.contrib.ExtraTweaks._
+import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import org.needs.{ flickr, foursquare }
 
 import net.routestory.{ RouteStoryApp, R, Apis }
@@ -20,7 +20,7 @@ import net.routestory.recording.Cartographer
 import net.routestory.ui.{ CollapsedListView, RouteStoryFragment }
 import net.routestory.ui.Styles._
 import android.os.Bundle
-import org.macroid.{ Tweak, AppContext, ActivityContext }
+import macroid.{ Tweak, AppContext, ActivityContext }
 import net.routestory.display.Suggestables
 import org.macroid.akkafragments.{ AkkaFragment, FragmentActor }
 
@@ -34,15 +34,15 @@ class SuggestionsFragment extends RouteStoryFragment with AkkaFragment {
   var venues = slot[CollapsedListView[foursquare.Venue]]
   var photos = slot[CollapsedListView[flickr.Photo]]
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = {
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     l[ScrollView](
       l[VerticalLinearLayout](
         new CollapsedListView[foursquare.Venue](
-          w[TextView] ~> TextSize.large ~> p8dding ~> text("Foursquare")
-        ) ~> wire(venues),
+          w[TextView] <~ TextSize.large <~ p8dding <~ text("Foursquare")
+        ) <~ wire(venues),
         new CollapsedListView[flickr.Photo](
-          w[TextView] ~> TextSize.large ~> p8dding ~> text("Flickr")
-        ) ~> wire(photos)
+          w[TextView] <~ TextSize.large <~ p8dding <~ text("Flickr")
+        ) <~ wire(photos)
       )
     )
   }
