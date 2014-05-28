@@ -19,20 +19,20 @@ resolvers ++= Seq(
   "Couchbase" at "http://files.couchbase.com/maven2/",
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases/",
   "Stanch" at "http://dl.bintray.com/stanch/maven",
+  "JTO snapshots" at "https://raw.github.com/jto/mvn-repo/master/snapshots",
   Resolver.sonatypeRepo("snapshots"),
-  Resolver.sonatypeRepo("releases"),
-  Resolver.file("local-play", file("c:/projects/Play20/repository/local"))(Resolver.ivyStylePatterns)
+  Resolver.sonatypeRepo("releases")
 )
 
 libraryDependencies ++= Seq(
-  "org.macroid" %% "macroid" % "2.0.0-20140407",
+  "org.macroid" %% "macroid" % "2.0.0-M1",
   "org.macroid" %% "macroid-viewable" % "1.0.0-SNAPSHOT",
-  "org.macroid" %% "akka-fragments" % "1.0.0-SNAPSHOT",
-  compilerPlugin("org.brianmckenna" %% "wartremover" % "0.9-SNAPSHOT"),
-  "org.brianmckenna" %% "wartremover" % "0.9-SNAPSHOT",
-  "org.needs" %% "needs" % "2.0.0-M3",
-  "org.needs" %% "needs-flickr" % "1.0.0-SNAPSHOT",
-  "org.needs" %% "needs-foursquare" % "1.0.0-SNAPSHOT",
+  "org.macroid" %% "macroid-akka-fragments" % "1.0.0-SNAPSHOT",
+  compilerPlugin("org.brianmckenna" %% "wartremover" % "0.10"),
+  "org.brianmckenna" %% "wartremover" % "0.10",
+  "org.resolvable" %% "resolvable" % "2.0.0-M4",
+  "org.resolvable" %% "resolvable-flickr" % "1.0.0-SNAPSHOT",
+  "org.resolvable" %% "resolvable-foursquare" % "1.0.0-SNAPSHOT",
   "com.scalarx" %% "scalarx" % "0.1" exclude ("com.typesafe.akka", "akka-actor"),
   "com.typesafe.akka" %% "akka-actor" % "2.2.3",
   "org.scala-lang.modules" %% "scala-async" % "0.9.1",
@@ -40,7 +40,9 @@ libraryDependencies ++= Seq(
 )
 
 scalacOptions in (Compile, compile) ++= Seq(
-  "-P:wartremover:cp:" + (dependencyClasspath in Compile).value.files.map(_.toURL.toString).find(_.contains("org.macroid/macroid_")).get,
+  "-P:wartremover:cp:" + (dependencyClasspath in Compile).value
+    .files.map(_.toURL.toString)
+    .find(_.contains("org.macroid/macroid_")).get,
   "-P:wartremover:traverser:macroid.warts.CheckUi"
 )
 

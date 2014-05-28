@@ -14,7 +14,8 @@ import macroid.FullDsl._
 import net.routestory.model.Story
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.display.RouteMapManager
-import org.macroid.akkafragments.{ AkkaFragment, FragmentActor }
+import macroid.akkafragments.{ AkkaFragment, FragmentActor }
+import macroid.util.Ui
 
 class CartographyFragment extends RouteStoryFragment with AkkaFragment with IdGeneration {
   lazy val actor = Some(actorSystem.actorSelection("/user/cartographer"))
@@ -43,20 +44,20 @@ class Cartographer(implicit ctx: ActivityContext, appCtx: AppContext) extends Fr
   lazy val typewriter = context.actorSelection("../typewriter")
 
   def receive = receiveUi andThen {
-    case AttachUi(_) ⇒ withUi { f ⇒
+    case AttachUi(_) ⇒ withUi(f ⇒ Ui {
       mapManager = Some(new RouteMapManager(f.map, f.displaySize)(f.displaySize.min / 8))
-    }
+    })
 
-    case DetachUi ⇒ withUi { f ⇒
+    case DetachUi ⇒ withUi(f ⇒ Ui {
       mapManager.foreach(_.remove())
       mapManager = None
-    }
+    })
 
-    case Update(chapter) ⇒ withUi { f ⇒
+    case Update(chapter) ⇒ withUi(f ⇒ Ui {
       mapManager.foreach(_.add(chapter))
-    }
+    })
 
-    case Location(coords, bearing) ⇒ withUi { f ⇒
+    case Location(coords, bearing) ⇒ withUi(f ⇒ Ui {
       // update the map
       log.debug("Received location")
       last = Some(coords)
@@ -65,7 +66,7 @@ class Cartographer(implicit ctx: ActivityContext, appCtx: AppContext) extends Fr
         CameraPosition.builder(f.map.getCameraPosition).target(coords).tilt(45).zoom(19).bearing(bearing).build()
       })
       typewriter ! Typewriter.Location(coords)
-    }
+    })
 
     case QueryLastLocation ⇒ sender ! last
   }

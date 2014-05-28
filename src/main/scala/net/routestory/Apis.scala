@@ -1,11 +1,11 @@
 package net.routestory
 
-import org.needs.http.AndroidClient
-import org.needs.{ Endpoint, EndpointLogger }
+import resolvable.http.AndroidClient
+import resolvable.{ Endpoint, EndpointLogger }
 import android.util.Log
 import com.loopj.android.http.AsyncHttpClient
-import org.needs.foursquare.FoursquareApi
-import org.needs.flickr.FlickrApi
+import resolvable.foursquare.FoursquareApi
+import resolvable.flickr.FlickrApi
 
 trait Apis { self: RouteStoryApp ⇒
   object endpointLogger extends EndpointLogger {

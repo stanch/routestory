@@ -1,7 +1,7 @@
 package net.routestory.needs
 
 import java.io.File
-import org.needs._
+import resolvable._
 import play.api.data.mapping.json.Rules._
 
 import net.routestory.model._

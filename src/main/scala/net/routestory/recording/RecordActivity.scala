@@ -35,9 +35,9 @@ import macroid.{ Tweak, IdGeneration }
 import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
 import net.routestory.recording.logged.{ Dictaphone, ControlPanelFragment }
 import android.support.v4.view.ViewPager
-import org.needs.Resolvable
+import resolvable.Resolvable
 import net.routestory.browsing.StoryActivity
-import org.macroid.akkafragments.AkkaActivity
+import macroid.akkafragments.AkkaActivity
 import macroid.util.Ui
 import scala.util.control.NonFatal
 

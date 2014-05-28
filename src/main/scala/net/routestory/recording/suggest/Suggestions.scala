@@ -13,7 +13,7 @@ import com.google.android.gms.maps.model.LatLng
 import macroid.FullDsl._
 import macroid.contrib.ExtraTweaks._
 import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import org.needs.{ flickr, foursquare }
+import resolvable.{ flickr, foursquare }
 
 import net.routestory.{ RouteStoryApp, R, Apis }
 import net.routestory.recording.Cartographer
@@ -22,7 +22,8 @@ import net.routestory.ui.Styles._
 import android.os.Bundle
 import macroid.{ Tweak, AppContext, ActivityContext }
 import net.routestory.display.Suggestables
-import org.macroid.akkafragments.{ AkkaFragment, FragmentActor }
+import macroid.akkafragments.{ AkkaFragment, FragmentActor }
+import macroid.util.Ui
 
 class SuggestionsFragment extends RouteStoryFragment with AkkaFragment {
   lazy val actor = Some(actorSystem.actorSelection("/user/suggester"))
@@ -35,15 +36,14 @@ class SuggestionsFragment extends RouteStoryFragment with AkkaFragment {
   var photos = slot[CollapsedListView[flickr.Photo]]
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
-    l[ScrollView](
-      l[VerticalLinearLayout](
-        new CollapsedListView[foursquare.Venue](
-          w[TextView] <~ TextSize.large <~ p8dding <~ text("Foursquare")
-        ) <~ wire(venues),
-        new CollapsedListView[flickr.Photo](
-          w[TextView] <~ TextSize.large <~ p8dding <~ text("Flickr")
-        ) <~ wire(photos)
-      )
+    l[ScrollView]( //      l[VerticalLinearLayout](
+    //        new CollapsedListView[foursquare.Venue](
+    //          w[TextView] <~ TextSize.large <~ p8dding <~ text("Foursquare")
+    //        ) <~ wire(venues),
+    //        new CollapsedListView[flickr.Photo](
+    //          w[TextView] <~ TextSize.large <~ p8dding <~ text("Flickr")
+    //        ) <~ wire(photos)
+    //      )
     )
   }
 }
@@ -78,13 +78,13 @@ class Suggester(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) e
       apis.foursquareApi.nearbyVenues(l.latitude, l.longitude, 100).go.map(Venues) pipeTo self
       apis.flickrApi.nearbyPhotos(l.latitude, l.longitude, 10).go.map(Photos) pipeTo self
 
-    case Venues(venues) ⇒ withUi { f ⇒
+    case Venues(venues) ⇒ withUi(f ⇒ Ui {
       f.venues.get.setData(venues)
-    }
+    })
 
-    case Photos(photos) ⇒ withUi { f ⇒
+    case Photos(photos) ⇒ withUi(f ⇒ Ui {
       f.photos.get.setData(photos)
-    }
+    })
 
     case _ ⇒
   }

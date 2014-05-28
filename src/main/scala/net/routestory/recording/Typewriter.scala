@@ -6,7 +6,7 @@ import macroid.AppContext
 import macroid.UiThreading._
 import macroid.ToastDsl._
 import macroid.Loafs._
-import org.needs.foursquare
+import resolvable.foursquare
 import net.routestory.model.Story
 import net.routestory.Apis
 import java.io.File

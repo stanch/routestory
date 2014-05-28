@@ -2,8 +2,8 @@ package net.routestory.needs
 
 import com.couchbase.lite.Database
 import android.content.Context
-import org.needs.http.HttpClient
-import org.needs.EndpointLogger
+import resolvable.http.HttpClient
+import resolvable.EndpointLogger
 
 trait Shared {
   val couchDb: Database

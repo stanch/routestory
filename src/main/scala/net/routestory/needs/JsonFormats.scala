@@ -1,7 +1,7 @@
 package net.routestory.needs
 
 import com.google.android.gms.maps.model.LatLng
-import org.needs.Resolvable
+import resolvable.Resolvable
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.data.mapping.json.Rules._

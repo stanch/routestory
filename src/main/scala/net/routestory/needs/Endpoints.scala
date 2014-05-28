@@ -7,9 +7,9 @@ import scala.concurrent.{ Future, ExecutionContext, future }
 import android.util.Log
 
 import com.loopj.android.http.AsyncHttpClient
-import org.needs.file.{ FileEndpoint, HttpFileEndpoint, LocalFileEndpoint }
-import org.needs.http.AndroidClient
-import org.needs.json.{ HttpJsonEndpoint, JsonEndpoint }
+import resolvable.file.{ FileEndpoint, HttpFileEndpoint, LocalFileEndpoint }
+import resolvable.http.AndroidClient
+import resolvable.json.{ HttpJsonEndpoint, JsonEndpoint }
 
 import java.util.concurrent.Executors
 
