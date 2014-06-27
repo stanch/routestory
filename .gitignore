@@ -1,0 +1,9 @@
+target/
+.idea
+*.aac
+*.png
+*.jpg
+*.gif
+*.zip
+*.m4a
+local-*
