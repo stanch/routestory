@@ -51,7 +51,12 @@ trait ElementWrites extends AuxiliaryWrites {
 }
 
 object JsonWrites extends ElementWrites {
-  implicit val chapterWrite = Write.gen[Chapter, JsObject]
+  implicit val chapterWrite = To[JsObject] { __ ⇒
+    ((__ \ "start").write[Long] and
+     (__ \ "duration").write[Int] and
+     (__ \ "locations").write[List[Location]] and
+     (__ \ "media").write[List[Element]])(unlift(Chapter.unapply))
+  }
 
   implicit val storyWrite = To[JsObject] { __ ⇒
     ((__ \ "_id").write[String] and

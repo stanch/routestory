@@ -10,7 +10,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.resolvable" %% "resolvable" % "2.0.0-M5",
+  "org.resolvable" %% "resolvable" % "2.0.0-M6",
   "com.javadocmd" % "simplelatlng" % "1.3.0",
   "org.apache.commons" % "commons-io" % "1.3.2",
   "org.scalatest" %% "scalatest" % "2.1.5" % "test",
