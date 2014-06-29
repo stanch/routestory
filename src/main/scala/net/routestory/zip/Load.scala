@@ -14,19 +14,15 @@ import resolvable.{Endpoint, EndpointLogger, Resolvable, Source}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-private[zip] trait Api {
+case class Api(archive: ZipFile, mediaPath: File)
+  extends Endpoints
+  with Needs
+  with JsonRules
+
+trait Endpoints {
   def archive: ZipFile
-  def unpackTo: File
-}
+  def mediaPath: File
 
-private[zip] object Api {
-  def apply(arch: ZipFile, unp: File) = new Api with Endpoints with Needs with JsonRules {
-    def archive = arch
-    def unpackTo = unp
-  }
-}
-
-trait Endpoints { self: Api ⇒
   trait ZipEndpoint extends Endpoint {
     def entry: String
     def data: InputStream ⇒ Data
@@ -43,7 +39,7 @@ trait Endpoints { self: Api ⇒
   }
 
   case class ZipMedia(url: String) extends FileEndpoint with ZipEndpoint {
-    def create = new File(unpackTo.getAbsolutePath + "/" + url)
+    def create = new File(mediaPath.getAbsolutePath + "/" + url)
     val entry = url
     def data: InputStream ⇒ File = { stream ⇒
       IOUtils.copy(stream, new BufferedOutputStream(new FileOutputStream(create)))

@@ -3,12 +3,17 @@ package net.routestory.web
 import java.io.File
 import java.util.concurrent.Executors
 
+import resolvable.EndpointLogger
 import resolvable.file.{FileEndpoint, HttpFileEndpoint, LocalFileEndpoint}
+import resolvable.http.HttpClient
 import resolvable.json.HttpJsonEndpoint
 
 import scala.concurrent.ExecutionContext
 
-trait Endpoints { self: Api ⇒
+trait Endpoints {
+  def httpClient: HttpClient
+  def endpointLogger: EndpointLogger
+  def mediaPath: File
 
   abstract class RouteStoryEndpoint(path: String, query: (String, String)*) extends HttpJsonEndpoint {
     val client = httpClient
