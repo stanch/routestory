@@ -35,8 +35,8 @@ trait ElementWrites extends AuxiliaryWrites {
 
   implicit val metaWrite = Write.gen[Meta, JsObject]
 
-  implicit val mediaWrite = Write[Element, JsObject] { media ⇒
-    val (j, t) = media match {
+  implicit val elementWrite = Write[Element, JsObject] { element ⇒
+    val (j, t) = element match {
       case m @ Sound(_, _, _) ⇒ (soundWrite.writes(m), "sound")
       case m @ VoiceNote(_, _, _) ⇒ (voiceNoteWrite.writes(m), "voice-note")
       case m @ Photo(_, _, _) ⇒ (photoWrite.writes(m), "photo")
