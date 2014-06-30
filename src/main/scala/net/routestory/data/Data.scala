@@ -44,8 +44,6 @@ object Story {
 
   case class Venue(timestamp: Int, id: String, name: String, coordinates: LatLng) extends KnownElement
 
-  case class Heartbeat(timestamp: Int, bpm: Int) extends KnownElement
-
   case class Chapter(start: Long, duration: Int, locations: List[Location], elements: List[Element]) {
     lazy val distance = (locations zip locations.drop(1)).map {
       case (Location(_, ll1), Location(_, ll2)) ⇒ LatLngTool.distance(ll1, ll2, LengthUnit.METER)

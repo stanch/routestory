@@ -32,7 +32,6 @@ trait ElementWrites extends AuxiliaryWrites {
   val photoWrite = mediaElementWrite[Photo]
   val textNoteWrite = Write.gen[TextNote, JsObject]
   val venueWrite = Write.gen[Venue, JsObject]
-  val heartbeatWrite = Write.gen[Heartbeat, JsObject]
 
   implicit val metaWrite = Write.gen[Meta, JsObject]
 
@@ -43,7 +42,6 @@ trait ElementWrites extends AuxiliaryWrites {
       case m @ Photo(_, _, _) ⇒ (photoWrite.writes(m), "photo")
       case m @ TextNote(_, _) ⇒ (textNoteWrite.writes(m), "text-note")
       case m @ Venue(_, _, _, _) ⇒ (venueWrite.writes(m), "venue")
-      case m @ Heartbeat(_, _) ⇒ (heartbeatWrite.writes(m), "heartbeat")
       case m @ UnknownElement(_, tp, _) ⇒ (unknownElementWrite.writes(m), tp)
     }
     j ++ Json.obj("type" → t)

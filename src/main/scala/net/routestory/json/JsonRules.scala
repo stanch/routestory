@@ -46,7 +46,6 @@ trait ElementRules extends AuxiliaryRules {
   val photoRule = elementTypeRule("photo")(Resolvable.rule[JsValue, Photo](mediaElementRuleBuilder))
   val textNoteRule = elementTypeRule("text-note")(Resolvable.pureRule(Rule.gen[JsValue, TextNote]))
   val venueRule = elementTypeRule("venue")(Resolvable.pureRule(Rule.gen[JsValue, Venue]))
-  val heartbeatRule = elementTypeRule("heartbeat")(Resolvable.pureRule(Rule.gen[JsValue, Heartbeat]))
 
   implicit val elementRule =
     soundRule orElse
@@ -54,7 +53,6 @@ trait ElementRules extends AuxiliaryRules {
     photoRule orElse
     textNoteRule orElse
     venueRule orElse
-    heartbeatRule orElse
     unknownElementRule
 
   implicit val metaRule = Rule.gen[JsValue, Meta]
