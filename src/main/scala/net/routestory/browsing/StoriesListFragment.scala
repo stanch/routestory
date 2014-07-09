@@ -1,5 +1,7 @@
 package net.routestory.browsing
 
+import net.routestory.data.StoryPreview
+
 import scala.async.Async.{ async, await }
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,10 +19,9 @@ import macroid.{ Tweak, ActivityContext, AppContext }
 import macroid.contrib.Layouts.HorizontalLinearLayout
 
 import net.routestory.R
-import net.routestory.model.StoryPreview
-import net.routestory.ui.RouteStoryFragment
+import net.routestory.ui.{ Styles, RouteStoryFragment }
 import macroid.viewable.FillableViewableAdapter
-import net.routestory.display.StoryPreviewViewable
+import net.routestory.viewable.StoryPreviewViewable
 import macroid.util.Ui
 
 class StoriesListFragment extends ListFragment
@@ -43,24 +44,20 @@ class StoriesListFragment extends ListFragment
   var nextButton = slot[Button]
   var prevButton = slot[Button]
 
-  implicit lazy val viewable = new StoryPreviewViewable(displaySize(1))
+  implicit lazy val viewable = StoryPreviewViewable
   var adapter: Option[FillableViewableAdapter[StoryPreview]] = None
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
-    val view = super.onCreateView(inflater, container, savedInstanceState) <~ Bg.res(R.drawable.caspa)
-    val list = view.find[ListView](android.R.id.list) <~ Tweak[ListView](_.setDivider(null))
-    if (showControls) {
-      runUi(for {
-        footer ← l[HorizontalLinearLayout](
-          w[Button] <~ text("Prev") <~ wire(prevButton) <~ On.click(Ui(storyteller.prev())),
-          w[Button] <~ text("Next") <~ wire(nextButton) <~ On.click(Ui(storyteller.next()))
-        ) <~ Tweak[HorizontalLinearLayout](_.setGravity(Gravity.CENTER_HORIZONTAL))
-        _ ← list <~ Tweak[ListView](_.addFooterView(footer))
-        _ ← prevButton <~ enable(storyteller.hasPrev)
-        _ ← nextButton <~ enable(storyteller.hasNext)
-      } yield ())
-    }
-    view
+    val view = super.onCreateView(inflater, container, savedInstanceState)
+    val list = view.find[ListView](android.R.id.list) <~ Styles.noDivider
+    val withFooter = if (showControls) {
+      val footer = l[HorizontalLinearLayout](
+        w[Button] <~ text("Prev") <~ wire(prevButton) <~ On.click(Ui(storyteller.prev())) <~ enable(storyteller.hasPrev),
+        w[Button] <~ text("Next") <~ wire(nextButton) <~ On.click(Ui(storyteller.next())) <~ enable(storyteller.hasNext)
+      ) <~ Tweak[HorizontalLinearLayout](_.setGravity(Gravity.CENTER_HORIZONTAL))
+      footer.flatMap(f ⇒ list <~ Tweak[ListView](_.addFooterView(f)))
+    } else list
+    withFooter ~ Ui(view)
   }
 
   override def onStart() {
@@ -82,7 +79,7 @@ class StoriesListFragment extends ListFragment
     } recoverUi {
       case t if !t.isInstanceOf[UninitializedError] ⇒ t.printStackTrace(); setEmptyText(errorText); Nil
     })
-    Ui.sequence(
+    runUi(
       Ui {
         adapter map { a ⇒
           a.clear()
@@ -97,6 +94,6 @@ class StoriesListFragment extends ListFragment
       },
       prevButton <~ enable(storyteller.hasPrev),
       nextButton <~ enable(storyteller.hasNext)
-    ).run
+    )
   }
 }

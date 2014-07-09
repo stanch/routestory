@@ -5,8 +5,8 @@
     <color name="dark">#101010</color>
     <color name="drawer">#f0141414</color>
 
-    <style name="AppTheme" parent="@style/Theme.Story">
-    	<item name="android:windowBackground">@color/dark</item>
+    <style name="AppTheme" parent="@android:style/Theme.Holo.Light.DarkActionBar">
+
     </style>
 
 </resources>

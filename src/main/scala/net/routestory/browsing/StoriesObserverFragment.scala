@@ -1,13 +1,10 @@
 package net.routestory.browsing
 
-import scala.concurrent.Future
-
 import android.support.v4.app.Fragment
-
+import net.routestory.data.StoryPreview
 import rx.{ Obs, Rx }
 
-import net.routestory.model.StoryPreview
-import net.routestory.util.FragmentData
+import scala.concurrent.Future
 
 trait HazStories {
   val stories: Rx[Future[List[StoryPreview]]]
@@ -17,8 +14,8 @@ trait HazStories {
   def hasPrev = false
 }
 
-trait StoriesObserverFragment extends FragmentData[HazStories] { self: Fragment ⇒
-  lazy val storyteller = getFragmentData
+trait StoriesObserverFragment { self: Fragment ⇒
+  lazy val storyteller: HazStories = null
   lazy val stories = storyteller.stories
   var observer: Option[Obs] = None
 

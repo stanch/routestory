@@ -9,11 +9,17 @@ net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 version := "1.0"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.10.4"
 
 platformTarget in Android := "android-19"
 
 compileOrder := CompileOrder.JavaThenScala
+
+run <<= run in Android
+
+lazy val model = RootProject(file("../model"))
+
+lazy val root = Project("root", file(".")).dependsOn(model)
 
 resolvers ++= Seq(
   "Couchbase" at "http://files.couchbase.com/maven2/",
@@ -25,12 +31,12 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.macroid" %% "macroid" % "2.0.0-M1",
+  "org.macroid" %% "macroid" % "2.0.0-M2",
   "org.macroid" %% "macroid-viewable" % "1.0.0-SNAPSHOT",
-  "org.macroid" %% "macroid-akka-fragments" % "1.0.0-SNAPSHOT",
+  "org.macroid" %% "macroid-akka-fragments" % "2.0.0-M2",
   compilerPlugin("org.brianmckenna" %% "wartremover" % "0.10"),
   "org.brianmckenna" %% "wartremover" % "0.10",
-  "org.resolvable" %% "resolvable" % "2.0.0-M4",
+  "org.resolvable" %% "resolvable" % "2.0.0-M6",
   "org.resolvable" %% "resolvable-flickr" % "1.0.0-SNAPSHOT",
   "org.resolvable" %% "resolvable-foursquare" % "1.0.0-SNAPSHOT",
   "com.scalarx" %% "scalarx" % "0.1" exclude ("com.typesafe.akka", "akka-actor"),
@@ -50,11 +56,12 @@ scalacOptions in (Compile, compile) ++= Seq(
 libraryDependencies ++= Seq(
   "com.loopj.android" % "android-async-http" % "1.4.4",
   "com.android.support" % "support-v13" % "19.1.0",
-  "com.github.chrisbanes.photoview" % "library" % "1.2.1",
-  "com.couchbase.lite" %% "couchbase-lite-android-core" % "1.0.0-SNAPSHOT",
-  //aarlib("com.couchbase.cblite" % "CBLite" % "1.0.0-beta"),
+  "com.github.chrisbanes.photoview" % "library" % "1.2.2",
+  aar("com.android.support" % "cardview-v7" % "21.0.0-rc1"),
+  aar("com.couchbase.lite" % "couchbase-lite-android" % "1.0.0"),
   aar("com.google.android.gms" % "play-services" % "4.0.30"),
   aar("org.apmem.tools" % "layouts" % "1.0"),
+  aar("com.etsy.android.grid" % "library" % "1.0.5"),
   apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4")
 )
 
@@ -66,17 +73,22 @@ apkbuildExcludes in Android ++= Seq(
   "META-INF/LICENSE.txt",
   "META-INF/LICENSE",
   "META-INF/NOTICE.txt",
-  "META-INF/NOTICE"
+  "META-INF/NOTICE",
+  "META-INF/ASL2.0"
 )
 
-dexMaxHeap in Android := "2000m"
+dexMaxHeap in Android := "3000m"
+
+debugIncludesTests in Android := false
 
 proguardScala in Android := true
 
-proguardCache in Android ++= Seq(
-  ProguardCache("akka.actor") % "com.typesafe.akka",
-  ProguardCache("android.support.v4") % "com.android.support"
-)
+//proguardCache in Android ++= Seq(
+//  ProguardCache("akka.actor") % "com.typesafe.akka",
+//  ProguardCache("android.support.v4") % "com.android.support"
+//)
+
+proguardCache in Android := Seq.empty
 
 proguardOptions in Android ++= Seq(
   "-ignorewarnings",
@@ -84,13 +96,15 @@ proguardOptions in Android ++= Seq(
   "-keep class scala.reflect.ScalaSignature",
   "-keep class scala.Function0",
   "-keep class scala.Function1",
+  "-keep class scala.collection.Set.hashCode { *; }",
   "-keepattributes *Annotation*,EnclosingMethod",
   "-keep public enum * { public static **[] values(); public static ** valueOf(java.lang.String); }",
   "-keepnames class com.codehaus.jackson.** { *; }",
   "-keepnames class com.fasterxml.jackson.** { *; }",
-  "-keep class com.couchbase.cblite.router.CBLRouter { *; }",
   "-keep class com.couchbase.touchdb.TDCollateJSON { *; }",
-  "-keepclasseswithmembers class * { native <methods>; }"
+  "-keepclasseswithmembers class * { native <methods>; }",
+  "-keep class com.couchbase.lite.android.AndroidLogger { *; }",
+  "-keep class com.couchbase.lite.android.AndroidSQLiteStorageEngine { *; }"
 )
 
 // play services
@@ -116,6 +130,6 @@ proguardOptions in Android ++= Seq(
   "-keep class akka.actor.LocalActorRefProvider$SystemGuardian { *; }",
   "-keep class akka.dispatch.UnboundedMailbox { *; }",
   "-keep class akka.actor.DefaultSupervisorStrategy { *; }",
-  "-keep class org.macroid.akkafragments.AkkaAndroidLogger { *; }",
+  "-keep class macroid.akkafragments.AkkaAndroidLogger { *; }",
   "-keep class akka.event.Logging$LogExt { *; }"
 )

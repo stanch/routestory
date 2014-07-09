@@ -6,11 +6,11 @@ import macroid.AppContext
 import macroid.UiThreading._
 import macroid.ToastDsl._
 import macroid.Loafs._
+import net.routestory.data.Story
 import resolvable.foursquare
-import net.routestory.model.Story
-import net.routestory.Apis
 import java.io.File
 import scala.concurrent.Future
+import net.routestory.util.Implicits._
 
 object Typewriter {
   case class Location(coords: LatLng)
@@ -33,41 +33,35 @@ class Typewriter(implicit ctx: AppContext) extends Actor {
   def cartographer = context.actorSelection("../cartographer")
   def ts = (System.currentTimeMillis / 1000L - chapter.start).toInt
   var chapter = Story.Chapter(System.currentTimeMillis / 1000L, 0, Nil, Nil)
-  def addMedia(m: Story.Media) = chapter = chapter.copy(media = m :: chapter.media)
+  def addElement(m: Story.Element) = chapter = chapter.copy(elements = m :: chapter.elements)
 
   val addingStuff: Receive = {
     case Photo(file) ⇒
-      addMedia(Story.Photo(ts, file.getAbsolutePath, Future.successful(file)))
+      addElement(Story.Photo(ts, file.getAbsolutePath, Future.successful(file)))
       runUi {
         toast("Added a photo!") <~ fry
       }
 
     case Sound(file) ⇒
-      addMedia(Story.Sound(ts, file.getAbsolutePath, Future.successful(file)))
+      addElement(Story.Sound(ts, file.getAbsolutePath, Future.successful(file)))
       runUi {
         toast("Added background sound!") <~ fry
       }
 
     case TextNote(text) ⇒
-      addMedia(Story.TextNote(ts, text))
+      addElement(Story.TextNote(ts, text))
       runUi {
         toast("Added a text note!") <~ fry
       }
 
     case VoiceNote(file) ⇒
-      addMedia(Story.VoiceNote(ts, file.getAbsolutePath, Future.successful(file)))
+      addElement(Story.VoiceNote(ts, file.getAbsolutePath, Future.successful(file)))
       runUi {
         toast("Added a voice note!") <~ fry
       }
 
-    case Heartbeat(bpm) ⇒
-      addMedia(Story.Heartbeat(ts, bpm))
-      runUi {
-        toast("Added heartbeat!") <~ fry
-      }
-
     case foursquare.Venue(id, name, lat, lng) ⇒
-      addMedia(Story.Venue(ts, id, name, new LatLng(lat, lng)))
+      addElement(Story.Venue(ts, id, name, new LatLng(lat, lng)))
       runUi {
         toast("Added a venue!") <~ fry
       }

@@ -1,7 +1,10 @@
 package net.routestory.ui
 
-import android.widget.{ ListView, ListAdapter, SeekBar, TextView }
-import android.view.View
+import android.graphics.Color
+import android.support.v7.widget.CardView
+import android.view.ViewGroup.LayoutParams._
+import android.widget._
+import android.view.{ ViewGroup, View }
 import net.routestory.R
 import macroid.{ Tweak, AppContext }
 import macroid.FullDsl._
@@ -10,7 +13,15 @@ import macroid.contrib.ExtraTweaks._
 object Styles {
   def p8dding(implicit ctx: AppContext) = padding(all = 8 dp)
 
-  def measure = Tweak[View](_.measure(0, 0))
+  val wrapContent = lp[ViewGroup](WRAP_CONTENT, WRAP_CONTENT)
+  val matchParent = lp[ViewGroup](MATCH_PARENT, MATCH_PARENT)
+
+  val noDivider = Tweak[ListView] { x ⇒
+    x.setDividerHeight(0)
+    x.setDivider(null)
+  }
+
+  val card = Tweak[CardView](_.setRadius(4))
 
   def seek(p: Int) = Tweak[SeekBar](_.setProgress(p))
 
@@ -21,15 +32,12 @@ object Styles {
       x.setTextColor(ctx.get.getResources.getColor(R.color.orange))
     } + (if (!noPadding) padding(top = 15 sp) else Tweak.blank)
 
-  def storyShift(implicit ctx: AppContext) = 10.dp
-
   def title(implicit ctx: AppContext) =
-    TextSize.large + TextStyle.bold + Bg.res(R.color.aquadark) +
-      padding(left = storyShift, top = 3 sp, bottom = 3 sp, right = 5 sp)
+    TextSize.sp(30) + TextStyle.bold + Tweak[TextView](_.setTextColor(ctx.get.getResources.getColor(R.color.aquadark)))
 
-  def tag(implicit ctx: AppContext) = TextSize.medium + TextFace.serif + TextStyle.italic
+  val medium = TextSize.sp(18)
 
-  def caption(implicit ctx: AppContext) = TextSize.medium + TextStyle.italic + padding(left = storyShift, right = 4 sp)
+  def tag(implicit ctx: AppContext) = medium + TextFace.serif + TextStyle.italic + padding(right = 8 dp)
 
   val lowProfile = Tweak[View](_.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE))
 

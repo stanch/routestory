@@ -1,5 +1,8 @@
 package net.routestory.recording
 
+import net.routestory.data.Story
+import net.routestory.maps.RouteMapManager
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import android.os.Bundle
@@ -11,9 +14,7 @@ import com.google.android.gms.maps.model.{ CameraPosition, LatLng, Marker }
 import macroid._
 import macroid.FullDsl._
 
-import net.routestory.model.Story
 import net.routestory.ui.RouteStoryFragment
-import net.routestory.display.RouteMapManager
 import macroid.akkafragments.{ AkkaFragment, FragmentActor }
 import macroid.util.Ui
 

@@ -1,26 +1,22 @@
 package net.routestory.browsing
 
-import scala.async.Async._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
 import android.os.Bundle
 import android.view.ViewGroup.LayoutParams._
-import android.widget.{ LinearLayout, ImageView, TextView }
-
+import android.widget.{ ImageView, LinearLayout, TextView }
 import macroid.FullDsl._
+import macroid.IdGeneration
 import macroid.contrib.ExtraTweaks._
 import macroid.contrib.Layouts.VerticalLinearLayout
+import net.routestory.data.StoryPreview
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import rx.Var
 
-import net.routestory.model.StoryPreview
-import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
-import net.routestory.util.FragmentDataProvider
-import macroid.IdGeneration
+import scala.async.Async._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class AuthorActivity extends RouteStoryActivity
   with HazStories
-  with FragmentDataProvider[HazStories]
   with FragmentPaging
   with IdGeneration {
 
@@ -54,7 +50,7 @@ class AuthorActivity extends RouteStoryActivity
   override def onStart() {
     super.onStart()
     async {
-      val author = await(app.api.author(id).go)
+      val author = await(app.hybridApi.author(id).go)
       name <~ text(author.name)
     }
     //if (stories.now.isCompleted) stories.update(fetchStories)

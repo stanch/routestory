@@ -1,44 +1,39 @@
 package net.routestory.recording
 
-import scala.async.Async._
-import scala.concurrent.{ Await, Promise }
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.util.Try
-
-import android.app.AlertDialog
+import akka.actor.ActorRef
+import akka.pattern.ask
+import akka.util.Timeout
 import android.content.Intent
 import android.location.{ Location ⇒ AndroidLocation }
 import android.os.Bundle
+import android.support.v4.view.ViewPager
 import android.view.{ KeyEvent, Menu, MenuItem }
-import android.view.ViewGroup.LayoutParams._
-import android.widget.{ Button, LinearLayout, ProgressBar }
-
-import akka.actor.{ ActorRef, ActorSystem, Props }
-import akka.pattern.ask
-import akka.util.Timeout
+import android.widget.ProgressBar
 import com.google.android.gms.common._
 import com.google.android.gms.location.{ LocationClient, LocationListener, LocationRequest }
 import macroid.FullDsl._
-import macroid.contrib.Layouts.VerticalLinearLayout
-import play.api.libs.json.{ JsValue, Json, JsObject }
-import play.api.data.mapping.{ From, To }
-
-import net.routestory.R
-import net.routestory.model.Story
-import net.routestory.needs.SavingFormats._
-import net.routestory.recording.manual.AddMediaFragment
-import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
-import net.routestory.util.Shortuuid
-import net.routestory.util.Implicits._
-import macroid.{ Tweak, IdGeneration }
-import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
-import net.routestory.recording.logged.{ Dictaphone, ControlPanelFragment }
-import android.support.v4.view.ViewPager
-import resolvable.Resolvable
-import net.routestory.browsing.StoryActivity
 import macroid.akkafragments.AkkaActivity
+import macroid.contrib.Layouts.VerticalLinearLayout
 import macroid.util.Ui
+import macroid.{ IdGeneration, Tweak }
+import net.routestory.R
+import net.routestory.browsing.StoryActivity
+import net.routestory.data.Story
+import net.routestory.recording.logged.{ ControlPanelFragment, Dictaphone }
+import net.routestory.recording.manual.AddMediaFragment
+import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import net.routestory.util.Implicits._
+import net.routestory.util.Shortuuid
+import play.api.data.mapping.{ From, To }
+import play.api.libs.json.{ JsObject, JsValue, Json }
+import resolvable.Resolvable
+
+import scala.async.Async._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{ Await, Promise }
+import scala.util.Try
 import scala.util.control.NonFatal
 
 object RecordActivity {
@@ -107,7 +102,7 @@ class RecordActivity extends RouteStoryActivity
       l[VerticalLinearLayout](
         activityProgress <~
           wire(progress) <~
-          showProgress(firstLocationPromise.future),
+          waitProgress(firstLocationPromise.future),
         getTabs(
           "Add stuff" → f[AddMediaFragment].factory,
           "Map" → f[CartographyFragment].factory,
@@ -123,7 +118,7 @@ class RecordActivity extends RouteStoryActivity
 
     // restore the chapter or create a new one
     Option(savedInstanceState).filter(_.containsKey("savedChapter")).map(_.getString("savedChapter")).flatMap { json ⇒
-      From[JsValue, Resolvable[Story.Chapter]](Json.parse(json))(app.api.chapterRule).asOpt
+      From[JsValue, Resolvable[Story.Chapter]](Json.parse(json))(app.hybridApi.chapterRule).asOpt
     } map { chapter ⇒
       chapter.go.foreach(c ⇒ typewriter ! Typewriter.Restore(c))
     } getOrElse {
@@ -149,6 +144,7 @@ class RecordActivity extends RouteStoryActivity
   }
 
   override def onSaveInstanceState(outState: Bundle) = {
+    import net.routestory.json.JsonWrites._
     implicit val timeout = Timeout(5 seconds)
     val chapter = Await.result((typewriter ? Typewriter.Backup).mapTo[Story.Chapter], 5 seconds)
     val json = To[Story.Chapter, JsObject](chapter).toString()
@@ -159,12 +155,12 @@ class RecordActivity extends RouteStoryActivity
   def giveUp = Ui(finish())
 
   def createNew = {
-    progress <@~ waitProgress(async {
+    progress <~~ waitProgress(async {
       implicit val timeout = Timeout(5 seconds)
       val id = Shortuuid.make("story")
       val chapter = await((typewriter ? Typewriter.Backup).mapTo[Story.Chapter])
       val story = Story(id, Story.Meta(None, None), List(chapter), None)
-      app.createStory(story)
+      // TODO: app.createStory(story)
       val intent = new Intent(this, classOf[StoryActivity])
       intent.putExtra("id", id)
       intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)

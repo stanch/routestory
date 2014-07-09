@@ -1,28 +1,23 @@
 package net.routestory.browsing
 
-import java.io.IOException
-import java.nio.charset.Charset
-
-import scala.concurrent._
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import android.app.PendingIntent
-import android.content.{ Intent, IntentFilter }
+import akka.actor._
+import android.content.Intent
 import android.net.Uri
-import android.nfc.{ FormatException, NdefMessage, NdefRecord, NfcAdapter, Tag }
-import android.nfc.tech.{ Ndef, NdefFormatable }
+import android.nfc.{ NdefMessage, NfcAdapter }
 import android.os.Bundle
-import android.view.{ Menu, MenuItem }
-import android.widget.ProgressBar
-
+import android.view.ViewGroup.LayoutParams._
+import android.widget.{ LinearLayout, ProgressBar }
 import macroid.FullDsl._
-import macroid.contrib.Layouts.VerticalLinearLayout
-
-import net.routestory.R
-import net.routestory.model._
-import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
-import net.routestory.util._
 import macroid.IdGeneration
+import macroid.akkafragments.AkkaActivity
+import net.routestory.R
+import net.routestory.data.Story
+import net.routestory.data.Clustering
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import akka.pattern.pipe
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object StoryActivity {
   object NfcIntent {
@@ -42,8 +37,16 @@ object StoryActivity {
   }
 }
 
-class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[Story]] with FragmentPaging with IdGeneration {
-  import StoryActivity._
+class StoryActivity extends RouteStoryActivity with AkkaActivity with FragmentPaging with IdGeneration {
+  import net.routestory.browsing.StoryActivity._
+
+  val actorSystemName = "StoryActorSystem"
+  lazy val coordinator = actorSystem.actorOf(Coordinator.props(this), "coordinator")
+  lazy val timeliner = actorSystem.actorOf(Timeliner.props, "timeliner")
+  //lazy val viewer = actorSystem.actorOf(Viewer.props, "viewer")
+  val viewer = new Viewer2
+  lazy val diver = actorSystem.actorOf(Diver.props, "diver")
+  lazy val astronaut = actorSystem.actorOf(Astronaut.props, "astronaut")
 
   private lazy val id = getIntent match {
     case NfcIntent(uri) ⇒
@@ -56,50 +59,48 @@ class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[
       finish(); ""
   }
 
-  lazy val story = app.api.story(id).go
+  lazy val story = app.hybridApi.story(id).go
   lazy val media = story map { s ⇒
-    s.chapters(0).media flatMap {
-      case m: Story.HeavyMedia ⇒ m.data :: Nil
+    s.chapters(0).elements flatMap {
+      case m: Story.MediaElement ⇒ m.data :: Nil
       case _ ⇒ Nil
     }
   }
 
-  def getFragmentData(tag: String) = story
-
   var progress = slot[ProgressBar]
-  var shareable = false
   lazy val nfcAdapter: Option[NfcAdapter] = Option(NfcAdapter.getDefaultAdapter(getApplicationContext))
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
 
     media // start loading
+    (coordinator, timeliner, viewer, diver, astronaut) // start actors
 
     setContentView(getUi(drawer(
-      l[VerticalLinearLayout](
+      l[LinearLayout](
         activityProgress <~ wire(progress),
-        getTabs(
-          "Dive" → f[DiveFragment].factory,
-          "Details" → f[StoryDetailsFragment].factory,
-          "Flat view" → f[StoryFlatFragment].factory
-        )
+        //getTabs(
+        //"Dive" → f[DiveFragment].factory,
+        //"Details" → f[StoryDetailsFragment].factory,
+        //"Space" → f[SpaceFragment].factory
+        //) <~
+        //  lp[LinearLayout](MATCH_PARENT, 0, 2.0f),
+
+        f[StoryElementFragment].framed(Id.preview, Tag.preview) // <~
+      //lp[LinearLayout](MATCH_PARENT, 0, 1.0f)
       )
     )))
-
-    //    Retry.backoff(max = 10)(app.remoteContains(id)) foreachUi { _ ⇒
-    //      shareable = true
-    //      invalidateOptionsMenu()
-    //    }
 
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     runUi {
-      progress <@~ waitProgress(story) <@~ media.map(waitProgress)
+      progress <~~ waitProgress(story) <~~ media.map(waitProgress)
     }
 
     story mapUi { s ⇒
       bar.setTitle(s.meta.title.filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))
       bar.setSubtitle("by " + s.author.map(_.name).getOrElse("me"))
+      coordinator ! Coordinator.UpdateChapter(s.chapters(0))
     } onFailureUi {
       case t ⇒
         t.printStackTrace()
@@ -107,87 +108,58 @@ class StoryActivity extends RouteStoryActivity with FragmentDataProvider[Future[
         finish()
     }
   }
+}
 
-  override def onCreateOptionsMenu(menu: Menu): Boolean = {
-    getMenuInflater.inflate(R.menu.activity_display, menu)
-    if (nfcAdapter.isEmpty) {
-      menu.findItem(R.id.storeNfc).setEnabled(false)
-    }
-    //    app.localContains(id) foreachUi {
-    //      case false ⇒ menu.findItem(R.id.deleteStory).setVisible(false)
-    //      case true ⇒
-    //    }
-    true
-  }
+class Coor
 
-  override def onPrepareOptionsMenu(menu: Menu): Boolean = {
-    menu.findItem(R.id.shareStory).setEnabled(shareable)
-    menu.findItem(R.id.storeNfc).setEnabled(nfcAdapter.isDefined && shareable)
-    true
-  }
+object Coordinator {
+  case class UpdateChapter(chapter: Story.Chapter)
+  case class UpdateTree(chapter: Story.Chapter, tree: Option[Clustering.Tree])
+  case class UpdateCue(chapter: Story.Chapter, cue: Int)
+  case object Remind
 
-  override def onOptionsItemSelected(item: MenuItem): Boolean = {
-    super.onOptionsItemSelected(item)
-    item.getItemId match {
-      case R.id.storeNfc ⇒
-        val intent = PendingIntent.getActivity(this, 0, new Intent(this, classOf[StoryActivity]).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0)
-        val filter = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED)
-        val techs = Array(Array(classOf[NdefFormatable].getName, classOf[Ndef].getName))
-        nfcAdapter.foreach(_.enableForegroundDispatch(this, intent, Array(filter), techs))
-        runUi(toast("Waiting for the tag...") <~ fry) // TODO: strings.xml
-        true
-      case R.id.shareStory ⇒
-        val intent = new Intent(Intent.ACTION_SEND)
-          .setType("text/plain")
-          .putExtra(Intent.EXTRA_SUBJECT, getResources.getString(R.string.share_subject))
-          .putExtra(
-            Intent.EXTRA_TEXT,
-            getResources.getText(R.string.share_body) + " http://www.routestory.net/" + id.replace("-", "/")
-          )
-        startActivity(Intent.createChooser(intent, getResources.getString(R.string.share_chooser)))
-        true
-      //      case R.id.deleteStory ⇒
-      //        new AlertDialog.Builder(this) {
-      //          setMessage(R.string.message_deletestory)
-      //          setPositiveButton(android.R.string.yes, async {
-      //            val s = await(story)
-      //            await(app.deleteStory(s))
-      //            app.requestSync
-      //            finish()
-      //            val intent = new Intent(ctx, classOf[ExploreActivity]).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-      //            startActivity(intent)
-      //          })
-      //          setNegativeButton(android.R.string.no, ())
-      //        }.create().show()
-      //        true
-      case android.R.id.home ⇒ super[RouteStoryActivity].onOptionsItemSelected(item)
-      case _ ⇒ false
-    }
-  }
+  def props(activity: StoryActivity) = Props(new Coordinator(activity))
+}
 
-  override def onNewIntent(intent: Intent) {
-    runUi(toast("Found a tag, writing...") <~ fry)
-    // TODO: strings.xml
-    val tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG).asInstanceOf[Tag]
-    val uri = ("http://www.routestory.net/" + id.replace("story-", "story/")).getBytes(Charset.forName("US-ASCII"))
-    val payload = new Array[Byte](uri.length + 1)
-    payload(0) = 0.toByte
-    System.arraycopy(uri, 0, payload, 1, uri.length)
-    val rec = new NdefRecord(NdefRecord.TNF_WELL_KNOWN, NdefRecord.RTD_URI, new Array[Byte](0), payload)
-    val msg = new NdefMessage(Array(rec))
-    val ndef = Ndef.get(tag)
-    try {
-      ndef.connect()
-      ndef.writeNdefMessage(msg)
-      ndef.close()
-    } catch {
-      case e @ (_: FormatException | _: IOException) ⇒ e.printStackTrace()
-    }
-    runUi(toast("Done!") <~ fry)
-  }
+class Coordinator(activity: StoryActivity) extends Actor with ActorLogging {
+  import net.routestory.browsing.Coordinator._
 
-  override def onPause() {
-    super.onPause()
-    nfcAdapter.foreach(_.disableForegroundDispatch(this))
+  var chapter: Option[Story.Chapter] = None
+  var tree: Option[Clustering.Tree] = None
+
+  lazy val timeliner = context.actorSelection("../timeliner")
+  lazy val viewer = context.actorSelection("../viewer")
+  //lazy val diver = context.actorSelection("../diver")
+  //lazy val astronaut = context.actorSelection("../astronaut")
+  lazy val recipients = List(timeliner, viewer)
+
+  def receive = {
+    case m @ UpdateChapter(c) ⇒
+      log.debug("Chapter loaded")
+      chapter = Some(c)
+
+      val media = c.elements flatMap {
+        case m: Story.MediaElement ⇒ m.data :: Nil
+        case _ ⇒ Nil
+      }
+      val clustering = Future(Clustering.cluster(c))
+        .map(t ⇒ UpdateTree(c, t))
+        .pipeTo(self)
+
+      runUi {
+        activity.progress <~~ waitProgress(media) <~ waitProgress(clustering)
+      }
+      recipients.foreach(_ ! m)
+
+    case m @ UpdateTree(c, t) ⇒
+      log.debug("Clustering finished")
+      tree = t
+      recipients.foreach(_ ! m)
+
+    case Remind ⇒
+      chapter foreach { c ⇒
+        sender ! UpdateChapter(c)
+        sender ! UpdateTree(c, tree)
+      }
   }
 }

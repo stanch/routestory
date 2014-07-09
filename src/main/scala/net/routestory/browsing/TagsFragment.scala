@@ -12,7 +12,7 @@ import macroid.FullDsl._
 
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.ui.Styles._
-import net.routestory.display.StoryPreviewViewable
+import net.routestory.viewable.StoryPreviewViewable
 import org.apmem.tools.layouts.FlowLayout
 import android.support.v4.widget.SwipeRefreshLayout
 import macroid.util.Ui
@@ -47,7 +47,7 @@ class TagsFragment extends RouteStoryFragment {
     val displaySize = new Point
     getActivity.getWindowManager.getDefaultDisplay.getSize(displaySize)
 
-    app.api.tags.go map { t ⇒
+    app.webApi.tags.go map { t ⇒
       val shuffled = Random.shuffle(t).take(50)
       val (max, min) = (shuffled.maxBy(_.count).count, shuffled.minBy(_.count).count)
       def n(x: Int) = if (max == min) 1 else (x - min).toDouble / (max - min)

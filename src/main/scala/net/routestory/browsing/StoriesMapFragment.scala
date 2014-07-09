@@ -1,23 +1,19 @@
 package net.routestory.browsing
 
-import scala.async.Async.{ async, await }
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.{ LayoutInflater, View, ViewGroup }
 import com.google.android.gms.maps._
 import com.google.android.gms.maps.model.{ f ⇒ _, _ }
-
 import macroid.FullDsl._
-
-import net.routestory.model.StoryPreview
+import macroid.IdGeneration
+import net.routestory.data.StoryPreview
+import net.routestory.viewable.StoryPreviewViewable
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.Implicits._
-import macroid.IdGeneration
-import android.support.v4.app.Fragment
-import net.routestory.display.StoryPreviewViewable
+
+import scala.async.Async.{ async, await }
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment with IdGeneration {
   lazy val map = this.findFrag[SupportMapFragment](Tag.resultsMap).get.get.getMap
@@ -40,9 +36,7 @@ class StoriesMapFragment extends RouteStoryFragment with StoriesObserverFragment
     super.onStart()
     map.onMarkerClick { marker: Marker ⇒
       val story = markers(marker)
-      // TODO: wtf? how to measure one?
-      val a = List(getView.getMeasuredWidth, getView.getMeasuredHeight).min * 0.8
-      val view = new StoryPreviewViewable(a.toInt).layout(story)
+      val view = StoryPreviewViewable.layout(story)
       runUi { dialog(view) <~ speak }
       true
     }

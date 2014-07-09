@@ -12,13 +12,18 @@ import scala.annotation.tailrec
 import android.util.Log
 
 object BitmapUtils {
-  // see [http://stackoverflow.com/questions/477572/android-strange-out-of-memory-issue-while-loading-an-image-to-a-bitmap-object]
-  def decodeFile(f: File, size: Int) = {
+  def decodeBitmapSize(f: File) = {
     val o = new BitmapFactory.Options
     o.inJustDecodeBounds = true
     BitmapFactory.decodeStream(new FileInputStream(f), null, o)
+    (o.outWidth, o.outHeight)
+  }
+
+  // see [http://stackoverflow.com/questions/477572/android-strange-out-of-memory-issue-while-loading-an-image-to-a-bitmap-object]
+  def decodeFile(f: File, size: Int) = {
+    val (width, height) = decodeBitmapSize(f)
     var scale = 1
-    while (Math.max(o.outWidth, o.outHeight) / scale / 2 >= size) scale *= 2
+    while (Math.max(width, height) / scale / 2 >= size) scale *= 2
 
     val o2 = new BitmapFactory.Options
     o2.inSampleSize = scale

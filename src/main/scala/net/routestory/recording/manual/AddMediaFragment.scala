@@ -2,37 +2,25 @@ package net.routestory.recording.manual
 
 import java.io.File
 
-import scala.async.Async.{ async, await }
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.dynamics
-
-import android.app.{ Activity, AlertDialog, Dialog }
+import android.app.Activity
 import android.content.Intent
 import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.support.v4.app.DialogFragment
-import android.view.{ View, ViewGroup, LayoutInflater, Gravity }
+import android.view.{ Gravity, LayoutInflater, ViewGroup }
 import android.widget._
-
-import akka.pattern.ask
-import akka.util.Timeout
 import macroid.FullDsl._
 import macroid.contrib.ExtraTweaks._
-import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import macroid.util.{ Ui, Effector }
-import rx.{ Rx, Var }
-
+import macroid.contrib.Layouts.HorizontalLinearLayout
+import macroid.util.Ui
+import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
+import macroid.{ IdGeneration, Transformer, Tweak }
 import net.routestory.R
 import net.routestory.recording.{ RecordActivity, Typewriter }
-import net.routestory.ui.{ Effects, RouteStoryFragment }
+import net.routestory.ui.RouteStoryFragment
 import net.routestory.ui.Styles._
-import net.routestory.util.Implicits._
-import macroid.{ IdGeneration, Tweak, Transformer, Layout }
-import net.routestory.util.FragmentData
-import akka.actor.{ ActorSystem, ActorRef }
-import macroid.viewable.{ FillableViewableAdapter, FillableViewable }
 import org.macroid.akkafragments.AkkaFragment
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFragment {
@@ -53,8 +41,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFra
     val buttons = Seq(
       (R.drawable.photo, "Take a picture", cameraClicker),
       (R.drawable.text_note, "Add a text note", clicker(f[AddTextNote].factory, Tag.noteDialog)),
-      (R.drawable.voice_note, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog)),
-      (R.drawable.heart, "Record heartbeat", clicker(f[AddHeartbeat].factory, Tag.pulseDialog))
+      (R.drawable.voice_note, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog))
     )
 
     val adapter = FillableViewableAdapter(buttons)(FillableViewable.tr(
@@ -65,7 +52,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFra
         Transformer {
           case img: ImageView ⇒ img <~ Tweak[ImageView](_.setImageResource(button._1))
           case txt: TextView ⇒ txt <~ text(button._2)
-          case l @ Layout(_*) ⇒ l <~ On.click(button._3)
+          case l @ Transformer.Layout(_*) ⇒ l <~ On.click(button._3)
         }
       })
 
@@ -159,38 +146,3 @@ class AddVoiceNote extends AddSomething {
     }
   })).create()
 }
-
-class AddHeartbeat extends AddSomething {
-  val taps = Var(List[Long]())
-  val beats = Rx {
-    if (taps().length < 5) 0 else {
-      val interval = taps().sliding(2).map { case List(a, b) ⇒ a - b }.sum.toInt / 4
-      60000 / interval
-    }
-  }
-
-  var refs: List[Any] = Nil
-  implicit object rxEffector extends Effector[Rx] {
-    def foreach[A](fa: Rx[A])(f: A ⇒ Any) = {
-      refs ::= fa.foreach(f andThen (_ ⇒ ()))
-    }
-  }
-
-  override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
-    l[VerticalLinearLayout](
-      w[TextView] <~ text(R.string.message_pulsehowto) <~ TextSize.medium,
-      w[TextView] <~ beats.map(b ⇒ text(s"BPM: $b")),
-      w[Button] <~ text("TAP") <~ On.click(Ui {
-        taps.update(System.currentTimeMillis() :: taps().take(4))
-      }) <~ Tweak[Button] { x ⇒
-        x.setHeight(100 dp)
-        x.setGravity(Gravity.CENTER)
-      }
-    )
-  } <~ positiveOk(Ui {
-    Some(beats.now).filter(_ > 0).foreach { bpm ⇒
-      typewriter ! Typewriter.Heartbeat(bpm)
-    }
-  }) <~ negativeCancel(Ui.nop)).create()
-}
-

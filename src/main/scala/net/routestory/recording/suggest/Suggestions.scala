@@ -21,7 +21,7 @@ import net.routestory.ui.{ CollapsedListView, RouteStoryFragment }
 import net.routestory.ui.Styles._
 import android.os.Bundle
 import macroid.{ Tweak, AppContext, ActivityContext }
-import net.routestory.display.Suggestables
+import net.routestory.viewable.Suggestables
 import macroid.akkafragments.{ AkkaFragment, FragmentActor }
 import macroid.util.Ui
 

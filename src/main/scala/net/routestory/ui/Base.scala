@@ -45,6 +45,7 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
 
   def activityProgress =
     w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) <~
+      ExtraTweaks.Bg.res(R.color.dark) <~
       lp[ViewGroup](MATCH_PARENT, WRAP_CONTENT)
 
   def drawer(view: Ui[View]) = {

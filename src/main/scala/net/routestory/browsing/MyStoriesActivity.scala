@@ -1,23 +1,19 @@
 package net.routestory.browsing
 
-import scala.async.Async._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
 import android.os.Bundle
-
 import macroid.FullDsl._
+import macroid.IdGeneration
+import net.routestory.R
+import net.routestory.data.StoryPreview
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import rx.Var
 
-import net.routestory.R
-import net.routestory.model.StoryPreview
-import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
-import net.routestory.util.FragmentDataProvider
-import macroid.IdGeneration
+import scala.async.Async._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class MyStoriesActivity extends RouteStoryActivity
   with HazStories
-  with FragmentDataProvider[HazStories]
   with FragmentPaging
   with IdGeneration {
 

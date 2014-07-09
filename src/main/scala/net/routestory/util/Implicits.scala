@@ -1,26 +1,18 @@
 package net.routestory.util
 
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.{ LatLng, CameraPosition, Marker }
-import android.view.KeyEvent
-import android.view.ViewTreeObserver
-import android.widget.TextView
 import android.content.DialogInterface
-import android.content.DialogInterface.OnDismissListener
 import android.location.Location
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.{ CameraPosition, LatLng ⇒ AndroidLL, Marker }
+import com.javadocmd.simplelatlng.{ LatLng ⇒ SimpleLL }
 import macroid.util.Ui
 
 object Implicits {
-  implicit class RichLatLng(l: LatLng) {
-    def bearingTo(other: LatLng) = {
-      val (lat1, lat2, dlng) = (l.latitude.toRadians, other.latitude.toRadians, (other.longitude - l.longitude).toRadians)
-      val y = Math.sin(dlng) * Math.cos(lat2)
-      val x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dlng)
-      Math.atan2(y, x).toDegrees.toFloat
-    }
-  }
+  implicit def location2latlng(l: Location): AndroidLL = new AndroidLL(l.getLatitude, l.getLongitude)
 
-  implicit def location2latlng(l: Location): LatLng = new LatLng(l.getLatitude, l.getLongitude)
+  implicit def android2simple(l: SimpleLL): AndroidLL = new AndroidLL(l.getLatitude, l.getLongitude)
+
+  implicit def simple2android(l: AndroidLL): SimpleLL = new SimpleLL(l.latitude, l.longitude)
 
   implicit class RichMap(map: GoogleMap) {
     def onCameraChange(f: CameraPosition ⇒ Any) = map.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener {

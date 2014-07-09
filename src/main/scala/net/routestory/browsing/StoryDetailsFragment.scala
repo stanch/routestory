@@ -1,28 +1,25 @@
 package net.routestory.browsing
 
-import scala.concurrent._
-
 import android.os.Bundle
-import android.view.{ LayoutInflater, View, ViewGroup }
 import android.view.ViewGroup.LayoutParams._
+import android.view.{ LayoutInflater, View, ViewGroup }
 import android.widget.{ ImageView, LinearLayout, ScrollView, TextView }
-
-import ExecutionContext.Implicits.global
-import macroid.Tweak
 import macroid.FullDsl._
+import macroid.Tweak
 import macroid.contrib.ExtraTweaks._
-import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-
-import net.routestory.R
-import net.routestory.model.Story
-import net.routestory.ui.{ RouteStoryFragment, Styles }
-import net.routestory.util.FragmentData
-import net.routestory.display.StoryPreviewViewable
-import org.apmem.tools.layouts.FlowLayout
+import macroid.contrib.Layouts.VerticalLinearLayout
 import macroid.util.Ui
+import net.routestory.R
+import net.routestory.data.Story
+import net.routestory.viewable.StoryPreviewViewable
+import net.routestory.ui.{ RouteStoryFragment, Styles }
+import org.apmem.tools.layouts.FlowLayout
 
-class StoryDetailsFragment extends RouteStoryFragment with FragmentData[Future[Story]] {
-  lazy val story = getFragmentData
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
+class StoryDetailsFragment extends RouteStoryFragment {
+  lazy val story: Future[Story] = null // TODO: !
 
   var authorPicture = slot[ImageView]
   var authorName = slot[TextView]

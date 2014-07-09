@@ -1,13 +1,11 @@
 package net.routestory.browsing
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
 import android.util.Log
-
+import net.routestory.data.StoryPreview
 import rx.Var
 
-import net.routestory.model.StoryPreview
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class LatestStoriesFragment extends StoriesListFragment with HazStories {
   override lazy val stories: Var[Future[List[StoryPreview]]] = Var {
@@ -29,5 +27,5 @@ class LatestStoriesFragment extends StoriesListFragment with HazStories {
     if (stories.now.isCompleted) stories.update(fetchStories)
   }
 
-  def fetchStories = app.api.latest(number).go.map(_.stories)
+  def fetchStories = app.webApi.latest(number).go.map(_.stories)
 }

@@ -1,24 +1,20 @@
 package net.routestory.browsing
 
-import scala.Some
-import scala.async.Async._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Try
-
 import android.app.SearchManager
 import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
-
 import macroid.FullDsl._
+import macroid.IdGeneration
+import net.routestory.R
+import net.routestory.data.StoryPreview
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import rx.Var
 
-import net.routestory.R
-import net.routestory.model.StoryPreview
-import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
-import net.routestory.util.FragmentDataProvider
-import macroid.IdGeneration
+import scala.async.Async._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.Try
 
 object SearchActivity {
   object SearchIntent {
@@ -36,10 +32,9 @@ object SearchActivity {
 
 class SearchActivity extends RouteStoryActivity
   with HazStories
-  with FragmentDataProvider[HazStories]
   with FragmentPaging
   with IdGeneration {
-  import SearchActivity._
+  import net.routestory.browsing.SearchActivity._
 
   // this is failed at the beginning, so that observers don’t update (they update onSuccess)
   val stories: Var[Future[List[StoryPreview]]] = Var(Future.failed(new UninitializedError))
@@ -75,11 +70,11 @@ class SearchActivity extends RouteStoryActivity
   }
 
   def textQuery(q: String) = { bookmark: Option[String] ⇒
-    app.api.search(q, storiesByPage, bookmark).go
+    app.webApi.search(q, storiesByPage, bookmark).go
   }
 
   def tagQuery(tag: String) = { bookmark: Option[String] ⇒
-    app.api.tagged(tag, storiesByPage, bookmark).go
+    app.webApi.tagged(tag, storiesByPage, bookmark).go
   }
 
   override def onCreate(savedInstanceState: Bundle) {

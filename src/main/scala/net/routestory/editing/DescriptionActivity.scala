@@ -70,12 +70,12 @@ class DescriptionActivity extends RouteStoryActivity {
   override def onStart() = {
     super.onStart()
     async {
-      val tagz = await(app.api.tags.go).map(_.tag)
-      Ui {
+      val tagz = await(app.webApi.tags.go).map(_.tag)
+      runUi(Ui {
         val adapter = FillableViewableAdapter(tagz)(FillableViewable.text(Tweak.blank, t ⇒ text(t)))
         tags.setAdapter(adapter)
         tags.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)
-      }.run
+      })
     }
   }
 

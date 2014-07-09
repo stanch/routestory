@@ -20,7 +20,13 @@ import macroid.FragmentManagerContext
 class MapAwareViewPager(ctx: Context) extends ViewPager(ctx) {
   override def canScroll(scrollingView: View, checkV: Boolean, dx: Int, x: Int, y: Int) = {
     implicit val c = AppContext(ctx)
-    if (scrollingView.getClass.getPackage.getName.startsWith("maps.")) {
+    val cls = for {
+      v ← Option(scrollingView)
+      cl ← Option(v.getClass)
+      p ← Option(cl.getPackage)
+      n ← Option(p.getName)
+    } yield n
+    if (cls.exists(_.startsWith("maps."))) {
       x > 20.dp && x < scrollingView.getWidth - 20.dp
     } else {
       super.canScroll(scrollingView, checkV, dx, x, y)
