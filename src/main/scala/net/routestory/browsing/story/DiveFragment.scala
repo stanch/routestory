@@ -44,6 +44,7 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
   val mapCue = Var(0.0)
   var mapCueObs: Option[Obs] = None
   var lastFocus = 0
+  var seeking = false
 
   // widgets
   var layout = slot[LinearLayout]
@@ -95,15 +96,21 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
     seekBar <~ Tweak[SeekBar] { bar ⇒
       bar.setMax(bar.getWidth)
       bar.setOnSeekBarChangeListener(new OnSeekBarChangeListener {
-        def onProgressChanged(bar: SeekBar, position: Int, fromUser: Boolean) {
+        def onProgressChanged(bar: SeekBar, position: Int, fromUser: Boolean) = {
           if (fromUser) {
             val pos = 1.0 * position / bar.getMax
-            cue() = pos
+            // TODO: wtf
+            seeking = true
             mapCue() = pos
+            seeking = false
           }
         }
-        def onStopTrackingTouch(bar: SeekBar) = ()
         def onStartTrackingTouch(bar: SeekBar) = ()
+        def onStopTrackingTouch(bar: SeekBar) = {
+          val pos = 1.0 * bar.getProgress / bar.getMax
+          cue() = pos
+          mapCue() = pos
+        }
       })
     },
     List(play, playBig) <~ On.click(start(chapter)),
@@ -142,7 +149,8 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
     mapCueObs = Some(mapCue foreach { c ⇒
       val timestamp = c * chapter.duration
       runUi(
-        positionMap(chapter, timestamp, animate = true, tiltZoom = c == 0)
+        if (seeking) positionMan(chapter, timestamp) else Ui.nop,
+        positionMap(chapter, timestamp, animate = !seeking, tiltZoom = c == 0)
       )
     })
   }

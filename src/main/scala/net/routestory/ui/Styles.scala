@@ -1,16 +1,13 @@
 package net.routestory.ui
 
-import android.graphics.Color
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.widget.CardView
-import android.view.ViewGroup.LayoutParams._
-import android.widget._
-import android.view.{ ViewGroup, View }
+import android.view.View
 import com.etsy.android.grid.StaggeredGridView
-import macroid.contrib.TextTweaks
-import net.routestory.R
-import macroid.{ Tweak, AppContext }
 import macroid.FullDsl._
+import macroid.contrib.TextTweaks
+import macroid.{ AppContext, Tweak }
+import net.routestory.R
 
 object Styles {
   def p8dding(implicit ctx: AppContext) = padding(all = 8 dp)

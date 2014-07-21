@@ -8,7 +8,7 @@ import android.support.v4.view.{ PagerAdapter, ViewPager }
 import android.view.{ LayoutInflater, View, ViewGroup }
 import macroid.FullDsl._
 import macroid.akkafragments.{ AkkaFragment, FragmentActor }
-import macroid.contrib.BgTweaks
+import macroid.contrib.{ PagerTweaks, BgTweaks }
 import macroid.{ ActivityContext, AppContext, Tweak }
 import net.routestory.data.Clustering
 import net.routestory.ui.RouteStoryFragment
@@ -40,8 +40,7 @@ class PreviewFragment extends RouteStoryFragment with AkkaFragment {
 
   def viewTrees(trees: Vector[Clustering.Tree[Unit]]) = {
     val adapter = new PreviewPagerAdapter(trees)
-    pager <~ Tweak[ViewPager] { x ⇒
-      x.setAdapter(adapter)
+    pager <~ PagerTweaks.adapter(adapter) <~ Tweak[ViewPager] { x ⇒
       x.setOnPageChangeListener(new OnPageChangeListener {
         override def onPageScrollStateChanged(state: Int) = ()
         override def onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) = ()
@@ -53,7 +52,7 @@ class PreviewFragment extends RouteStoryFragment with AkkaFragment {
     }
   }
 
-  def focus(focus: Int) = pager <~ Tweak[ViewPager](_.setCurrentItem(focus))
+  def focus(focus: Int) = pager <~ PagerTweaks.page(focus, smoothScroll = true)
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
     w[ViewPager] <~ BgTweaks.color(Color.BLACK) <~ wire(pager)

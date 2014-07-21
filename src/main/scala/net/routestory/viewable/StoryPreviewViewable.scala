@@ -17,7 +17,6 @@ import net.routestory.browsing.stories.SearchActivity
 import net.routestory.browsing.story.StoryActivity
 import net.routestory.data.StoryPreview
 import net.routestory.ui.Styles
-import net.routestory.ui.Styles._
 import net.routestory.util.BitmapPool.Implicits._
 import org.apmem.tools.layouts.FlowLayout
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -47,18 +46,16 @@ object StoryPreviewViewable extends SlottedFillableViewable[StoryPreview] {
 
   def makeSlots(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = {
     val slots = new Slots
-    val layout = l[LinearLayout](
-      l[CardView](
-        l[VerticalLinearLayout](
-          w[TextView] <~ wire(slots.title) <~ Styles.title <~ LpTweaks.wrapContent,
-          l[HorizontalLinearLayout](
-            w[ImageView] <~ wire(slots.authorPicture) <~ lp[LinearLayout](28 dp, 28 dp) <~ padding(right = 4 dp),
-            w[TextView] <~ wire(slots.authorName) <~ TextTweaks.medium
-          ),
-          l[FlowLayout]() <~ wire(slots.tags)
-        ) <~ Styles.p8dding
-      ) <~ Styles.card <~ LpTweaks.matchParent
-    ) <~ padding(4 dp, 4 dp, 0, 4 dp)
+    val layout = l[CardView](
+      l[VerticalLinearLayout](
+        w[TextView] <~ wire(slots.title) <~ Styles.title <~ LpTweaks.wrapContent,
+        l[HorizontalLinearLayout](
+          w[ImageView] <~ wire(slots.authorPicture) <~ lp[LinearLayout](28 dp, 28 dp) <~ padding(right = 4 dp),
+          w[TextView] <~ wire(slots.authorName) <~ TextTweaks.medium
+        ),
+        l[FlowLayout]() <~ wire(slots.tags)
+      ) <~ Styles.p8dding
+    ) <~ Styles.card
     (layout, slots)
   }
 
