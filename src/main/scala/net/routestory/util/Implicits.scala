@@ -5,7 +5,7 @@ import android.location.Location
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.{ CameraPosition, LatLng ⇒ AndroidLL, Marker }
 import com.javadocmd.simplelatlng.{ LatLng ⇒ SimpleLL }
-import macroid.util.Ui
+import macroid.Ui
 
 object Implicits {
   implicit def location2latlng(l: Location): AndroidLL = new AndroidLL(l.getLatitude, l.getLongitude)

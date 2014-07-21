@@ -1,18 +1,17 @@
 package net.routestory.viewable
 
-import net.routestory.{ R, Apis }
 import akka.actor.ActorSelection
-import macroid.viewable.SlottedFillableViewable
-import org.needs.{ flickr, foursquare }
-import macroid.FullDsl._
-import android.widget.{ ImageView, LinearLayout, TextView }
-import macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
-import macroid.contrib.ExtraTweaks.{ Image, TextSize }
 import android.view.ViewGroup.LayoutParams._
-import macroid.{ Tweak, AppContext, ActivityContext }
+import android.widget.{ ImageView, LinearLayout, TextView }
+import macroid.FullDsl._
+import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import macroid.contrib.{ ImageTweaks, TextTweaks }
+import macroid.Ui
+import macroid.viewable.SlottedFillableViewable
+import macroid.{ ActivityContext, AppContext, Tweak }
 import net.routestory.ui.Styles._
-import scala.concurrent.ExecutionContext.Implicits.global
-import macroid.util.Ui
+import net.routestory.{ Apis, R }
+import org.needs.{ flickr, foursquare }
 
 case class Suggestables(apis: Apis, typewriter: ActorSelection) {
   implicit object foursquareListViewable extends SlottedFillableViewable[foursquare.Venue] {
@@ -23,8 +22,8 @@ case class Suggestables(apis: Apis, typewriter: ActorSelection) {
     def makeSlots(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = {
       val slots = new Slots
       val layout = l[HorizontalLinearLayout](
-        w[ImageView] <~ Tweak[ImageView](_.setImageResource(R.drawable.foursquare)),
-        w[TextView] <~ wire(slots.name) <~ TextSize.medium
+        w[ImageView] <~ ImageTweaks.res(R.drawable.foursquare),
+        w[TextView] <~ wire(slots.name) <~ TextTweaks.medium
       ) <~ wire(slots.row)
       (layout, slots)
     }

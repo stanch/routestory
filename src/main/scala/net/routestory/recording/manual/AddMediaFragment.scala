@@ -12,16 +12,15 @@ import android.support.v4.app.DialogFragment
 import android.view.{ Gravity, LayoutInflater, ViewGroup }
 import android.widget._
 import macroid.FullDsl._
-import macroid.contrib.ExtraTweaks._
 import macroid.contrib.Layouts.HorizontalLinearLayout
-import macroid.util.Ui
+import macroid.contrib.{ ImageTweaks, TextTweaks, ListTweaks }
+import macroid.Ui
 import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
 import macroid.{ IdGeneration, Transformer, Tweak }
 import net.routestory.R
 import net.routestory.recording.{ RecordActivity, Typewriter }
 import net.routestory.ui.RouteStoryFragment
-import net.routestory.ui.Styles._
-import org.macroid.akkafragments.AkkaFragment
+import macroid.akkafragments.AkkaFragment
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFragment {
   lazy val photoFile = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir)
@@ -39,24 +38,24 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFra
     }
 
     val buttons = Seq(
-      (R.drawable.photo, "Take a picture", cameraClicker),
-      (R.drawable.text_note, "Add a text note", clicker(f[AddTextNote].factory, Tag.noteDialog)),
-      (R.drawable.voice_note, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog))
+      (R.drawable.ic_action_camera, "Take a picture", cameraClicker),
+      (R.drawable.ic_action_view_as_list, "Add a text note", clicker(f[AddTextNote].factory, Tag.noteDialog)),
+      (R.drawable.ic_action_mic, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog))
     )
 
     val adapter = FillableViewableAdapter(buttons)(FillableViewable.tr(
       l[HorizontalLinearLayout](
         w[ImageView],
-        w[TextView] <~ TextSize.large
+        w[TextView] <~ TextTweaks.large
       ) <~ padding(top = 12 dp, bottom = 12 dp, left = 8 dp)) { button ⇒
         Transformer {
-          case img: ImageView ⇒ img <~ Tweak[ImageView](_.setImageResource(button._1))
+          case img: ImageView ⇒ img <~ ImageTweaks.res(button._1)
           case txt: TextView ⇒ txt <~ text(button._2)
           case l @ Transformer.Layout(_*) ⇒ l <~ On.click(button._3)
         }
       })
 
-    w[ListView] <~ adaptr(adapter)
+    w[ListView] <~ ListTweaks.adapter(adapter)
   }
 
   override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {

@@ -14,10 +14,10 @@ import com.google.android.gms.location.{ LocationClient, LocationListener, Locat
 import macroid.FullDsl._
 import macroid.akkafragments.AkkaActivity
 import macroid.contrib.Layouts.VerticalLinearLayout
-import macroid.util.Ui
+import macroid.Ui
 import macroid.{ IdGeneration, Tweak }
 import net.routestory.R
-import net.routestory.browsing.StoryActivity
+import net.routestory.browsing.story.StoryActivity
 import net.routestory.data.Story
 import net.routestory.recording.logged.{ ControlPanelFragment, Dictaphone }
 import net.routestory.recording.manual.AddMediaFragment

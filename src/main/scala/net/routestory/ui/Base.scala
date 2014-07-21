@@ -1,28 +1,24 @@
 package net.routestory.ui
 
-import scala.reflect.ClassTag
-
 import android.app.{ Activity, SearchManager }
 import android.content.{ Context, Intent }
 import android.graphics.Point
 import android.os.Bundle
 import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivity }
 import android.support.v4.widget.DrawerLayout
-import android.view._
 import android.view.ViewGroup.LayoutParams._
-import android.widget.{ TextView, ListView, ProgressBar, SearchView }
-
+import android.view._
+import android.widget.{ ListView, ProgressBar, SearchView }
 import macroid.FullDsl._
-import macroid.contrib.ExtraTweaks
-import macroid.contrib.ExtraTweaks.{ TextSize, TextStyle }
-
-import net.routestory.{ R, RouteStoryApp }
-import net.routestory.browsing.{ ExploreActivity, MyStoriesActivity }
+import macroid.contrib.{ LpTweaks, BgTweaks, ListTweaks, TextTweaks }
+import macroid.Ui
+import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
+import macroid.{ Contexts, Tweak }
+import net.routestory.browsing.stories.ExploreActivity
 import net.routestory.recording.RecordActivity
-import net.routestory.ui.Styles._
-import macroid.{ Tweak, Contexts }
-import macroid.viewable.{ FillableViewableAdapter, FillableViewable }
-import macroid.util.Ui
+import net.routestory.{ R, RouteStoryApp }
+
+import scala.reflect.ClassTag
 
 trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity] {
   lazy val app = getApplication.asInstanceOf[RouteStoryApp]
@@ -45,8 +41,8 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
 
   def activityProgress =
     w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) <~
-      ExtraTweaks.Bg.res(R.color.dark) <~
-      lp[ViewGroup](MATCH_PARENT, WRAP_CONTENT)
+      BgTweaks.res(R.color.dark) <~
+      LpTweaks.matchWidth
 
   def drawer(view: Ui[View]) = {
     def clicker[A <: Activity: ClassTag] = On.click(Ui {
@@ -55,27 +51,26 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
     // format: OFF
     val data = Seq(
       ("Explore", clicker[ExploreActivity]),
-      ("Create a story", clicker[RecordActivity]),
-      ("My stories", clicker[MyStoriesActivity])
+      ("Create a story", clicker[RecordActivity])
     )
     val adapter = FillableViewableAdapter(data)(FillableViewable.text(
-      TextSize.medium + TextStyle.boldItalic + padding(all = 10 dp),
+      TextTweaks.medium + TextTweaks.boldItalic + padding(all = 10 dp),
       data ⇒ text(data._1) + data._2
     ))
     // format: ON
     val layout = l[DrawerLayout](
-      view <~ lp[DrawerLayout](MATCH_PARENT, MATCH_PARENT),
+      view <~ LpTweaks.matchParent,
       w[ListView] <~
-        adaptr(adapter) <~
+        ListTweaks.adapter(adapter) <~
         lp[DrawerLayout](240 dp, MATCH_PARENT, Gravity.START) <~
-        ExtraTweaks.Bg.res(R.color.drawer)
+        BgTweaks.res(R.color.drawer)
     )
-    drawerToggle = new ActionBarDrawerToggle(
-      this, layout.get, R.drawable.ic_navigation_drawer,
-      R.string.app_name, R.string.app_name
-    )
-    layout <~ Tweak[DrawerLayout] {
-      _.setDrawerListener(drawerToggle)
+    layout.flatMap { lay ⇒
+      drawerToggle = new ActionBarDrawerToggle(
+        this, lay, R.drawable.ic_navigation_drawer,
+        R.string.app_name, R.string.app_name
+      )
+      lay <~ Tweak[DrawerLayout](_.setDrawerListener(drawerToggle))
     }
   }
 

@@ -9,9 +9,9 @@ import android.view.ViewGroup.LayoutParams._
 import android.view.{ Gravity, View }
 import android.widget._
 import macroid.FullDsl._
-import macroid.contrib.ExtraTweaks._
 import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import macroid.util.Ui
+import macroid.contrib.{ LpTweaks, ImageTweaks, TextTweaks }
+import macroid.Ui
 import macroid.viewable.{ SlottedFillableViewable, Viewable }
 import macroid.{ ActivityContext, AppContext, Tweak }
 import net.routestory.R
@@ -37,9 +37,7 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
   val timestampFormat = java.text.DateFormat.getDateTimeInstance
 
   def resBmp(id: Int)(implicit appCtx: AppContext) =
-    Image.bitmap(BitmapFactory.decodeResource(appCtx.get.getResources, id))
-  def card(x: Ui[View])(implicit ctx: ActivityContext) =
-    l[CardView](x) <~ Styles.card
+    ImageTweaks.bitmap(BitmapFactory.decodeResource(appCtx.get.getResources, id))
 
   override def viewTypeCount = 5
   override def viewType(data: Story.KnownElement) = data match {
@@ -53,30 +51,41 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
   def makeSlots(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = {
     val slots = new Slots
     val view = viewType match {
-      case 0 ⇒ l[FrameLayout](
-        w[ImageView] <~ Image.adjustBounds <~ wire(slots.imageView) <~ hide,
-        w[ProgressBar](null, android.R.attr.progressBarStyleLarge) <~ wire(slots.progress) <~
-          lp[FrameLayout](WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER)
-      )
-      case 1 ⇒ w[TextView] <~ TextSize.sp(22) <~ padding(all = 16 dp) <~ wire(slots.textView)
-      case 2 ⇒ l[HorizontalLinearLayout](
-        w[ImageView] <~ Image.bitmap(BitmapFactory.decodeResource(appCtx.get.getResources, R.drawable.ic_action_mic)) <~
-          Styles.p8dding,
-        w[TextView] <~ TextSize.sp(22) <~ wire(slots.textView) <~
-          padding(top = 8 dp, bottom = 8 dp)
-      )
-      case 3 ⇒ l[HorizontalLinearLayout](
-        w[ImageView] <~ Image.bitmap(BitmapFactory.decodeResource(appCtx.get.getResources, R.drawable.ic_action_volume_on)) <~
-          Styles.p8dding,
-        w[TextView] <~ TextSize.sp(22) <~ TextStyle.italic <~ text("ambient sound ") <~
-          padding(top = 8 dp, bottom = 8 dp)
-      )
-      case _ ⇒ w[ImageView]
+      case 0 ⇒
+        l[FrameLayout](
+          w[ImageView] <~ wire(slots.imageView) <~
+            ImageTweaks.adjustBounds <~ padding(bottom = 4 dp) <~ hide,
+          w[ProgressBar](null, android.R.attr.progressBarStyleLarge) <~ wire(slots.progress) <~
+            lp[FrameLayout](WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER)
+        )
+
+      case 1 ⇒
+        w[TextView] <~ wire(slots.textView) <~
+          TextTweaks.large <~ padding(all = 16 dp)
+
+      case 2 ⇒
+        l[HorizontalLinearLayout](
+          w[ImageView] <~ ImageTweaks.bitmap(BitmapFactory.decodeResource(appCtx.get.getResources, R.drawable.ic_action_mic)) <~
+            Styles.p8dding,
+          w[TextView] <~ wire(slots.textView) <~
+            TextTweaks.large <~ padding(top = 8 dp, bottom = 8 dp)
+        )
+
+      case 3 ⇒
+        l[HorizontalLinearLayout](
+          w[ImageView] <~ ImageTweaks.bitmap(BitmapFactory.decodeResource(appCtx.get.getResources, R.drawable.ic_action_volume_on)) <~
+            Styles.p8dding,
+          w[TextView] <~ text("ambient sound ") <~
+            TextTweaks.large <~ TextTweaks.italic <~ padding(top = 8 dp, bottom = 8 dp)
+        )
+
+      case _ ⇒
+        w[ImageView]
     }
     val card = l[CardView](l[VerticalLinearLayout](
       w[TextView] <~ Tweak[TextView](_.setTextColor(Color.GRAY)) <~ padding(all = 4 dp) <~ wire(slots.timestamp),
       view
-    ))
+    )) <~ Styles.card
     (card, slots)
   }
 
@@ -90,8 +99,10 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
         (slots.progress <~~ fadeOut(200)) ~
         (slots.imageView <~ fadeIn(500))
       // format: ON
+
       case Story.TextNote(_, txt) ⇒
         slots.textView <~ text(txt)
+
       case x: Story.VoiceNote ⇒
         val duration = x.data map { f ⇒
           val mp = new MediaPlayer
@@ -103,6 +114,7 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
           durationFormat.format(d)
         }
         slots.textView <~ duration.map(text)
+
       case x: Story.Sound ⇒ Ui.nop
       case x: Story.Venue ⇒ Ui.nop
     }
@@ -119,14 +131,46 @@ class StoryElementDetailedViewable(maxImageSize: Int) extends Viewable[Story.Kno
         val bitmapTweak = x.data.map(_.bitmapTweak(maxImageSize) + Tweak[ImageView] { v ⇒
           new PhotoViewAttacher(v).update()
         })
-        w[ImageView] <~ Image.adjustBounds <~ Styles.lowProfile <~ bitmapTweak
+        w[ImageView] <~ ImageTweaks.adjustBounds <~ Styles.lowProfile <~ bitmapTweak
+
       case x: Story.TextNote ⇒
-        l[ScrollView](w[TextView] <~ text(x.text) <~ TextSize.sp(30) <~ Tweak[TextView](_.setTextColor(Color.WHITE)))
+        w[TextView] <~ text(x.text) <~ TextTweaks.size(30) <~
+          TextTweaks.color(Color.WHITE) <~ padding(all = 20 dp) <~
+          Tweak[TextView] { v ⇒
+            v.setGravity(Gravity.CENTER)
+            v.setTextColor(Color.WHITE)
+          }
+
       case x: Story.Audio ⇒
-        w[TextView] <~ text("sound here")
+        w[TextView] <~ text("Sound")
+      //        val mediaPlayer = new MediaPlayer
+      //        val prepared = Promise[Unit]()
+      //        x.data.foreachUi { file ⇒
+      //          mediaPlayer.setDataSource(file.getAbsolutePath)
+      //          mediaPlayer.prepare()
+      //          mediaPlayer.setOnPreparedListener(new OnPreparedListener {
+      //            override def onPrepared(mp: MediaPlayer) = prepared.success(())
+      //          })
+      //        }
+      //        w[MediaController] <~ show <~ disable <~ prepared.future.map(_ ⇒ Tweak[MediaController] { x ⇒
+      //          x.setMediaPlayer(new MediaPlayerControl {
+      //            override def canPause = true
+      //            override def canSeekForward = true
+      //            override def canSeekBackward = true
+      //            override def getAudioSessionId = mediaPlayer.getAudioSessionId
+      //            override def seekTo(pos: Int) = mediaPlayer.seekTo(pos)
+      //            override def getCurrentPosition = mediaPlayer.getCurrentPosition
+      //            override def isPlaying = mediaPlayer.isPlaying
+      //            override def pause() = mediaPlayer.pause()
+      //            override def getBufferPercentage = 0
+      //            override def getDuration = mediaPlayer.getDuration
+      //            override def start() = mediaPlayer.start()
+      //          })
+      //        } + enable)
+
       case x: Story.Venue ⇒
         w[TextView] <~ text("venue here")
     }
-    view <~ Styles.matchParent
+    view <~ LpTweaks.matchParent
   }
 }

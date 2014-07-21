@@ -3,7 +3,7 @@ package net.routestory.util
 import java.io.File
 
 import android.graphics.Bitmap
-import macroid.contrib.ExtraTweaks.Image
+import macroid.contrib.ImageTweaks
 
 import scala.concurrent.ExecutionContext
 import scala.ref.WeakReference
@@ -12,7 +12,7 @@ object BitmapPool {
   private val _lock = new Object
   private var pool = Map.empty[(File, Int), WeakReference[Bitmap]]
 
-  def tweak(maxSize: Int)(file: File) = Image.bitmap(get(maxSize)(file))
+  def tweak(maxSize: Int)(file: File) = ImageTweaks.bitmap(get(maxSize)(file))
 
   def get(maxSize: Int)(file: File) = _lock synchronized {
     pool.get(file, maxSize).flatMap(_.get).filterNot(_.isRecycled) getOrElse {

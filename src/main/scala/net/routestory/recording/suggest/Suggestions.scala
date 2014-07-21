@@ -1,36 +1,29 @@
 package net.routestory.recording.suggest
 
-import scala.collection.JavaConverters._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-
-import android.view.{ LayoutInflater, View, ViewGroup }
-import android.widget._
-
 import akka.actor._
 import akka.pattern.pipe
+import android.os.Bundle
+import android.view.{ LayoutInflater, ViewGroup }
+import android.widget._
 import com.google.android.gms.maps.model.LatLng
 import macroid.FullDsl._
-import macroid.contrib.ExtraTweaks._
-import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import resolvable.{ flickr, foursquare }
-
-import net.routestory.{ RouteStoryApp, R, Apis }
+import macroid.akkafragments.{ AkkaFragment, FragmentActor }
+import macroid.Ui
+import macroid.{ ActivityContext, AppContext }
+import net.routestory.Apis
 import net.routestory.recording.Cartographer
 import net.routestory.ui.{ CollapsedListView, RouteStoryFragment }
-import net.routestory.ui.Styles._
-import android.os.Bundle
-import macroid.{ Tweak, AppContext, ActivityContext }
 import net.routestory.viewable.Suggestables
-import macroid.akkafragments.{ AkkaFragment, FragmentActor }
-import macroid.util.Ui
+import resolvable.{ flickr, foursquare }
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 class SuggestionsFragment extends RouteStoryFragment with AkkaFragment {
   lazy val actor = Some(actorSystem.actorSelection("/user/suggester"))
   lazy val typewriter = actorSystem.actorSelection("/user/typewriter")
 
   lazy val suggestables = Suggestables(app, typewriter)
-  import suggestables._
 
   var venues = slot[CollapsedListView[foursquare.Venue]]
   var photos = slot[CollapsedListView[flickr.Photo]]
@@ -56,8 +49,8 @@ object Suggester {
 }
 
 class Suggester(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) extends FragmentActor[SuggestionsFragment] with ActorLogging {
-  import Suggester._
-  import FragmentActor._
+  import macroid.akkafragments.FragmentActor._
+  import net.routestory.recording.suggest.Suggester._
 
   var pings: Option[Cancellable] = None
 

@@ -1,5 +1,7 @@
 package net.routestory.editing
 
+import macroid.contrib.LpTweaks
+
 import scala.async.Async.{ async, await }
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -19,7 +21,7 @@ import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
 import net.routestory.R
 import net.routestory.ui.{ RouteStoryActivity, Styles }
 import net.routestory.ui.Styles._
-import macroid.util.Ui
+import macroid.Ui
 
 class DescriptionActivity extends RouteStoryActivity {
   var title: EditText = _
@@ -31,22 +33,21 @@ class DescriptionActivity extends RouteStoryActivity {
     super.onCreate(savedInstanceState)
 
     def inputType(t: Int) = Tweak[EditText](_.setInputType(t))
-    val screenWide = lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT)
 
     val view = l[VerticalLinearLayout](
       w[TextView] <~
         text(R.string.title) <~ Styles.header(noPadding = true),
-      w[EditText] <~ wire(title) <~ screenWide <~
+      w[EditText] <~ wire(title) <~ LpTweaks.matchWidth <~
         inputType(InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE),
 
       w[TextView] <~
         text(R.string.description) <~ Styles.header(),
-      w[EditText] <~ wire(description) <~ screenWide <~
+      w[EditText] <~ wire(description) <~ LpTweaks.matchWidth <~
         inputType(InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE),
 
       w[TextView] <~
         text(R.string.tags) <~ Styles.header(),
-      w[MultiAutoCompleteTextView] <~ wire(tags) <~ screenWide <~
+      w[MultiAutoCompleteTextView] <~ wire(tags) <~ LpTweaks.matchWidth <~
         inputType(InputType.TYPE_CLASS_TEXT) <~ Tweak[MultiAutoCompleteTextView](_.setHint(R.string.tags_hint)),
 
       w[CheckBox] <~ wire(public) <~ text(R.string.makeprivate) <~ padding(top = 15 sp),

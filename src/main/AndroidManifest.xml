@@ -44,14 +44,10 @@
             android:launchMode="singleTask">
         </activity>
         <activity
-            android:name="net.routestory.browsing.MyStoriesActivity"
-            android:label="@string/title_activity_mystories" >
-        </activity>
-        <activity
             android:name=".editing.DescriptionActivity"
             android:label="@string/title_activity_description" >
         </activity>
-        <activity android:name=".browsing.StoryActivity">
+        <activity android:name=".browsing.story.StoryActivity">
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -66,7 +62,7 @@
 			    <action android:name="android.intent.action.VIEW" />
 			</intent-filter>
         </activity>
-        <activity android:name="net.routestory.browsing.SearchActivity">
+        <activity android:name=".browsing.stories.SearchActivity">
         	<intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
@@ -75,7 +71,7 @@
                 android:resource="@xml/searchable" />
         </activity>
         <activity
-            android:name="net.routestory.browsing.ExploreActivity"
+            android:name=".browsing.stories.ExploreActivity"
             android:label="@string/title_activity_explore" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -7,7 +7,7 @@ import macroid.viewable.{ FillableViewable, Viewable }
 import macroid.viewable.Viewing._
 import android.widget.{ TextView, LinearLayout }
 import android.view.View
-import macroid.util.Ui
+import macroid.Ui
 
 class CollapsedListView[A](header: Ui[View])(implicit ctx: ActivityContext, appCtx: AppContext, dataViewable: FillableViewable[A])
   extends VerticalLinearLayout(ctx.get) {

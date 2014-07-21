@@ -1,21 +1,15 @@
 package net.routestory.ui
 
-import android.support.v4.view.ViewPager
 import android.content.Context
-import android.view.{ ViewGroup, View }
-import android.support.v4.app.{ FragmentActivity, FragmentPagerAdapter, FragmentManager, Fragment }
-
-import macroid.FullDsl._
-import macroid.contrib.ExtraTweaks._
-import macroid.contrib.Layouts.VerticalLinearLayout
-import macroid._
-
+import android.support.v4.app.{ Fragment, FragmentManager, FragmentPagerAdapter }
+import android.support.v4.view.ViewPager
+import android.view.View
 import com.viewpagerindicator.TitlePageIndicator
-import ViewGroup.LayoutParams._
+import macroid.FullDsl._
+import macroid._
+import macroid.contrib.Layouts.VerticalLinearLayout
+import macroid.contrib.{ BgTweaks, LpTweaks }
 import net.routestory.R
-import macroid.util.Ui
-import macroid.AppContext
-import macroid.FragmentManagerContext
 
 class MapAwareViewPager(ctx: Context) extends ViewPager(ctx) {
   override def canScroll(scrollingView: View, checkV: Boolean, dx: Int, x: Int, y: Int) = {
@@ -48,8 +42,8 @@ trait FragmentPaging { self: IdGeneration ⇒
       }
     pager.flatMap { p ⇒
       val indicator = w[TitlePageIndicator] <~
-        lp[ViewGroup](MATCH_PARENT, WRAP_CONTENT) <~
-        Bg.res(R.color.dark) <~ Tweak[TitlePageIndicator] { x ⇒
+        LpTweaks.matchWidth <~
+        BgTweaks.res(R.color.dark) <~ Tweak[TitlePageIndicator] { x ⇒
           x.setViewPager(p)
           x.setFooterColor(ctx.get.getResources.getColor(R.color.aquadark))
         }

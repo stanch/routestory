@@ -7,7 +7,7 @@ import android.view.{ ViewGroup, LayoutInflater }
 import android.os.Bundle
 import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import android.widget.CheckBox
-import org.macroid.akkafragments.{ FragmentActor, AkkaFragment }
+import macroid.akkafragments.{ FragmentActor, AkkaFragment }
 
 class ControlPanelFragment extends RouteStoryFragment with AkkaFragment {
   lazy val cartographer = actorSystem.actorSelection("/user/cartographer")

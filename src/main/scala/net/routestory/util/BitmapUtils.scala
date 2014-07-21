@@ -2,14 +2,16 @@ package net.routestory.util
 
 import java.io.{ File, FileInputStream }
 
-import scala.util.Try
-
-import android.graphics._
 import android.graphics.Bitmap.Config
 import android.graphics.Paint.Align
-import android.graphics.Region.Op
+import android.graphics._
+import android.support.v7.widget.CardView
+import macroid.{ AppContext, ActivityContext }
+import net.routestory.R
+import net.routestory.ui.Styles
+
+import macroid.Logging._
 import scala.annotation.tailrec
-import android.util.Log
 
 object BitmapUtils {
   def decodeBitmapSize(f: File) = {
@@ -40,28 +42,11 @@ object BitmapUtils {
     Bitmap.createScaledBitmap(bitmap, width, height, true)
   }
 
-  def createScaledTransparentBitmap(bitmap: Bitmap, size: Int, alpha: Double, border: Boolean) = {
-    val landscape = bitmap.getWidth > bitmap.getHeight
-    val width: Int = Math.max(1, if (landscape) size else size * bitmap.getWidth / bitmap.getHeight)
-    val height: Int = Math.max(1, if (landscape) size * bitmap.getHeight / bitmap.getWidth else size)
-    val b = if (border) 3 else 0
-    val target = Bitmap.createBitmap(width + 2 * b, height + 2 * b, Config.ARGB_8888)
-    val canvas = new Canvas(target)
-    canvas.save()
-    canvas.clipRect(new Rect(b - 1, b - 1, width + b + 1, height + b + 1), Op.XOR)
-    canvas.drawARGB(0xfa, 0xff, 0xff, 0xff)
-    canvas.restore()
-    val paint = new Paint
-    paint.setAlpha((alpha * 255).toInt)
-    canvas.drawBitmap(bitmap, null, new Rect(b, b, width + b, height + b), paint)
-    target
-  }
-
-  def createCountedBitmap(bitmap: Bitmap, count: Integer) = {
+  def createCountedBitmap(bitmap: Bitmap, count: Integer)(implicit appCtx: AppContext) = {
     val target = Bitmap.createBitmap(bitmap.getWidth, bitmap.getHeight, Config.ARGB_8888)
     val canvas = new Canvas(target)
     val paint = new Paint
-    paint.setColor(Color.WHITE)
+    paint.setColor(appCtx.get.getResources.getColor(R.color.aquadark))
     paint.setTextSize(bitmap.getHeight / 2)
     paint.setTextAlign(Align.RIGHT)
     canvas.drawBitmap(bitmap, 0, 0, null)
@@ -69,12 +54,31 @@ object BitmapUtils {
     target
   }
 
+  def cardFrame(bitmap: Bitmap)(implicit ctx: ActivityContext) = {
+    import android.view.View.MeasureSpec._
+    val card = new CardView(ctx.get)
+    Styles.card.apply(card)
+    val (width, height) = (bitmap.getWidth + 21, bitmap.getHeight + 21)
+    card.measure(makeMeasureSpec(width, EXACTLY), makeMeasureSpec(height, EXACTLY))
+    card.layout(0, 0, width, height)
+    card.buildDrawingCache()
+    val frame = Bitmap.createBitmap(width, height, Config.ARGB_8888)
+    val canvas = new Canvas(frame)
+    card.draw(canvas)
+    canvas.drawBitmap(bitmap, 10f, 10f, null)
+    frame
+  }
+
   object MagicGrid {
     val spacing = 2
 
     def grouped[A](xs: Vector[A], minSize: Int) = {
       val rest = xs.length % minSize
-      xs.take(rest) +: xs.drop(rest).grouped(minSize).toVector
+      if (rest > 0) {
+        xs.take(rest) +: xs.drop(rest).grouped(minSize).toVector
+      } else {
+        xs.grouped(minSize).toVector
+      }
     }
 
     def create(bitmaps: Vector[Bitmap], size: Int) = {
@@ -108,6 +112,12 @@ object BitmapUtils {
       def widthFrom(height: Int) = (height * heightToWidth._1 + heightToWidth._2).toInt
       def heightFrom(width: Int) = (width * widthToHeight._1 + widthToHeight._2).toInt
 
+      def resolveSize(width: Option[Int], height: Option[Int]) = (width, height) match {
+        case (None, Some(s)) ⇒ (widthFrom(s), widthFrom(s), s)
+        case (Some(s), _) ⇒ (heightFrom(s), s, heightFrom(s))
+        case (None, None) ⇒ ???
+      }
+
       def draw(canvas: Canvas, x: Int, y: Int, width: Option[Int], height: Option[Int]): Either[Double, Int]
     }
 
@@ -116,11 +126,7 @@ object BitmapUtils {
       lazy val heightToWidth = (bitmap.getWidth.toDouble / bitmap.getHeight, 0.0)
 
       def draw(canvas: Canvas, x: Int, y: Int, width: Option[Int], height: Option[Int]) = {
-        val (ret, w, h) = (width, height) match {
-          case (None, Some(s)) ⇒ (widthFrom(s), widthFrom(s), s)
-          case (Some(s), _) ⇒ (heightFrom(s), s, heightFrom(s))
-          case (None, None) ⇒ ???
-        }
+        val (ret, w, h) = resolveSize(width, height)
         val size = Math.max(w, h)
         val maxSize = Math.max(bitmap.getWidth, bitmap.getHeight)
         if (maxSize + 5 < size) {
@@ -141,11 +147,7 @@ object BitmapUtils {
       lazy val heightToWidth = if (horizontal) ratio else inverse(ratio)
 
       def draw(canvas: Canvas, x: Int, y: Int, width: Option[Int], height: Option[Int]) = {
-        val (ret, w, h) = (width, height) match {
-          case (None, Some(s)) ⇒ (widthFrom(s), widthFrom(s), s)
-          case (Some(s), _) ⇒ (heightFrom(s), s, heightFrom(s))
-          case (None, None) ⇒ ???
-        }
+        val (ret, w, h) = resolveSize(width, height)
         val z = children.foldLeft[Either[Double, Int]](Right(0)) { (acc, ch) ⇒
           acc.right.flatMap { d ⇒
             (if (horizontal) ch.draw(canvas, x + d, y, None, Some(h)) else ch.draw(canvas, x, y + d, Some(w), None)) match {

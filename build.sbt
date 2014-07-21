@@ -21,6 +21,13 @@ lazy val model = RootProject(file("../model"))
 
 lazy val root = Project("root", file(".")).dependsOn(model)
 
+scalacOptions in (Compile, compile) ++=
+  (dependencyClasspath in Compile).value.files.map("-P:wartremover:cp:" + _.toURI.toURL)
+
+scalacOptions in (Compile, compile) ++= Seq(
+  "-P:wartremover:traverser:macroid.warts.CheckUi"
+)
+
 resolvers ++= Seq(
   "Couchbase" at "http://files.couchbase.com/maven2/",
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases/",
@@ -31,30 +38,24 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.macroid" %% "macroid" % "2.0.0-M2",
-  "org.macroid" %% "macroid-viewable" % "1.0.0-SNAPSHOT",
-  "org.macroid" %% "macroid-akka-fragments" % "2.0.0-M2",
+  aar("org.macroid" %% "macroid" % "2.0.0-SNAPSHOT"),
+  aar("org.macroid" %% "macroid-viewable" % "2.0.0-SNAPSHOT"),
+  aar("org.macroid" %% "macroid-akka-fragments" % "2.0.0-SNAPSHOT"),
   compilerPlugin("org.brianmckenna" %% "wartremover" % "0.10"),
-  "org.brianmckenna" %% "wartremover" % "0.10",
   "org.resolvable" %% "resolvable" % "2.0.0-M6",
   "org.resolvable" %% "resolvable-flickr" % "1.0.0-SNAPSHOT",
   "org.resolvable" %% "resolvable-foursquare" % "1.0.0-SNAPSHOT",
+  "io.dylemma" %% "scala-frp" % "1.1",
   "com.scalarx" %% "scalarx" % "0.1" exclude ("com.typesafe.akka", "akka-actor"),
   "com.typesafe.akka" %% "akka-actor" % "2.2.3",
   "org.scala-lang.modules" %% "scala-async" % "0.9.1",
   "org.apache.commons" % "commons-io" % "1.3.2"
 )
 
-scalacOptions in (Compile, compile) ++= Seq(
-  "-P:wartremover:cp:" + (dependencyClasspath in Compile).value
-    .files.map(_.toURL.toString)
-    .find(_.contains("org.macroid/macroid_")).get,
-  "-P:wartremover:traverser:macroid.warts.CheckUi"
-)
-
 // Android stuff
 libraryDependencies ++= Seq(
   "com.loopj.android" % "android-async-http" % "1.4.4",
+  "com.android.support" % "support-v4" % "20.0.0",
   "com.android.support" % "support-v13" % "19.1.0",
   "com.github.chrisbanes.photoview" % "library" % "1.2.2",
   aar("com.android.support" % "cardview-v7" % "21.0.0-rc1"),

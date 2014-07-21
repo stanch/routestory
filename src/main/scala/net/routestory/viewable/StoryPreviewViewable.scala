@@ -7,13 +7,14 @@ import android.text.style.UnderlineSpan
 import android.view.ViewGroup.LayoutParams._
 import android.widget.{ ImageView, LinearLayout, TextView }
 import macroid.FullDsl._
-import macroid.contrib.ExtraTweaks._
 import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import macroid.util.Ui
+import macroid.contrib.{ LpTweaks, TextTweaks }
+import macroid.Ui
 import macroid.viewable.SlottedFillableViewable
 import macroid.{ Tweak, ActivityContext, AppContext }
 import net.routestory.R
-import net.routestory.browsing.{ SearchActivity, StoryActivity }
+import net.routestory.browsing.stories.SearchActivity
+import net.routestory.browsing.story.StoryActivity
 import net.routestory.data.StoryPreview
 import net.routestory.ui.Styles
 import net.routestory.ui.Styles._
@@ -28,7 +29,7 @@ object StoryPreviewViewable extends SlottedFillableViewable[StoryPreview] {
 
   def tag(name: String, size: Option[Double])(implicit ctx: ActivityContext, appCtx: AppContext) =
     w[TextView] <~ Styles.tag <~ text(underlined(name)) <~
-      size.map(s ⇒ TextSize.sp(20 + (s * 20).toInt)) <~
+      size.map(s ⇒ TextTweaks.size(20 + (s * 20).toInt)) <~
       On.click(Ui {
         ctx.activity.get map { a ⇒
           val intent = new Intent(a, classOf[SearchActivity])
@@ -49,14 +50,14 @@ object StoryPreviewViewable extends SlottedFillableViewable[StoryPreview] {
     val layout = l[LinearLayout](
       l[CardView](
         l[VerticalLinearLayout](
-          w[TextView] <~ wire(slots.title) <~ Styles.title <~ lp[LinearLayout](WRAP_CONTENT, WRAP_CONTENT),
+          w[TextView] <~ wire(slots.title) <~ Styles.title <~ LpTweaks.wrapContent,
           l[HorizontalLinearLayout](
             w[ImageView] <~ wire(slots.authorPicture) <~ lp[LinearLayout](28 dp, 28 dp) <~ padding(right = 4 dp),
-            w[TextView] <~ wire(slots.authorName) <~ Styles.medium
+            w[TextView] <~ wire(slots.authorName) <~ TextTweaks.medium
           ),
           l[FlowLayout]() <~ wire(slots.tags)
         ) <~ Styles.p8dding
-      ) <~ Styles.card <~ Styles.matchParent
+      ) <~ Styles.card <~ LpTweaks.matchParent
     ) <~ padding(4 dp, 4 dp, 0, 4 dp)
     (layout, slots)
   }
