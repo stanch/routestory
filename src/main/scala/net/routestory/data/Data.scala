@@ -17,6 +17,8 @@ object Story {
     def location(implicit chapter: Chapter) = chapter.locationAt(timestamp)
   }
 
+  sealed trait ExternalElement extends Element
+
   case class UnknownElement(timestamp: Int, `type`: String, raw: JsObject) extends Element
 
   sealed trait KnownElement extends Element
@@ -39,15 +41,23 @@ object Story {
   case class Photo(timestamp: Int, url: String, data: Future[File]) extends Image {
     def withFile(file: File) = Photo(timestamp, file.getPath, Future.successful(file))
   }
+  case class FlickrPhoto(timestamp: Int, id: String, title: String, url: String, data: Future[File]) extends Image with ExternalElement {
+    def withFile(file: File) = FlickrPhoto(timestamp, id, title, file.getPath, Future.successful(file))
+  }
 
   case class TextNote(timestamp: Int, text: String) extends KnownElement
 
-  case class Venue(timestamp: Int, id: String, name: String, coordinates: LatLng) extends KnownElement
+  case class FoursquareVenue(timestamp: Int, id: String, name: String, coordinates: LatLng) extends KnownElement with ExternalElement
 
   case class Chapter(start: Long, duration: Int, locations: List[Location], elements: List[Element]) {
     lazy val distance = (locations zip locations.drop(1)).map {
       case (Location(_, ll1), Location(_, ll2)) ⇒ LatLngTool.distance(ll1, ll2, LengthUnit.METER)
     }.sum
+
+    lazy val knownElements = elements flatMap {
+      case x: KnownElement ⇒ x :: Nil
+      case _ ⇒ Nil
+    }
 
     def locationAt(time: Double): LatLng = {
       locations.span(_.timestamp < time) match {

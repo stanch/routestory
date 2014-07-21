@@ -30,8 +30,16 @@ trait ElementWrites extends AuxiliaryWrites {
   val soundWrite = mediaElementWrite[Sound]
   val voiceNoteWrite = mediaElementWrite[VoiceNote]
   val photoWrite = mediaElementWrite[Photo]
+  val flickrPhotoWrite = Write[FlickrPhoto, JsObject] { m ⇒
+    Json.obj(
+      "timestamp" → m.timestamp,
+      "id" → m.id,
+      "title" → m.title,
+      "url" → m.url
+    )
+  }
   val textNoteWrite = Write.gen[TextNote, JsObject]
-  val venueWrite = Write.gen[Venue, JsObject]
+  val foursquareVenueWrite = Write.gen[FoursquareVenue, JsObject]
 
   implicit val metaWrite = Write.gen[Meta, JsObject]
 
@@ -40,8 +48,9 @@ trait ElementWrites extends AuxiliaryWrites {
       case m @ Sound(_, _, _) ⇒ (soundWrite.writes(m), "sound")
       case m @ VoiceNote(_, _, _) ⇒ (voiceNoteWrite.writes(m), "voice-note")
       case m @ Photo(_, _, _) ⇒ (photoWrite.writes(m), "photo")
+      case m @ FlickrPhoto(_, _, _, _, _) ⇒ (flickrPhotoWrite.writes(m), "photo")
       case m @ TextNote(_, _) ⇒ (textNoteWrite.writes(m), "text-note")
-      case m @ Venue(_, _, _, _) ⇒ (venueWrite.writes(m), "venue")
+      case m @ FoursquareVenue(_, _, _, _) ⇒ (foursquareVenueWrite.writes(m), "venue")
       case m @ UnknownElement(_, tp, _) ⇒ (unknownElementWrite.writes(m), tp)
     }
     j ++ Json.obj("type" → t)

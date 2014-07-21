@@ -44,15 +44,23 @@ trait ElementRules extends AuxiliaryRules {
   val soundRule = elementTypeRule("sound")(Resolvable.rule[JsValue, Sound](mediaElementRuleBuilder))
   val voiceNoteRule = elementTypeRule("voice-note")(Resolvable.rule[JsValue, VoiceNote](mediaElementRuleBuilder))
   val photoRule = elementTypeRule("photo")(Resolvable.rule[JsValue, Photo](mediaElementRuleBuilder))
+  val flickrPhotoRule = elementTypeRule("flickr-photo")(Resolvable.rule[JsValue, FlickrPhoto] { __ : Reader[JsValue] ⇒
+    (__ \ "timestamp").read[Int] and
+    (__ \ "id").read[String] and
+    (__ \ "title").read[String] and
+    (__ \ "url").read[String] and
+    (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
+  })
   val textNoteRule = elementTypeRule("text-note")(Resolvable.pureRule(Rule.gen[JsValue, TextNote]))
-  val venueRule = elementTypeRule("venue")(Resolvable.pureRule(Rule.gen[JsValue, Venue]))
+  val foursquareVenueRule = elementTypeRule("foursquare-venue")(Resolvable.pureRule(Rule.gen[JsValue, FoursquareVenue]))
 
   implicit val elementRule =
     soundRule orElse
     voiceNoteRule orElse
     photoRule orElse
+    flickrPhotoRule orElse
     textNoteRule orElse
-    venueRule orElse
+    foursquareVenueRule orElse
     unknownElementRule
 
   implicit val metaRule = Rule.gen[JsValue, Meta]

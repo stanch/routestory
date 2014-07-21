@@ -4,6 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.10.4"
 
+exportJars := true
+
 resolvers ++= Seq(
   "Stanch" at "http://dl.bintray.com/stanch/maven",
   "JTO snapshots" at "https://raw.github.com/jto/mvn-repo/master/snapshots",
