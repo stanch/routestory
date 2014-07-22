@@ -6,20 +6,16 @@ import play.api.libs.json.JsObject
 import scala.concurrent.Future
 import com.javadocmd.simplelatlng.{LatLngTool, LatLng}
 
+case class Timed[+A](timestamp: Int, data: A) {
+  override def toString = s"${timestamp}s -> $data"
+}
+
 object Story {
-  sealed trait Timed {
-    val timestamp: Int
-  }
-
-  case class Location(timestamp: Int, coordinates: LatLng) extends Timed
-
-  sealed trait Element extends Timed {
-    def location(implicit chapter: Chapter) = chapter.locationAt(timestamp)
-  }
+  sealed trait Element
 
   sealed trait ExternalElement extends Element
 
-  case class UnknownElement(timestamp: Int, `type`: String, raw: JsObject) extends Element
+  case class UnknownElement(`type`: String, raw: JsObject) extends Element
 
   sealed trait KnownElement extends Element
 
@@ -30,47 +26,51 @@ object Story {
   }
 
   sealed trait Audio extends MediaElement
-  case class Sound(timestamp: Int, url: String, data: Future[File]) extends Audio {
-    def withFile(file: File) = Sound(timestamp, file.getPath, Future.successful(file))
+  case class Sound(url: String, data: Future[File]) extends Audio {
+    def withFile(file: File) = Sound(file.getPath, Future.successful(file))
   }
-  case class VoiceNote(timestamp: Int, url: String, data: Future[File]) extends Audio {
-    def withFile(file: File) = VoiceNote(timestamp, file.getPath, Future.successful(file))
+  case class VoiceNote(url: String, data: Future[File]) extends Audio {
+    def withFile(file: File) = VoiceNote(file.getPath, Future.successful(file))
   }
 
   sealed trait Image extends MediaElement
-  case class Photo(timestamp: Int, url: String, data: Future[File]) extends Image {
-    def withFile(file: File) = Photo(timestamp, file.getPath, Future.successful(file))
+  case class Photo(url: String, data: Future[File]) extends Image {
+    def withFile(file: File) = Photo(file.getPath, Future.successful(file))
   }
-  case class FlickrPhoto(timestamp: Int, id: String, title: String, url: String, data: Future[File]) extends Image with ExternalElement {
-    def withFile(file: File) = FlickrPhoto(timestamp, id, title, file.getPath, Future.successful(file))
+  case class FlickrPhoto(id: String, title: String, url: String, data: Future[File]) extends Image with ExternalElement {
+    def withFile(file: File) = FlickrPhoto(id, title, file.getPath, Future.successful(file))
   }
 
-  case class TextNote(timestamp: Int, text: String) extends KnownElement
+  case class TextNote(text: String) extends KnownElement
 
-  case class FoursquareVenue(timestamp: Int, id: String, name: String, coordinates: LatLng) extends KnownElement with ExternalElement
+  case class FoursquareVenue(id: String, name: String, coordinates: LatLng) extends KnownElement with ExternalElement
 
-  case class Chapter(start: Long, duration: Int, locations: List[Location], elements: List[Element]) {
+  case class Chapter(start: Long, duration: Int, locations: List[Timed[LatLng]], elements: List[Timed[Element]]) {
     lazy val distance = (locations zip locations.drop(1)).map {
-      case (Location(_, ll1), Location(_, ll2)) ⇒ LatLngTool.distance(ll1, ll2, LengthUnit.METER)
+      case (Timed(_, ll1), Timed(_, ll2)) ⇒ LatLngTool.distance(ll1, ll2, LengthUnit.METER)
     }.sum
 
     lazy val knownElements = elements flatMap {
-      case x: KnownElement ⇒ x :: Nil
+      case x @ Timed(_, e: KnownElement) ⇒ x.copy(data = e) :: Nil
       case _ ⇒ Nil
     }
+
+    def ts = System.currentTimeMillis / 1000 - start
+
+    def location[A](timed: Timed[A]) = locationAt(timed.timestamp)
 
     def locationAt(time: Double): LatLng = {
       locations.span(_.timestamp < time) match {
         case (Nil, Nil) ⇒ null
-        case (Nil, l2 :: after) ⇒ l2.coordinates
-        case (before, Nil) ⇒ before.last.coordinates
+        case (Nil, l2 :: after) ⇒ l2.data
+        case (before, Nil) ⇒ before.last.data
         case (before, l2 :: after) ⇒
           val l1 = before.last
           val t = (time - l1.timestamp) / (l2.timestamp - l1.timestamp)
           def i(x: Double, y: Double) = x + t * (y - x)
           new LatLng(
-            i(l1.coordinates.getLatitude, l2.coordinates.getLatitude),
-            i(l1.coordinates.getLongitude, l2.coordinates.getLongitude)
+            i(l1.data.getLatitude, l2.data.getLatitude),
+            i(l1.data.getLongitude, l2.data.getLongitude)
           )
       }
     }

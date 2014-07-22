@@ -9,12 +9,12 @@ object Utils {
   def withJustFilenames(story: Story)(implicit ec: ExecutionContext): Future[(Story, List[(File, String)])] = {
     val chapters = Future.sequence(story.chapters.map { chapter ⇒
       val elements = Future.sequence(chapter.elements.map {
-        case e: Story.MediaElement ⇒
+        case t @ Timed(_, e: Story.MediaElement) ⇒
           e.data.map { file ⇒
-            e.withFile(new File(file.getName)) → List(file → file.getName)
+            t.copy(data = e.withFile(new File(file.getName))) → List(file → file.getName)
           }
-        case e ⇒
-          Future.successful(e → Nil)
+        case t ⇒
+          Future.successful(t → Nil)
       })
       elements.map(e ⇒ chapter.copy(elements = e.map(_._1)) → e.flatMap(_._2))
     })

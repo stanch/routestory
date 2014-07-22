@@ -22,6 +22,7 @@ class Sandbox extends FlatSpec {
 //      Save(s, new File("story.zip"))
 //    } onComplete println
     val story = Load(new File("story.zip"), new File("tmp/"))
-    story.flatMap(_.chapters.head.elements.head.asInstanceOf[Story.Photo].data) onComplete println
+    story onComplete println
+    //story.flatMap(_.chapters.head.elements.head.asInstanceOf[Story.Photo].data) onComplete println
   }
 }

@@ -14,25 +14,28 @@ import resolvable.Resolvable
 // format: OFF
 
 trait AuxiliaryRules {
-  implicit val latLngRule = Rule[JsValue, LatLng] {
-    case JsArray(Seq(JsNumber(lat), JsNumber(lng))) ⇒ Success(new LatLng(lat.toDouble, lng.toDouble))
-    case _ ⇒ Failure(Seq())
+  implicit val latLngRule = From[JsValue] { __ ⇒
+    ((__ \ "coordinates").read[List[Double]] and
+     (__ \ "type").read(Rules.equalTo("Point")))((l, _) ⇒ new LatLng(l(0), l(1)))
   }
+
+  implicit def timedRule[A](implicit rule: Rule[JsValue, A]) = From[JsValue] { __ ⇒
+    ((__ \ "timestamp").read[Int] and __.read[A])((t, d) ⇒ Timed(t, d))
+  }
+
+  implicit def resolvableTimedRule[A](implicit rule: Rule[JsValue, Resolvable[A]]): Rule[JsValue, Resolvable[Timed[A]]] =
+    timedRule[Resolvable[A]].fmap(t ⇒ t.data.map(d ⇒ t.copy(data = d)))
 }
 
 trait ElementRules extends AuxiliaryRules {
   def media(url: String): Resolvable[File]
 
-  implicit val locationRule = Rule.gen[JsValue, Location]
-
   val unknownElementRule = Resolvable.rule[JsValue, UnknownElement] { __ ⇒
-    (__ \ "timestamp").read[Int] and
     (__ \ "type").read[String] and
     __.read[JsObject]
   }.fmap(x ⇒ x: Resolvable[Element])
 
   val mediaElementRuleBuilder = { __ : Reader[JsValue] ⇒
-    (__ \ "timestamp").read[Int] and
     (__ \ "url").read[String] and
     (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
   }
@@ -45,7 +48,6 @@ trait ElementRules extends AuxiliaryRules {
   val voiceNoteRule = elementTypeRule("voice-note")(Resolvable.rule[JsValue, VoiceNote](mediaElementRuleBuilder))
   val photoRule = elementTypeRule("photo")(Resolvable.rule[JsValue, Photo](mediaElementRuleBuilder))
   val flickrPhotoRule = elementTypeRule("flickr-photo")(Resolvable.rule[JsValue, FlickrPhoto] { __ : Reader[JsValue] ⇒
-    (__ \ "timestamp").read[Int] and
     (__ \ "id").read[String] and
     (__ \ "title").read[String] and
     (__ \ "url").read[String] and
@@ -74,8 +76,8 @@ trait JsonRules extends ElementRules {
   implicit val chapterRule: Rule[JsValue, Resolvable[Chapter]] = Resolvable.rule[JsValue, Chapter] { __ ⇒
     (__ \ "start").read[Long] and
     (__ \ "duration").read[Int] and
-    (__ \ "locations").read[List[Location]] and
-    (__ \ "media").read[List[Resolvable[Element]]].fmap(Resolvable.fromList).fmap(_.map(_.sortBy(_.timestamp)))
+    (__ \ "locations").read[List[Timed[LatLng]]] and
+    (__ \ "media").read[List[Resolvable[Timed[Element]]]].fmap(Resolvable.fromList).fmap(_.map(_.sortBy(_.timestamp)))
   }
 
   /* Story */

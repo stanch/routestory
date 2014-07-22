@@ -16,8 +16,8 @@ trait Trees {
 
     /** Map the nodes */
     def map[B](f: Tree[A] ⇒ B): Tree[B] = this match {
-      case x @ Leaf(_, _, data) ⇒ x.withData(f(x))
-      case x @ Node(children, _, data) ⇒
+      case x @ Leaf(_, _, _, data) ⇒ x.withData(f(x))
+      case x @ Node(children, _, _, data) ⇒
         val mapped = children.map(_.map(f))
         x.withChildren(mapped, f(x))
     }
@@ -30,8 +30,8 @@ trait Trees {
 
     /** Leaf story elements */
     def leaves: Vector[Leaf[A]] = this match {
-      case x @ Leaf(_, _, _) ⇒ Vector(x)
-      case x @ Node(_, _, _) ⇒ x.children.flatMap(_.leaves)
+      case x @ Leaf(_, _, _, _) ⇒ Vector(x)
+      case x @ Node(_, _, _, _) ⇒ x.children.flatMap(_.leaves)
     }
 
     /** Minimum distance, in radians, at which the node can be exploded */
@@ -45,16 +45,16 @@ trait Trees {
     }
   }
 
-  case class Leaf[A](element: Story.KnownElement, index: Int, data: A)(implicit val chapter: Story.Chapter) extends Tree[A] {
+  case class Leaf[A](element: Timed[Story.KnownElement], index: Int, chapter: Story.Chapter, data: A) extends Tree[A] {
     lazy val timestamp = element.timestamp.toDouble
-    lazy val location = element.location
+    lazy val location = chapter.location(element)
     val minScale = 0.0
     val children = Vector()
 
-    def withData[B](d: B) = copy(data = d)(chapter)
+    def withData[B](d: B) = copy(data = d)
   }
 
-  case class Node[A](children: Vector[Tree[A]], minScale: Double, data: A)(implicit val chapter: Story.Chapter) extends Tree[A] {
+  case class Node[A](children: Vector[Tree[A]], minScale: Double, chapter: Story.Chapter, data: A) extends Tree[A] {
     // average
     lazy val timestamp = children.foldLeft((0.0, 0)) {
       case ((s, n), c) ⇒ (s + c.timestamp, n + 1)
@@ -64,20 +64,20 @@ trait Trees {
 
     lazy val location = chapter.locationAt(timestamp)
 
-    def withData(d: A) = copy(data = d)(chapter)
-    def withChildren[B](ch: Vector[Tree[B]], d: B) = copy(children = ch, data = d)(chapter)
+    def withData(d: A) = copy(data = d)
+    def withChildren[B](ch: Vector[Tree[B]], d: B) = copy(children = ch, data = d)
   }
 
   object Node {
-    def merge(tree1: Tree[Unit], tree2: Tree[Unit])(implicit chapter: Story.Chapter) = (tree1, tree2) match {
-      case (node @ Node(children, minScale, data), leaf: Leaf[Unit]) if children.forall(item ⇒ distance(item.location, leaf.location) < minScale) ⇒
-        Node(children :+ leaf, minScale, data)
+    def merge(tree1: Tree[Unit], tree2: Tree[Unit], chapter: Story.Chapter) = (tree1, tree2) match {
+      case (node @ Node(children, minScale, _, data), leaf: Leaf[Unit]) if children.forall(item ⇒ distance(item.location, leaf.location) < minScale) ⇒
+        Node(children :+ leaf, minScale, chapter, data)
 
-      case (leaf: Leaf[Unit], node @ Node(children, minScale, data)) if children.forall(item ⇒ distance(item.location, leaf.location) < minScale) ⇒
-        Node(children :+ leaf, minScale, data)
+      case (leaf: Leaf[Unit], node @ Node(children, minScale, c, data)) if children.forall(item ⇒ distance(item.location, leaf.location) < minScale) ⇒
+        Node(children :+ leaf, minScale, chapter, data)
 
       case (_, _) ⇒
-        Node(Vector(tree1, tree2), distance(tree1.location, tree2.location), tree1.data)
+        Node(Vector(tree1, tree2), distance(tree1.location, tree2.location), chapter, tree1.data)
     }
   }
 
@@ -125,7 +125,7 @@ object Clustering extends Trees {
   }
 
   @tailrec
-  def clusterRound(nodes: Vector[Tree[Unit]], clusterRadius: Double, distanceTable: DistanceTable = Map.empty)(implicit chapter: Story.Chapter): Tree[Unit] = {
+  def clusterRound(chapter: Story.Chapter, nodes: Vector[Tree[Unit]], clusterRadius: Double, distanceTable: DistanceTable = Map.empty): Tree[Unit] = {
     nodes match {
       case Vector(single) ⇒ single
       case _ ⇒
@@ -143,7 +143,7 @@ object Clustering extends Trees {
         }
 
         // merge them
-        val group = Node.merge(closest._1, closest._2)
+        val group = Node.merge(closest._1, closest._2, chapter)
         val index = nodesPopped lastIndexWhere { _.timestamp <= group.timestamp }
         val (left, right) = nodesPopped.splitAt(index + 1)
         val nodesPushed = left ++ Vector(group) ++ right
@@ -152,13 +152,15 @@ object Clustering extends Trees {
         val tablePushed = patchDistanceTable(left, right, group, radius, tablePopped)
 
         // recurse
-        clusterRound(nodesPushed, radius, tablePushed)
+        clusterRound(chapter, nodesPushed, radius, tablePushed)
     }
   }
 
-  def cluster(implicit chapter: Story.Chapter) = chapter.knownElements match {
+  def cluster(chapter: Story.Chapter) = chapter.knownElements match {
     case Nil ⇒ None
-    case e :: Nil ⇒ Some(Leaf(e, 0, ()))
-    case es ⇒ Some(clusterRound(es.zipWithIndex.toVector.map { case (e, i) ⇒ Leaf(e, i, ()) }, chapter.duration.toDouble / 4))
+    case e :: Nil ⇒ Some(Leaf(e, 0, chapter, ()))
+    case es ⇒
+      val leaves = es.zipWithIndex.toVector map { case (e, i) ⇒ Leaf(e, i, chapter, ()) }
+      Some(clusterRound(chapter, leaves, chapter.duration.toDouble / 4))
   }
 }
