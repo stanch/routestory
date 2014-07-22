@@ -48,9 +48,9 @@ trait ElementWrites extends AuxiliaryWrites {
       case m @ Sound(_, _, _) ⇒ (soundWrite.writes(m), "sound")
       case m @ VoiceNote(_, _, _) ⇒ (voiceNoteWrite.writes(m), "voice-note")
       case m @ Photo(_, _, _) ⇒ (photoWrite.writes(m), "photo")
-      case m @ FlickrPhoto(_, _, _, _, _) ⇒ (flickrPhotoWrite.writes(m), "photo")
+      case m @ FlickrPhoto(_, _, _, _, _) ⇒ (flickrPhotoWrite.writes(m), "flickr-photo")
       case m @ TextNote(_, _) ⇒ (textNoteWrite.writes(m), "text-note")
-      case m @ FoursquareVenue(_, _, _, _) ⇒ (foursquareVenueWrite.writes(m), "venue")
+      case m @ FoursquareVenue(_, _, _, _) ⇒ (foursquareVenueWrite.writes(m), "foursquare-venue")
       case m @ UnknownElement(_, tp, _) ⇒ (unknownElementWrite.writes(m), tp)
     }
     j ++ Json.obj("type" → t)
