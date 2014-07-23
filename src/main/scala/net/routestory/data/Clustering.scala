@@ -157,10 +157,10 @@ object Clustering extends Trees {
   }
 
   def cluster(chapter: Story.Chapter) = chapter.knownElements match {
-    case Nil ⇒ None
-    case e :: Nil ⇒ Some(Leaf(e, 0, chapter, ()))
+    case Vector() ⇒ None
+    case Vector(e) ⇒ Some(Leaf(e, 0, chapter, ()))
     case es ⇒
-      val leaves = es.zipWithIndex.toVector map { case (e, i) ⇒ Leaf(e, i, chapter, ()) }
+      val leaves = es.zipWithIndex map { case (e, i) ⇒ Leaf(e, i, chapter, ()) }
       Some(clusterRound(chapter, leaves, chapter.duration.toDouble / 4))
   }
 }

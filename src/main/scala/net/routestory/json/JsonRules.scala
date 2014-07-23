@@ -76,8 +76,8 @@ trait JsonRules extends ElementRules {
   implicit val chapterRule: Rule[JsValue, Resolvable[Chapter]] = Resolvable.rule[JsValue, Chapter] { __ ⇒
     (__ \ "start").read[Long] and
     (__ \ "duration").read[Int] and
-    (__ \ "locations").read[List[Timed[LatLng]]] and
-    (__ \ "media").read[List[Resolvable[Timed[Element]]]].fmap(Resolvable.fromList).fmap(_.map(_.sortBy(_.timestamp)))
+    (__ \ "locations").read[List[Timed[LatLng]]].fmap(_.toVector) and
+    (__ \ "media").read[List[Resolvable[Timed[Element]]]].fmap(Resolvable.fromList).fmap(_.map(_.toVector.sortBy(_.timestamp)))
   }
 
   /* Story */

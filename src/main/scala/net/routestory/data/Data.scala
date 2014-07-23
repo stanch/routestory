@@ -29,13 +29,22 @@ object Story {
   case class Sound(url: String, data: Future[File]) extends Audio {
     def withFile(file: File) = Sound(file.getPath, Future.successful(file))
   }
+  object Sound {
+    def apply(file: File) = new Sound(file.getAbsolutePath, Future.successful(file))
+  }
   case class VoiceNote(url: String, data: Future[File]) extends Audio {
     def withFile(file: File) = VoiceNote(file.getPath, Future.successful(file))
+  }
+  object VoiceNote {
+    def apply(file: File) = new VoiceNote(file.getAbsolutePath, Future.successful(file))
   }
 
   sealed trait Image extends MediaElement
   case class Photo(url: String, data: Future[File]) extends Image {
     def withFile(file: File) = Photo(file.getPath, Future.successful(file))
+  }
+  object Photo {
+    def apply(file: File) = new Photo(file.getAbsolutePath, Future.successful(file))
   }
   case class FlickrPhoto(id: String, title: String, url: String, data: Future[File]) extends Image with ExternalElement {
     def withFile(file: File) = FlickrPhoto(id, title, file.getPath, Future.successful(file))
@@ -45,26 +54,26 @@ object Story {
 
   case class FoursquareVenue(id: String, name: String, coordinates: LatLng) extends KnownElement with ExternalElement
 
-  case class Chapter(start: Long, duration: Int, locations: List[Timed[LatLng]], elements: List[Timed[Element]]) {
+  case class Chapter(start: Long, duration: Int, locations: Vector[Timed[LatLng]], elements: Vector[Timed[Element]]) {
     lazy val distance = (locations zip locations.drop(1)).map {
       case (Timed(_, ll1), Timed(_, ll2)) ⇒ LatLngTool.distance(ll1, ll2, LengthUnit.METER)
     }.sum
 
     lazy val knownElements = elements flatMap {
-      case x @ Timed(_, e: KnownElement) ⇒ x.copy(data = e) :: Nil
-      case _ ⇒ Nil
+      case x @ Timed(_, e: KnownElement) ⇒ Vector(x.copy(data = e))
+      case _ ⇒ Vector.empty
     }
 
-    def ts = System.currentTimeMillis / 1000 - start
+    def ts = (System.currentTimeMillis / 1000 - start).toInt
 
     def location[A](timed: Timed[A]) = locationAt(timed.timestamp)
 
     def locationAt(time: Double): LatLng = {
       locations.span(_.timestamp < time) match {
-        case (Nil, Nil) ⇒ null
-        case (Nil, l2 :: after) ⇒ l2.data
-        case (before, Nil) ⇒ before.last.data
-        case (before, l2 :: after) ⇒
+        case (Vector(), Vector()) ⇒ null
+        case (Vector(), l2 +: after) ⇒ l2.data
+        case (before, Vector()) ⇒ before.last.data
+        case (before, l2 +: after) ⇒
           val l1 = before.last
           val t = (time - l1.timestamp) / (l2.timestamp - l1.timestamp)
           def i(x: Double, y: Double) = x + t * (y - x)
@@ -74,6 +83,10 @@ object Story {
           )
       }
     }
+  }
+
+  object Chapter {
+    def empty = Chapter(System.currentTimeMillis, 0, Vector.empty, Vector.empty)
   }
 
   case class Meta(title: Option[String], description: Option[String], tags: List[String] = Nil)

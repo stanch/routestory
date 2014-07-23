@@ -63,8 +63,8 @@ object JsonWrites extends ElementWrites {
   implicit val chapterWrite = To[JsObject] { __ ⇒
     ((__ \ "start").write[Long] and
      (__ \ "duration").write[Int] and
-     (__ \ "locations").write[List[Timed[LatLng]]] and
-     (__ \ "media").write[List[Timed[Element]]])(unlift(Chapter.unapply))
+     (__ \ "locations").write[List[Timed[LatLng]]].contramap { (_: Vector[Timed[LatLng]]).toList } and
+     (__ \ "media").write[List[Timed[Element]]].contramap { (_: Vector[Timed[Element]]).toList })(unlift(Chapter.unapply))
   }
 
   implicit val storyWrite = To[JsObject] { __ ⇒
