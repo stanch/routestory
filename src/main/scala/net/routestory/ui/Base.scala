@@ -2,7 +2,7 @@ package net.routestory.ui
 
 import android.app.{ Activity, SearchManager }
 import android.content.{ Context, Intent }
-import android.graphics.Point
+import android.graphics.{ Color, Point }
 import android.os.Bundle
 import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivity }
 import android.support.v4.widget.DrawerLayout
@@ -41,7 +41,7 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
 
   def activityProgress =
     w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) <~
-      BgTweaks.res(R.color.dark) <~
+      BgTweaks.color(Color.BLACK) <~
       LpTweaks.matchWidth
 
   def drawer(view: Ui[View]) = {

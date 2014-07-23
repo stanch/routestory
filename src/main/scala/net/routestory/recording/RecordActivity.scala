@@ -140,7 +140,7 @@ class RecordActivity extends RouteStoryActivity
 
   def onLocationChanged(location: AndroidLocation) = {
     firstLocationPromise.trySuccess(())
-    cartographer ! Cartographer.Location(location, location.getBearing)
+    cartographer ! location
   }
 
   override def onSaveInstanceState(outState: Bundle) = {

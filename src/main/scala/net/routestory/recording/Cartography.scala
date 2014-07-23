@@ -1,6 +1,7 @@
 package net.routestory.recording
 
 import akka.actor.{ ActorLogging, Props }
+import android.location.Location
 import android.os.Bundle
 import android.view.{ LayoutInflater, ViewGroup }
 import com.google.android.gms.maps.model.{ CameraPosition, LatLng }
@@ -8,10 +9,10 @@ import com.google.android.gms.maps.{ CameraUpdateFactory, SupportMapFragment }
 import macroid.FullDsl._
 import macroid._
 import macroid.akkafragments.{ AkkaFragment, FragmentActor }
-import macroid.Ui
 import net.routestory.browsing.story.MapManager
-import net.routestory.data.Story
+import net.routestory.data.{ Clustering, Story }
 import net.routestory.ui.RouteStoryFragment
+import net.routestory.util.Implicits._
 
 class CartographyFragment extends RouteStoryFragment with AkkaFragment with IdGeneration {
   lazy val actor = Some(actorSystem.actorSelection("/user/cartographer"))
@@ -24,8 +25,7 @@ class CartographyFragment extends RouteStoryFragment with AkkaFragment with IdGe
 }
 
 object Cartographer {
-  case class Location(coords: LatLng, bearing: Float)
-  case class Update(chapter: Story.Chapter)
+  case class Update(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]])
   case object QueryLastLocation
   def props(implicit ctx: ActivityContext, appCtx: AppContext) = Props(new Cartographer)
 }
@@ -39,20 +39,26 @@ class Cartographer(implicit ctx: ActivityContext, appCtx: AppContext) extends Fr
   lazy val typewriter = context.actorSelection("../typewriter")
 
   def receive = receiveUi andThen {
-    case Update(chapter) ⇒
-      withUi(f ⇒ f.mapManager.addRoute(chapter))
+    case Update(chapter, tree) ⇒
+      withUi { f ⇒
+        f.mapManager.addRoute(chapter) ~ f.mapManager.addMarkers(chapter, tree)
+      }
 
-    case Location(coords, bearing) ⇒ withUi(f ⇒ Ui {
+    case location: Location ⇒ withUi(f ⇒ Ui {
       // update the map
+      val latLng: LatLng = location
       log.debug("Received location")
-      last = Some(coords)
+      last = Some(latLng)
       f.map.animateCamera(CameraUpdateFactory.newCameraPosition {
-        CameraPosition.builder(f.map.getCameraPosition).target(coords).tilt(45).zoom(19).bearing(bearing).build()
+        CameraPosition.builder(f.map.getCameraPosition).target(latLng).tilt(45).zoom(19).bearing(location.getBearing).build()
       })
-      typewriter ! Typewriter.Location(coords)
+      f.mapManager.addMan(latLng).run
+      typewriter ! latLng
     })
 
     case QueryLastLocation ⇒
       sender ! last
+
+    case _ ⇒
   }
 }

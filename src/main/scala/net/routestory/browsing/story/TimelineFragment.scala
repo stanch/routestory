@@ -21,11 +21,11 @@ class TimelineFragment extends RouteStoryFragment with AkkaFragment {
   var grid = slot[StaggeredGridView]
 
   def addChapter(chapter: Story.Chapter) = {
-    val viewables = new StoryElementViewable(chapter, displaySize(0) / 2)
-    val adapter = FillableViewableAdapter(chapter.knownElements)(viewables)
+    val viewables = new StoryElementViewable(displaySize(0) / 2)
+    val adapter = FillableViewableAdapter(chapter.knownElements.map(_.data))(viewables)
     grid <~ ListTweaks.adapter(adapter) <~ FuncOn.itemClick[StaggeredGridView] { (_: AdapterView[_], _: View, index: Int, _: Long) ⇒
       ElementPager.show(
-        Clustering.Leaf(chapter.knownElements(index), index, ())(chapter),
+        Clustering.Leaf(chapter.knownElements(index), index, chapter, ()),
         f ⇒ coordinator ! Coordinator.UpdateFocus(chapter, f)
       )
     }

@@ -1,6 +1,7 @@
 package net.routestory.ui
 
 import android.content.Context
+import android.graphics.Color
 import android.support.v4.app.{ Fragment, FragmentManager, FragmentPagerAdapter }
 import android.support.v4.view.ViewPager
 import android.view.View
@@ -43,7 +44,7 @@ trait FragmentPaging { self: IdGeneration ⇒
     pager.flatMap { p ⇒
       val indicator = w[TitlePageIndicator] <~
         LpTweaks.matchWidth <~
-        BgTweaks.res(R.color.dark) <~ Tweak[TitlePageIndicator] { x ⇒
+        BgTweaks.color(Color.BLACK) <~ Tweak[TitlePageIndicator] { x ⇒
           x.setViewPager(p)
           x.setFooterColor(ctx.get.getResources.getColor(R.color.aquadark))
         }

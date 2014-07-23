@@ -18,9 +18,12 @@ import macroid.Ui
 import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
 import macroid.{ IdGeneration, Transformer, Tweak }
 import net.routestory.R
+import net.routestory.data.Story
 import net.routestory.recording.{ RecordActivity, Typewriter }
 import net.routestory.ui.RouteStoryFragment
 import macroid.akkafragments.AkkaFragment
+
+import scala.concurrent.Future
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFragment {
   lazy val photoFile = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir)
@@ -62,7 +65,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFra
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode == RecordActivity.REQUEST_CODE_TAKE_PICTURE) {
       if (resultCode == Activity.RESULT_OK) {
-        typewriter ! Typewriter.Photo(photoFile)
+        typewriter ! Story.Photo(photoFile)
       }
     }
   }
@@ -85,7 +88,7 @@ class AddTextNote extends AddSomething {
     } <~ wire(input)
   } <~ positiveOk(Ui {
     Some(input.get.getText.toString).filter(!_.isEmpty).foreach { text ⇒
-      typewriter ! Typewriter.TextNote(text)
+      typewriter ! Story.TextNote(text)
     }
   }) <~ negativeCancel(Ui.nop)).create()
 }
@@ -136,7 +139,7 @@ class AddVoiceNote extends AddSomething {
       stop()
     }
     if (mRecorded) {
-      typewriter ! Typewriter.VoiceNote(new File(mOutputPath))
+      typewriter ! Story.VoiceNote(new File(mOutputPath))
       //activity.addVoice(mOutputPath)
     }
   }) <~ negativeCancel(Ui {

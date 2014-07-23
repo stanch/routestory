@@ -6,7 +6,7 @@ import macroid.Ui
 import macroid.FullDsl._
 import macroid.{ AppContext, ActivityContext }
 import macroid.viewable.Viewable
-import net.routestory.data.{ Story, Clustering }
+import net.routestory.data.{ Timed, Story, Clustering }
 
 class ClusteringTreeViewable[A](maxImageSize: Int) extends Viewable[Clustering.Tree[A]] {
   override type W = View
@@ -15,13 +15,16 @@ class ClusteringTreeViewable[A](maxImageSize: Int) extends Viewable[Clustering.T
     new StoryElementDetailedViewable(maxImageSize).layout(x)
 
   override def layout(data: Clustering.Tree[A])(implicit ctx: ActivityContext, appCtx: AppContext) = data match {
-    case Clustering.Leaf(x: Story.Image, _, _) ⇒ delegate(x)
-    case Clustering.Leaf(x: Story.TextNote, _, _) ⇒ delegate(x)
-    case x @ Clustering.Node(_, _, _) ⇒
-      val elements = x.leaves.map(_.element)
-      if (elements.exists(_.isInstanceOf[Story.Image])) {
-        delegate(elements.find(_.isInstanceOf[Story.Image]).get)
-      } else {
+    case Clustering.Leaf(Timed(_, x: Story.Image), _, _, _) ⇒ delegate(x)
+    case Clustering.Leaf(Timed(_, x: Story.TextNote), _, _, _) ⇒ delegate(x)
+    case x @ Clustering.Node(_, _, _, _) ⇒
+      val elements = x.leaves.map(_.element.data)
+      elements find {
+        case x: Story.Image ⇒ true
+        case _ ⇒ false
+      } map { img ⇒
+        delegate(img)
+      } getOrElse {
         w[TextView]
       }
     case _ ⇒ w[TextView]

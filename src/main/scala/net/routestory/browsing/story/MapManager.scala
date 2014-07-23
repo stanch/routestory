@@ -30,10 +30,10 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
 
   def addRoute(chapter: Story.Chapter) = Ui {
     route match {
-      case Some(line) ⇒ line.setPoints(chapter.locations.map(_.coordinates: LatLng))
+      case Some(line) ⇒ line.setPoints(chapter.locations.map(_.data: LatLng))
       case None ⇒
         val routeOptions = new PolylineOptions
-        chapter.locations.map(_.coordinates: LatLng).foreach(routeOptions.add)
+        chapter.locations.map(_.data: LatLng).foreach(routeOptions.add)
         routeOptions.width(10)
         routeOptions.color(appCtx.get.getResources.getColor(R.color.orange))
         route = Some(map.addPolyline(routeOptions))
@@ -125,9 +125,9 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
 
   def click(chapter: Story.Chapter)(marker: Marker) = {
     markers.get(marker).foreach {
-      case x @ Clustering.Leaf(_, _, _) ⇒
+      case x @ Clustering.Leaf(_, _, _, _) ⇒
         ElementPager.show(x, cueStream.fire).run
-      case x @ Clustering.Node(_, _, _) ⇒
+      case x @ Clustering.Node(_, _, _, _) ⇒
         ElementChooser.show(x, cueStream.fire).run
     }
     true

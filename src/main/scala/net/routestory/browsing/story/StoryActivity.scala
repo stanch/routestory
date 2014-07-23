@@ -16,7 +16,7 @@ import macroid.Ui
 import macroid.{ AppContext, IdGeneration }
 import net.routestory.R
 import net.routestory.browsing._
-import net.routestory.data.{ Clustering, Story }
+import net.routestory.data.{ Timed, Clustering, Story }
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity, RouteStoryFragment }
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -133,8 +133,8 @@ class Coordinator(activity: StoryActivity)(implicit appCtx: AppContext) extends 
       log.debug("Chapter loaded")
       chapter = Some(c)
 
-      val media = c.elements flatMap {
-        case m: Story.MediaElement ⇒ m.data :: Nil
+      val media = c.knownElements.toList flatMap {
+        case Timed(_, m: Story.MediaElement) ⇒ m.data :: Nil
         case _ ⇒ Nil
       }
       val clustering = Future(Clustering.cluster(c))

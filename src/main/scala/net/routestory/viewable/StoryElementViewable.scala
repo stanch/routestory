@@ -22,7 +22,7 @@ import uk.co.senab.photoview.PhotoViewAttacher
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends SlottedFillableViewable[Story.KnownElement] {
+class StoryElementViewable(maxIconSize: Int) extends SlottedFillableViewable[Story.KnownElement] {
   class Slots {
     var timestamp = slot[TextView]
     var imageView = slot[ImageView]
@@ -39,13 +39,14 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
   def resBmp(id: Int)(implicit appCtx: AppContext) =
     ImageTweaks.bitmap(BitmapFactory.decodeResource(appCtx.get.getResources, id))
 
-  override def viewTypeCount = 5
+  override def viewTypeCount = 6
   override def viewType(data: Story.KnownElement) = data match {
     case x: Story.Image ⇒ 0
     case x: Story.TextNote ⇒ 1
     case x: Story.VoiceNote ⇒ 2
     case x: Story.Sound ⇒ 3
-    case _ ⇒ 4
+    case x: Story.FoursquareVenue ⇒ 4
+    case _ ⇒ 5
   }
 
   def makeSlots(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = {
@@ -65,7 +66,7 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
 
       case 2 ⇒
         l[HorizontalLinearLayout](
-          w[ImageView] <~ ImageTweaks.bitmap(BitmapFactory.decodeResource(appCtx.get.getResources, R.drawable.ic_action_mic)) <~
+          w[ImageView] <~ ImageTweaks.res(R.drawable.ic_action_mic) <~
             Styles.p8dding,
           w[TextView] <~ wire(slots.textView) <~
             TextTweaks.large <~ padding(top = 8 dp, bottom = 8 dp)
@@ -73,10 +74,18 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
 
       case 3 ⇒
         l[HorizontalLinearLayout](
-          w[ImageView] <~ ImageTweaks.bitmap(BitmapFactory.decodeResource(appCtx.get.getResources, R.drawable.ic_action_volume_on)) <~
+          w[ImageView] <~ ImageTweaks.res(R.drawable.ic_action_volume_on) <~
             Styles.p8dding,
           w[TextView] <~ text("ambient sound ") <~
             TextTweaks.large <~ TextTweaks.italic <~ padding(top = 8 dp, bottom = 8 dp)
+        )
+
+      case 4 ⇒
+        l[HorizontalLinearLayout](
+          w[ImageView] <~ ImageTweaks.res(R.drawable.foursquare) <~
+            Styles.p8dding,
+          w[TextView] <~ wire(slots.textView) <~
+            TextTweaks.large <~ padding(top = 8 dp, bottom = 8 dp)
         )
 
       case _ ⇒
@@ -90,7 +99,7 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
   }
 
   def fillSlots(slots: Slots, data: Story.KnownElement)(implicit ctx: ActivityContext, appCtx: AppContext) = {
-    val ts = slots.timestamp <~ text(timestampFormat.format((chapter.start + data.timestamp) * 1000))
+    val ts = Ui.nop //slots.timestamp <~ text(timestampFormat.format((chapter.start + data.timestamp) * 1000))
     val ui = data match {
       case x: Story.Image ⇒
         // format: OFF
@@ -100,7 +109,7 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
         (slots.imageView <~ fadeIn(500))
       // format: ON
 
-      case Story.TextNote(_, txt) ⇒
+      case Story.TextNote(txt) ⇒
         slots.textView <~ text(txt)
 
       case x: Story.VoiceNote ⇒
@@ -116,7 +125,9 @@ class StoryElementViewable(chapter: Story.Chapter, maxIconSize: Int) extends Slo
         slots.textView <~ duration.map(text)
 
       case x: Story.Sound ⇒ Ui.nop
-      case x: Story.Venue ⇒ Ui.nop
+
+      case x: Story.FoursquareVenue ⇒
+        slots.textView <~ text(x.name)
     }
     ts ~ ui
   }
@@ -168,7 +179,7 @@ class StoryElementDetailedViewable(maxImageSize: Int) extends Viewable[Story.Kno
       //          })
       //        } + enable)
 
-      case x: Story.Venue ⇒
+      case x: Story.FoursquareVenue ⇒
         w[TextView] <~ text("venue here")
     }
     view <~ LpTweaks.matchParent

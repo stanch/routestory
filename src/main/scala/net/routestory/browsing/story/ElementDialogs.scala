@@ -18,7 +18,7 @@ class ElementPagerAdapter(chapter: Story.Chapter)(implicit ctx: ActivityContext,
   val viewables = new StoryElementDetailedViewable(300 dp)
 
   override def instantiateItem(container: ViewGroup, position: Int) = {
-    val view = getUi(viewables.layout(chapter.knownElements(position)))
+    val view = getUi(viewables.layout(chapter.knownElements(position).data))
     container.addView(view, 0)
     view
   }
@@ -51,8 +51,8 @@ object ElementPager {
 
 object ElementChooser {
   def show[A](node: Clustering.Node[A], onCue: Int ⇒ Unit)(implicit ctx: ActivityContext, appCtx: AppContext) = {
-    val elements = node.leaves.map(_.element)
-    val viewables = new StoryElementViewable(node.chapter, 200 dp)
+    val elements = node.leaves.map(_.element.data)
+    val viewables = new StoryElementViewable(200 dp)
     val adapter = FillableViewableAdapter(elements)(viewables)
     dialog {
       w[StaggeredGridView] <~ Styles.grid <~ ListTweaks.adapter(adapter) <~

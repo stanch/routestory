@@ -33,7 +33,7 @@ class SpaceFragment extends RouteStoryFragment with AkkaFragment with IdGenerati
 
   def positionMap(chapter: Story.Chapter) = Ui {
     map.animateCamera(CameraUpdateFactory.newCameraPosition {
-      CameraPosition.builder().target(chapter.locations.head.coordinates: LatLng).zoom(16).build()
+      CameraPosition.builder().target(chapter.locations.head.data: LatLng).zoom(16).build()
     })
   }
 }
