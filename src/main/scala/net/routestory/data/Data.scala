@@ -64,6 +64,9 @@ object Story {
       case _ ⇒ Vector.empty
     }
 
+    def withElement(element: Timed[Element]) = copy(elements = elements :+ element)
+    def withLocation(location: Timed[LatLng]) = copy(locations = locations :+ location)
+
     def ts = (System.currentTimeMillis / 1000 - start).toInt
 
     def location[A](timed: Timed[A]) = locationAt(timed.timestamp)

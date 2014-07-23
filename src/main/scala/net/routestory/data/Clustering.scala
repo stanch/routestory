@@ -7,7 +7,7 @@ import scala.annotation.tailrec
 trait Trees {
   import LatLngTool.{ distanceInRadians ⇒ distance }
 
-  sealed trait Tree[A] {
+  sealed trait Tree[+A] {
     def timestamp: Double
     def location: LatLng
     def data: A
@@ -45,16 +45,24 @@ trait Trees {
     }
   }
 
-  case class Leaf[A](element: Timed[Story.KnownElement], index: Int, chapter: Story.Chapter, data: A) extends Tree[A] {
+  case class Leaf[+A](element: Timed[Story.KnownElement], index: Int, chapter: Story.Chapter, data: A) extends Tree[A] {
     lazy val timestamp = element.timestamp.toDouble
     lazy val location = chapter.location(element)
     val minScale = 0.0
     val children = Vector()
 
+    // prevent comparing chapters!
+    override def equals(obj: Any) = obj match {
+      case Leaf(_, `index`, _, _) ⇒ true
+      case _ ⇒ false
+    }
+
+    override def hashCode() = index
+
     def withData[B](d: B) = copy(data = d)
   }
 
-  case class Node[A](children: Vector[Tree[A]], minScale: Double, chapter: Story.Chapter, data: A) extends Tree[A] {
+  case class Node[+A](children: Vector[Tree[A]], minScale: Double, chapter: Story.Chapter, data: A) extends Tree[A] {
     // average
     lazy val timestamp = children.foldLeft((0.0, 0)) {
       case ((s, n), c) ⇒ (s + c.timestamp, n + 1)
@@ -64,7 +72,15 @@ trait Trees {
 
     lazy val location = chapter.locationAt(timestamp)
 
-    def withData(d: A) = copy(data = d)
+    // prevent comparing chapters!
+    override def equals(obj: Any) = obj match {
+      case Node(`children`, _, _, _) ⇒ true
+      case _ ⇒ false
+    }
+
+    override def hashCode() = children.hashCode()
+
+    def withData[B >: A](d: B) = copy(data = d)
     def withChildren[B](ch: Vector[Tree[B]], d: B) = copy(children = ch, data = d)
   }
 
