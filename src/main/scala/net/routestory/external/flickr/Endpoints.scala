@@ -20,7 +20,8 @@ trait Endpoints {
         "method" → method,
         "api_key" → apiKey,
         "format" → "json",
-        "nojsoncallback" → "1"
+        "nojsoncallback" → "1",
+        "min_taken_date" → "2010-01-01 00:00:00"
       )) map { js ⇒
         if ((js \ "stat") == JsString("fail")) throw FlickrApiException((js \ "message").as[String]) else js
       }

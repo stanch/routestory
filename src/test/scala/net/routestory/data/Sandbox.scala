@@ -22,7 +22,10 @@ class Sandbox extends FlatSpec {
 //      Save(s, new File("story.zip"))
 //    } onComplete println
     val story = Load(new File("story.zip"), new File("tmp/"))
-    story onComplete println
+    story foreach { s ⇒
+      println(s.chapters(0).locations)
+      println(Pruning.pruneLocations(s.chapters(0).locations, 0.0000001))
+    }
     //story.flatMap(_.chapters.head.elements.head.asInstanceOf[Story.Photo].data) onComplete println
   }
 }
