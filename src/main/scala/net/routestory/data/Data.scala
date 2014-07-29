@@ -54,7 +54,9 @@ object Story {
 
   case class FoursquareVenue(id: String, name: String, coordinates: LatLng) extends KnownElement with ExternalElement
 
-  case class Chapter(start: Long, duration: Int, locations: Vector[Timed[LatLng]], elements: Vector[Timed[Element]]) {
+  type Route = Vector[Timed[LatLng]]
+
+  case class Chapter(start: Long, duration: Int, locations: Route, elements: Vector[Timed[Element]]) {
     lazy val distance = (locations zip locations.drop(1)).map {
       case (Timed(_, ll1), Timed(_, ll2)) ⇒ LatLngTool.distance(ll1, ll2, LengthUnit.METER)
     }.sum
@@ -71,13 +73,12 @@ object Story {
 
     def location[A](timed: Timed[A]) = locationAt(timed.timestamp)
 
-    def locationAt(time: Double): LatLng = {
-      locations.span(_.timestamp < time) match {
+    def locationAt(time: Double, route: Route = locations): LatLng = {
+      route.span(_.timestamp < time) match {
         case (Vector(), Vector()) ⇒ null
         case (Vector(), l2 +: after) ⇒ l2.data
-        case (before, Vector()) ⇒ before.last.data
-        case (before, l2 +: after) ⇒
-          val l1 = before.last
+        case (before :+ l1, Vector()) ⇒ l1.data
+        case (before :+ l1, l2 +: after) ⇒
           val t = (time - l1.timestamp) / (l2.timestamp - l1.timestamp)
           def i(x: Double, y: Double) = x + t * (y - x)
           new LatLng(

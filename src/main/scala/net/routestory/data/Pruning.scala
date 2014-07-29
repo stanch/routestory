@@ -8,15 +8,14 @@ object Pruning {
     val δ13 = LatLngTool.distanceInRadians(start, point)
     val θ13 = LatLngTool.initialBearingInRadians(start, point)
     val θ12 = LatLngTool.initialBearingInRadians(start, end)
-    Math.asin(Math.sin(δ13) * Math.sin(θ13 - θ12))
+    Math.abs(Math.asin(Math.sin(δ13) * Math.sin(θ13 - θ12)))
   }
 
   def pruneLocations(locations: Vector[Timed[LatLng]], tolerance: Double): Vector[Timed[LatLng]] = locations match {
     case Vector() ⇒ Vector()
     case Vector(l) ⇒ Vector(l)
-    case first +: tail ⇒
-      val last = tail.last
-      val middle = tail.dropRight(1)
+    case Vector(l1, l2) ⇒ Vector(l1, l2)
+    case first +: middle :+ last ⇒
       val distances = middle.map(l ⇒ distanceToSegment(first.data, last.data)(l.data))
       val (m, i) = distances.zipWithIndex.maxBy(_._1)
       if (m > tolerance) {
