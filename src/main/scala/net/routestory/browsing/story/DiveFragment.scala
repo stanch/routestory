@@ -122,7 +122,7 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
     val now = chapter.locationAt(timestamp)
     val bearing = LatLngTool.initialBearing(
       chapter.locationAt(timestamp, route),
-      chapter.locationAt(timestamp + 20, route)
+      chapter.locationAt(timestamp + 10, route)
     ).toFloat
     val position = CameraUpdateFactory.newCameraPosition(if (tiltZoom) {
       CameraPosition.builder().target(now).tilt(90).zoom(19).bearing(bearing).build()

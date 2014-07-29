@@ -1,6 +1,6 @@
 package net.routestory.recording
 
-import akka.actor.{ Actor, Props }
+import akka.actor.{ ActorLogging, Actor, Props }
 import akka.pattern.pipe
 import com.javadocmd.simplelatlng.LatLng
 import macroid.AppContext
@@ -22,7 +22,7 @@ object Typewriter {
 }
 
 /** An actor that maintains the chapter being recorded */
-class Typewriter(implicit ctx: AppContext) extends Actor {
+class Typewriter(implicit ctx: AppContext) extends Actor with ActorLogging {
   import net.routestory.recording.Typewriter._
 
   def cartographer = context.actorSelection("../cartographer")
@@ -32,20 +32,25 @@ class Typewriter(implicit ctx: AppContext) extends Actor {
   def receive = {
     case Element(element) ⇒
       chapter = chapter.withElement(Timed(chapter.ts, element))
-      //Future(Clustering.cluster(chapter)).map(Cluster).pipeTo(self)
+      Future {
+        log.warning("Started clustering")
+        val x = Clustering.cluster(chapter)
+        log.warning("Finished clustering"); x
+      }.map(Cluster).pipeTo(self)
       runUi {
         toast(s"Added $element") <~ fry
       }
 
     case Location(location) ⇒
       chapter = chapter.withLocation(Timed(chapter.ts, location))
-      cartographer ! Cartographer.Update(chapter, tree)
+      cartographer ! Cartographer.UpdateRoute(chapter)
 
     case Cluster(t) ⇒
       tree = t
-      cartographer ! Cartographer.Update(chapter, tree)
+      cartographer ! Cartographer.UpdateMarkers(chapter, tree)
 
     case Remind ⇒
-      cartographer ! Cartographer.Update(chapter, tree)
+      cartographer ! Cartographer.UpdateRoute(chapter)
+      cartographer ! Cartographer.UpdateMarkers(chapter, tree)
   }
 }

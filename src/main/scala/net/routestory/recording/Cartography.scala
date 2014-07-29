@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class CartographyFragment extends RouteStoryFragment with IdGeneration with RecordFragment with AutoLogTag {
   lazy val actor = actorSystem.map(_.actorSelection("/user/cartographer"))
   lazy val map = this.findFrag[SupportMapFragment](Tag.map).get.get.getMap
-  lazy val mapManager = new MapManager(map)
+  lazy val mapManager = new MapManager(map, iconAlpha = 0.7f, centerIcons = false)
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     f[SupportMapFragment].framed(Id.map, Tag.map)
@@ -49,7 +49,8 @@ class CartographyFragment extends RouteStoryFragment with IdGeneration with Reco
 
 object Cartographer {
   case class Locate(location: Location)
-  case class Update(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]])
+  case class UpdateRoute(chapter: Story.Chapter)
+  case class UpdateMarkers(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]])
   case object QueryLastLocation
   def props = Props(new Cartographer)
 }
@@ -70,11 +71,11 @@ class Cartographer extends FragmentActor[CartographyFragment] with ActorLogging 
         last.fold(Ui.nop)(f.positionMap)
       }
 
-    case Update(chapter, tree) ⇒
-      withUi { f ⇒
-        f.mapManager.addRoute(chapter) ~
-          f.mapManager.addMarkers(chapter, tree)
-      }
+    case UpdateRoute(chapter) ⇒
+      withUi(_.mapManager.addRoute(chapter))
+
+    case UpdateMarkers(chapter, tree) ⇒
+      withUi(_.mapManager.addMarkers(chapter, tree))
 
     case Locate(location) ⇒
       withUi { f ⇒
