@@ -73,6 +73,7 @@ object Story {
 
     def withElement(element: Timed[Element]) = copy(elements = elements :+ element)
     def withLocation(location: Timed[LatLng]) = copy(locations = locations :+ location)
+    def finish = copy(duration = ts)
 
     def ts = (System.currentTimeMillis / 1000 - start).toInt
 
@@ -95,7 +96,7 @@ object Story {
   }
 
   object Chapter {
-    def empty = Chapter(System.currentTimeMillis, 0, Vector.empty, Vector.empty)
+    def empty = Chapter(System.currentTimeMillis / 1000, 0, Vector.empty, Vector.empty)
   }
 
   case class Meta(title: Option[String], description: Option[String], tags: List[String] = Nil)
