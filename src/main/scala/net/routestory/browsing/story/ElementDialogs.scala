@@ -36,7 +36,7 @@ object ElementPager {
   def show[A](leaf: Clustering.Leaf[A], onCue: Int ⇒ Unit)(implicit ctx: ActivityContext, appCtx: AppContext) = {
     val adapter = new ElementPagerAdapter(leaf.chapter)
     dialog(android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
-      w[ViewPager] <~ BgTweaks.color(Color.BLACK) <~ Tweak[ViewPager] { x ⇒
+      w[ViewPager] <~ BgTweaks.color(Color.BLACK) <~ Styles.lowProfile <~ Tweak[ViewPager] { x ⇒
         x.setAdapter(adapter)
         x.setCurrentItem(leaf.index)
         x.setOnPageChangeListener(new OnPageChangeListener {

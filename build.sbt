@@ -43,8 +43,6 @@ libraryDependencies ++= Seq(
   aar("org.macroid" %% "macroid-akka-fragments" % "2.0.0-SNAPSHOT"),
   compilerPlugin("org.brianmckenna" %% "wartremover" % "0.10"),
   "org.resolvable" %% "resolvable" % "2.0.0-M6",
-  "org.resolvable" %% "resolvable-flickr" % "1.0.0-SNAPSHOT",
-  "org.resolvable" %% "resolvable-foursquare" % "1.0.0-SNAPSHOT",
   "io.dylemma" %% "scala-frp" % "1.1",
   "com.scalarx" %% "scalarx" % "0.1" exclude ("com.typesafe.akka", "akka-actor"),
   "com.typesafe.akka" %% "akka-actor" % "2.2.3",
@@ -83,6 +81,8 @@ dexMaxHeap in Android := "3000m"
 debugIncludesTests in Android := false
 
 proguardScala in Android := true
+
+typedResources in Android := false
 
 //proguardCache in Android ++= Seq(
 //  ProguardCache("akka.actor") % "com.typesafe.akka",

@@ -1,6 +1,6 @@
 package net.routestory.browsing.story
 
-import android.graphics.BitmapFactory
+import android.graphics.{ Color, BitmapFactory }
 import com.google.android.gms.maps.model._
 import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap }
 import com.javadocmd.simplelatlng.LatLngTool
@@ -9,7 +9,7 @@ import macroid.FullDsl._
 import macroid.Ui
 import macroid.{ ActivityContext, AppContext }
 import net.routestory.R
-import net.routestory.data.{ Clustering, Story }
+import net.routestory.data.{ Pruning, Clustering, Story }
 import net.routestory.util.BitmapUtils
 import net.routestory.util.Implicits._
 import net.routestory.viewable.MarkerBitmaps
@@ -44,9 +44,7 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
         startMarker = Some(map.addMarker(new MarkerOptions()
           .position(start.get).anchor(0.5f, 0.5f)
           .flat(true).rotation(startBearing.get.toFloat - 90f)
-          .icon(BitmapDescriptorFactory.fromBitmap {
-            BitmapUtils.cardFrame(BitmapFactory.decodeResource(appCtx.get.getResources, R.drawable.ic_action_directions))
-          })
+          .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_action_directions))
         ))
     }
   }

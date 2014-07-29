@@ -112,7 +112,7 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
       dumpStream.write(buffer)
       dumpStream.close()
       // pipeTo, y u no work with ActorSelection?
-      processPiece(dump.getAbsolutePath).map(Story.Sound.apply) foreach { s ⇒ typewriter ! s }
+      processPiece(dump.getAbsolutePath).map(Story.Sound.apply) foreach { s ⇒ typewriter ! Typewriter.Element(s) }
       goto(Idle) using NoData
     case Event(SwitchOff, RecordingData(ar, _)) ⇒
       ar.stop()

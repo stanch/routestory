@@ -1,17 +1,19 @@
 package net.routestory.recording.logged
 
-import net.routestory.ui.RouteStoryFragment
 import akka.actor.Props
-import macroid.FullDsl._
-import android.view.{ ViewGroup, LayoutInflater }
 import android.os.Bundle
-import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import android.view.{ LayoutInflater, ViewGroup }
 import android.widget.CheckBox
-import macroid.akkafragments.{ FragmentActor, AkkaFragment }
+import macroid.FullDsl._
+import macroid.akkafragments.FragmentActor
+import macroid.contrib.Layouts.VerticalLinearLayout
+import net.routestory.recording.RecordActivity
+import net.routestory.ui.RouteStoryFragment
 
-class ControlPanelFragment extends RouteStoryFragment with AkkaFragment {
-  lazy val cartographer = actorSystem.actorSelection("/user/cartographer")
-  val actor = None
+import scala.concurrent.ExecutionContext.Implicits.global
+
+class ControlPanelFragment extends RouteStoryFragment {
+  lazy val cartographer = getActivity.asInstanceOf[RecordActivity].actorSystem.future.map(_.actorSelection("/user/cartographer"))
 
   var dictaphoneOn = slot[CheckBox]
 

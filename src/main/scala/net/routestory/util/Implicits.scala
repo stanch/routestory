@@ -8,11 +8,13 @@ import com.javadocmd.simplelatlng.{ LatLng ⇒ SimpleLL }
 import macroid.Ui
 
 object Implicits {
-  implicit def location2latlng(l: Location): AndroidLL = new AndroidLL(l.getLatitude, l.getLongitude)
+  implicit def location2android(l: Location): AndroidLL = new AndroidLL(l.getLatitude, l.getLongitude)
 
-  implicit def android2simple(l: SimpleLL): AndroidLL = new AndroidLL(l.getLatitude, l.getLongitude)
+  implicit def location2simple(l: Location): SimpleLL = new SimpleLL(l.getLatitude, l.getLongitude)
 
-  implicit def simple2android(l: AndroidLL): SimpleLL = new SimpleLL(l.latitude, l.longitude)
+  implicit def simple2android(l: SimpleLL): AndroidLL = new AndroidLL(l.getLatitude, l.getLongitude)
+
+  implicit def android2simple(l: AndroidLL): SimpleLL = new SimpleLL(l.latitude, l.longitude)
 
   implicit class RichMap(map: GoogleMap) {
     def onCameraChange(f: CameraPosition ⇒ Any) = map.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener {

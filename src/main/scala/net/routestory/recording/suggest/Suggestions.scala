@@ -2,7 +2,10 @@ package net.routestory.recording.suggest
 
 import akka.actor._
 import akka.pattern.pipe
+import android.app.Activity
+import android.location.Location
 import android.os.Bundle
+import android.support.v4.widget.SwipeRefreshLayout
 import android.view.{ LayoutInflater, ViewGroup }
 import com.etsy.android.grid.StaggeredGridView
 import com.google.android.gms.maps.model.LatLng
@@ -13,73 +16,87 @@ import macroid.viewable.FillableViewableAdapter
 import macroid.{ ActivityContext, AppContext, Ui }
 import net.routestory.Apis
 import net.routestory.data.Story
-import net.routestory.recording.Cartographer
+import net.routestory.recording.{ RecordFragment, RecordActivity, Cartographer }
 import net.routestory.ui.{ RouteStoryFragment, Styles }
 import net.routestory.util.Implicits._
 import net.routestory.viewable.StoryElementViewable
-import resolvable.{ flickr, foursquare }
 
-import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
-class SuggestionsFragment extends RouteStoryFragment with AkkaFragment {
-  lazy val actor = Some(actorSystem.actorSelection("/user/suggester"))
-  lazy val typewriter = actorSystem.actorSelection("/user/typewriter")
+class SuggestionsFragment extends RouteStoryFragment with RecordFragment {
+  lazy val actor = actorSystem.map(_.actorSelection("/user/suggester"))
 
   lazy val viewables = new StoryElementViewable(200 dp)
-  lazy val adapter = FillableViewableAdapter(viewables)
+
+  var grid = slot[StaggeredGridView]
+  var swiper = slot[SwipeRefreshLayout]
+
+  def showElements(elements: List[Story.KnownElement]) = {
+    val adapter = FillableViewableAdapter(elements)(viewables)
+    (grid <~ ListTweaks.adapter(adapter)) ~ (swiper <~ Styles.stopRefresh)
+  }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
-    w[StaggeredGridView] <~ Styles.grid <~ ListTweaks.adapter(adapter)
+    l[SwipeRefreshLayout](
+      w[StaggeredGridView] <~ Styles.grid <~ wire(grid)
+    ) <~ wire(swiper) <~ On.refresh[SwipeRefreshLayout](Ui(actor.foreach(_ ! Suggester.Update)))
+  }
+
+  override def onStart() = {
+    super.onStart()
+    actor.foreach(_ ! FragmentActor.AttachUi(this))
+  }
+
+  override def onStop() = {
+    super.onStop()
+    actor.foreach(_ ! FragmentActor.DetachUi(this))
   }
 }
 
 object Suggester {
-  case object Ping
-  case class Venues(venues: List[foursquare.Venue])
-  case class Photos(photos: List[flickr.Photo])
-  def props(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) = Props(new Suggester(apis))
+  case object Update
+  case class FoursquareVenues(venues: List[Story.FoursquareVenue])
+  case class FlickrPhotos(photos: List[Story.FlickrPhoto])
+
+  def props(apis: Apis) = Props(new Suggester(apis))
 }
 
-class Suggester(apis: Apis)(implicit ctx: ActivityContext, appCtx: AppContext) extends FragmentActor[SuggestionsFragment] with ActorLogging {
+class Suggester(apis: Apis) extends FragmentActor[SuggestionsFragment] with ActorLogging {
   import macroid.akkafragments.FragmentActor._
   import net.routestory.recording.suggest.Suggester._
-
-  var pings: Option[Cancellable] = None
 
   lazy val typewriter = context.actorSelection("../typewriter")
   lazy val cartographer = context.actorSelection("../cartographer")
 
-  var suggest = Vector.empty[Story.KnownElement]
+  var suggest = List.empty[Story.KnownElement]
+
+  def interleave[A](lists: List[List[A]]): List[A] = lists.flatMap(_.take(1)) match {
+    case Nil ⇒ Nil
+    case heads ⇒ heads ::: interleave(lists.map(_.drop(1)))
+  }
 
   def receive = receiveUi andThen {
     case AttachUi(_) ⇒
-      pings = Some(context.system.scheduler.schedule(5 seconds, 5 seconds, self, Ping))
+      withUi(_.swiper <~ Styles.startRefresh)
+      self ! Update
 
-    case DetachUi ⇒
-      pings.foreach(_.cancel())
-
-    case Ping ⇒
+    case Update ⇒
       cartographer ! Cartographer.QueryLastLocation
 
-    case Some(l: LatLng) ⇒
-      apis.foursquareApi.nearbyVenues(l.latitude, l.longitude, 100).go.map(Venues) pipeTo self
-      apis.flickrApi.nearbyPhotos(l.latitude, l.longitude, 10).go.map(Photos) pipeTo self
+    case None ⇒
+      // re-request last location
+      cartographer ! Cartographer.QueryLastLocation
 
-    case Venues(venues) ⇒
-      val elements = venues.map(v ⇒ Story.FoursquareVenue(v.id, v.name, new LatLng(v.lat, v.lng)))
-      suggest = (suggest ++ (elements diff suggest)).take(10)
-      withUi(f ⇒ Ui {
-        f.adapter.clear()
-        f.adapter.addAll(suggest.asJava)
-      })
+    case Some(location: Location) ⇒
+      log.debug("Calling external APIs")
+      val venues = apis.foursquareApi.nearbyVenues(location, 100).go.map(FoursquareVenues)
+      val photos = apis.flickrApi.nearbyPhotos(location, 1).go.map(FlickrPhotos)
+      venues zip photos pipeTo self
 
-    case Photos(photos) ⇒
-    //      val elements = photos.map(p ⇒ Story.FlickrPhoto(p.id, p.title, p.url))
-    //      withUi(f ⇒ Ui {
-    //        f.photos.get.setData(photos)
-    //      })
+    case (FoursquareVenues(venues), FlickrPhotos(photos)) ⇒
+      log.debug(s"Received $venues, $photos")
+      val elements = interleave(List(venues, photos)).take(10)
+      withUi(_.showElements(elements))
 
     case _ ⇒
   }

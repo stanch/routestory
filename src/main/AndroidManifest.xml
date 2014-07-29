@@ -39,10 +39,11 @@
             android:value="net.routestory.browsing.SearchActivity" />
 
         <activity
-            android:name="net.routestory.recording.RecordActivity"
+            android:name=".recording.RecordActivity"
             android:label="@string/title_activity_record"
-            android:launchMode="singleTask">
+            android:launchMode="singleTop">
         </activity>
+        <service android:name=".recording.RecordService" />
         <activity
             android:name=".editing.DescriptionActivity"
             android:label="@string/title_activity_description" >

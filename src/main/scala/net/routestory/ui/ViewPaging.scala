@@ -9,7 +9,7 @@ import com.viewpagerindicator.TitlePageIndicator
 import macroid.FullDsl._
 import macroid._
 import macroid.contrib.Layouts.VerticalLinearLayout
-import macroid.contrib.{ BgTweaks, LpTweaks }
+import macroid.contrib.{ PagerTweaks, BgTweaks, LpTweaks }
 import net.routestory.R
 
 class MapAwareViewPager(ctx: Context) extends ViewPager(ctx) {
@@ -38,9 +38,8 @@ case class PagingAdapter(fm: FragmentManager, frags: Seq[(CharSequence, Ui[Fragm
 trait FragmentPaging { self: IdGeneration ⇒
   def getTabs(frags: (CharSequence, Ui[Fragment])*)(implicit ctx: ActivityContext, manager: FragmentManagerContext[Fragment, FragmentManager]) = {
     val pager = w[MapAwareViewPager] <~
-      id(Id.pager) <~ Tweak[MapAwareViewPager] { x ⇒
-        x.setAdapter(PagingAdapter(manager.get, frags))
-      }
+      id(Id.pager) <~
+      PagerTweaks.adapter(PagingAdapter(manager.get, frags))
     pager.flatMap { p ⇒
       val indicator = w[TitlePageIndicator] <~
         LpTweaks.matchWidth <~

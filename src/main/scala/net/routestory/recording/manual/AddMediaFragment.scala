@@ -13,22 +13,20 @@ import android.view.{ Gravity, LayoutInflater, ViewGroup }
 import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.Layouts.HorizontalLinearLayout
-import macroid.contrib.{ ImageTweaks, TextTweaks, ListTweaks }
-import macroid.Ui
+import macroid.contrib.{ ImageTweaks, ListTweaks, TextTweaks }
 import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
-import macroid.{ IdGeneration, Transformer, Tweak }
+import macroid.{ IdGeneration, Transformer, Tweak, Ui }
 import net.routestory.R
 import net.routestory.data.Story
-import net.routestory.recording.{ RecordActivity, Typewriter }
+import net.routestory.recording.{ Typewriter, RecordFragment }
 import net.routestory.ui.RouteStoryFragment
-import macroid.akkafragments.AkkaFragment
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
-class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFragment {
+class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordFragment {
   lazy val photoFile = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir)
-  lazy val typewriter = actorSystem.actorSelection("/user/typewriter")
-  val actor = None
+  lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
+  val requestCodePhoto = 0
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     def clicker(factory: Ui[DialogFragment], tag: String) =
@@ -37,7 +35,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFra
     val cameraClicker = Ui {
       val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
       intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile))
-      startActivityForResult(intent, RecordActivity.REQUEST_CODE_TAKE_PICTURE)
+      startActivityForResult(intent, requestCodePhoto)
     }
 
     val buttons = Seq(
@@ -61,20 +59,16 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with AkkaFra
     w[ListView] <~ ListTweaks.adapter(adapter)
   }
 
-  override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
+  override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) = {
     super.onActivityResult(requestCode, resultCode, data)
-    if (requestCode == RecordActivity.REQUEST_CODE_TAKE_PICTURE) {
-      if (resultCode == Activity.RESULT_OK) {
-        typewriter ! Story.Photo(photoFile)
-      }
+    if (requestCode == requestCodePhoto && resultCode == Activity.RESULT_OK) {
+      typewriter.foreach(_ ! Typewriter.Element(Story.Photo(photoFile)))
     }
   }
 }
 
-class AddSomething extends DialogFragment with RouteStoryFragment with AkkaFragment {
-  lazy val typewriter = actorSystem.actorSelection("/user/typewriter")
-  lazy val cartographer = actorSystem.actorSelection("/user/cartographer")
-  val actor = None
+class AddSomething extends DialogFragment with RouteStoryFragment with RecordFragment {
+  lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
 }
 
 class AddTextNote extends AddSomething {
@@ -88,7 +82,7 @@ class AddTextNote extends AddSomething {
     } <~ wire(input)
   } <~ positiveOk(Ui {
     Some(input.get.getText.toString).filter(!_.isEmpty).foreach { text ⇒
-      typewriter ! Story.TextNote(text)
+      typewriter.foreach(_ ! Typewriter.Element(Story.TextNote(text)))
     }
   }) <~ negativeCancel(Ui.nop)).create()
 }
@@ -100,7 +94,7 @@ class AddVoiceNote extends AddSomething {
   var mStartStop = slot[Button]
   lazy val mOutputPath = File.createTempFile("voice", ".mp4", getActivity.getExternalCacheDir).getAbsolutePath
 
-  def start() {
+  def start() = {
     mMediaRecorder = new MediaRecorder {
       setAudioSource(AudioSource.MIC)
       setOutputFormat(OutputFormat.MPEG_4)
@@ -120,7 +114,7 @@ class AddVoiceNote extends AddSomething {
     }
   }
 
-  def stop() {
+  def stop() = {
     mMediaRecorder.stop()
     mMediaRecorder.release()
     mMediaRecorder = null
@@ -139,8 +133,7 @@ class AddVoiceNote extends AddSomething {
       stop()
     }
     if (mRecorded) {
-      typewriter ! Story.VoiceNote(new File(mOutputPath))
-      //activity.addVoice(mOutputPath)
+      typewriter.foreach(_ ! Typewriter.Element(Story.VoiceNote(new File(mOutputPath))))
     }
   }) <~ negativeCancel(Ui {
     if (mRecording) {

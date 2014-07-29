@@ -1,6 +1,7 @@
 package net.routestory.browsing.story
 
 import akka.actor.{ ActorLogging, Props }
+import android.graphics.Color
 import android.os.{ Bundle, Handler, SystemClock }
 import android.view.ViewGroup.LayoutParams._
 import android.view.{ Gravity, LayoutInflater, View, ViewGroup }
@@ -17,9 +18,9 @@ import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import macroid.Ui
 import macroid.{ IdGeneration, Tweak }
 import net.routestory.R
-import net.routestory.data.Clustering
+import net.routestory.data.{ Story, Timed, Pruning, Clustering }
 import net.routestory.data.Story.Chapter
-import net.routestory.ui.RouteStoryFragment
+import net.routestory.ui.{ Styles, RouteStoryFragment }
 import net.routestory.ui.Styles._
 import net.routestory.util.Implicits._
 import rx.{ Obs, Rx, Var }
@@ -78,8 +79,8 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
           wire(seekBar) <~
           LpTweaks.matchWidth
       ) <~ padding(left = 16 dp, right = 8 dp, top = 8 dp, bottom = 8 dp) <~
-        BgTweaks.res(R.color.dark)
-    ) <~ wire(layout)
+        BgTweaks.color(Color.BLACK)
+    ) <~ wire(layout) <~ Styles.lowProfile
   }
 
   override def onStart() = {
@@ -117,9 +118,12 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
     pause <~ On.click(stop)
   )
 
-  def positionMap(chapter: Chapter, timestamp: Double, animate: Boolean, tiltZoom: Boolean) = Ui {
+  def positionMap(chapter: Chapter, route: Story.Route, timestamp: Double, animate: Boolean, tiltZoom: Boolean) = Ui {
     val now = chapter.locationAt(timestamp)
-    val bearing = LatLngTool.initialBearing(now, chapter.locationAt(timestamp + 20)).toFloat
+    val bearing = LatLngTool.initialBearing(
+      chapter.locationAt(timestamp, route),
+      chapter.locationAt(timestamp + 20, route)
+    ).toFloat
     val position = CameraUpdateFactory.newCameraPosition(if (tiltZoom) {
       CameraPosition.builder().target(now).tilt(90).zoom(19).bearing(bearing).build()
     } else {
@@ -134,6 +138,7 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
   }
 
   def hook(chapter: Chapter) = Ui {
+    val prunedRoute = Pruning.pruneLocations(chapter.locations, 0.000001)
     cueObs = Some(cue foreach { c ⇒
       val timestamp = c * chapter.duration
       val focus = chapter.knownElements.indexWhere(_.timestamp >= timestamp)
@@ -150,7 +155,7 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
       val timestamp = c * chapter.duration
       runUi(
         if (seeking) positionMan(chapter, timestamp) else Ui.nop,
-        positionMap(chapter, timestamp, animate = !seeking, tiltZoom = c == 0)
+        positionMap(chapter, prunedRoute, timestamp, animate = !seeking, tiltZoom = c == 0)
       )
     })
   }

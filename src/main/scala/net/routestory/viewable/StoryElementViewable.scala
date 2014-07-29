@@ -142,7 +142,7 @@ class StoryElementDetailedViewable(maxImageSize: Int) extends Viewable[Story.Kno
         val bitmapTweak = x.data.map(_.bitmapTweak(maxImageSize) + Tweak[ImageView] { v ⇒
           new PhotoViewAttacher(v).update()
         })
-        w[ImageView] <~ ImageTweaks.adjustBounds <~ Styles.lowProfile <~ bitmapTweak
+        w[ImageView] <~ ImageTweaks.adjustBounds <~ bitmapTweak
 
       case x: Story.TextNote ⇒
         w[TextView] <~ text(x.text) <~ TextTweaks.size(30) <~

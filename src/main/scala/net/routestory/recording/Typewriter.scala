@@ -1,7 +1,8 @@
 package net.routestory.recording
 
 import akka.actor.{ Actor, Props }
-import com.google.android.gms.maps.model.LatLng
+import akka.pattern.pipe
+import com.javadocmd.simplelatlng.LatLng
 import macroid.AppContext
 import macroid.Loafs._
 import macroid.ToastDsl._
@@ -9,10 +10,14 @@ import macroid.UiThreading._
 import net.routestory.data.{ Clustering, Story, Timed }
 import net.routestory.util.Implicits._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
 object Typewriter {
-  case object Backup
-  case class Restore(chapter: Story.Chapter)
-  case object StartOver
+  case class Element(element: Story.KnownElement)
+  case class Location(location: LatLng)
+  case object Remind
+  case class Cluster(tree: Option[Clustering.Tree[Unit]])
   def props(implicit ctx: AppContext) = Props(new Typewriter())
 }
 
@@ -24,29 +29,23 @@ class Typewriter(implicit ctx: AppContext) extends Actor {
   var chapter = Story.Chapter.empty
   var tree: Option[Clustering.Tree[Unit]] = None
 
-  val addingStuff: Receive = {
-    case element: Story.Element ⇒
+  def receive = {
+    case Element(element) ⇒
       chapter = chapter.withElement(Timed(chapter.ts, element))
-      tree = Clustering.cluster(chapter)
+      //Future(Clustering.cluster(chapter)).map(Cluster).pipeTo(self)
       runUi {
         toast(s"Added $element") <~ fry
       }
 
-    case location: LatLng ⇒
+    case Location(location) ⇒
       chapter = chapter.withLocation(Timed(chapter.ts, location))
-      tree = Clustering.cluster(chapter)
+      cartographer ! Cartographer.Update(chapter, tree)
 
-    case Restore(ch) ⇒
-      chapter = ch
-      tree = Clustering.cluster(chapter)
+    case Cluster(t) ⇒
+      tree = t
+      cartographer ! Cartographer.Update(chapter, tree)
 
-    case StartOver ⇒
-      chapter = Story.Chapter.empty
-      tree = None
-  }
-
-  def receive = addingStuff.andThen(_ ⇒ cartographer ! Cartographer.Update(chapter, tree)) orElse {
-    case Backup ⇒
-      sender ! chapter
+    case Remind ⇒
+      cartographer ! Cartographer.Update(chapter, tree)
   }
 }
