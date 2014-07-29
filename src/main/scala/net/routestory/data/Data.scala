@@ -66,6 +66,11 @@ object Story {
       case _ ⇒ Vector.empty
     }
 
+    lazy val effectiveDuration = Math.max(
+      if (locations.nonEmpty) locations.maxBy(_.timestamp).timestamp else 0,
+      if (elements.nonEmpty) elements.maxBy(_.timestamp).timestamp else 0
+    )
+
     def withElement(element: Timed[Element]) = copy(elements = elements :+ element)
     def withLocation(location: Timed[LatLng]) = copy(locations = locations :+ location)
 

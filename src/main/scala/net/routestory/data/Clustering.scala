@@ -177,6 +177,6 @@ object Clustering extends Trees {
     case Vector(e) ⇒ Some(Leaf(e, 0, chapter, ()))
     case es ⇒
       val leaves = es.zipWithIndex map { case (e, i) ⇒ Leaf(e, i, chapter, ()) }
-      Some(clusterRound(chapter, leaves, chapter.duration.toDouble / 4))
+      Some(clusterRound(chapter, leaves, chapter.effectiveDuration.toDouble / 4))
   }
 }
