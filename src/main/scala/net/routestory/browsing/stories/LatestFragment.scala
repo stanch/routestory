@@ -30,7 +30,7 @@ class LatestFragment extends RouteStoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
     l[SwipeRefreshLayout](
       w[StaggeredGridView] <~ wire(grid) <~ Styles.grid
-    ) <~ On.refresh[SwipeRefreshLayout](refresh) <~ wire(swiper)
+    ) <~ Styles.swiper <~ On.refresh[SwipeRefreshLayout](refresh) <~ wire(swiper)
   }
 
   override def onStart() = {

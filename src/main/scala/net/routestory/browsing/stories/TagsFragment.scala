@@ -25,7 +25,7 @@ class TagsFragment extends RouteStoryFragment {
       l[ScrollView](
         l[FlowLayout]() <~ p8dding <~ wire(tags)
       )
-    ) <~ On.refresh[SwipeRefreshLayout](refresh) <~ wire(swiper)
+    ) <~ Styles.swiper <~ On.refresh[SwipeRefreshLayout](refresh) <~ wire(swiper)
   }
 
   override def onStart() = {

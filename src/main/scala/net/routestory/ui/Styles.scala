@@ -20,6 +20,10 @@ object Styles {
     field.set(x, 8 dp)
   } + (narrowerThan(400 dp) ? Tweak[StaggeredGridView](_.setColumnCount(1)) | Tweak.blank)
 
+  val swiper = Tweak[SwipeRefreshLayout](_.setColorSchemeResources(
+    R.color.swiper1, R.color.swiper2, R.color.swiper3, R.color.swiper4
+  ))
+
   val stopRefresh = Tweak[SwipeRefreshLayout](_.setRefreshing(false))
   val startRefresh = Tweak[SwipeRefreshLayout](_.setRefreshing(true))
 

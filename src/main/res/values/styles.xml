@@ -4,6 +4,11 @@
     <color name="orange">#fa673d</color>
     <color name="drawer">#f0141414</color>
 
+    <color name="swiper1">#fa673d</color>
+    <color name="swiper2">#fa673d</color>
+    <color name="swiper3">#D0B949</color>
+    <color name="swiper4">#D0B949</color>
+
     <style name="AppTheme" parent="@android:style/Theme.Holo.Light.DarkActionBar">
         <item name="android:actionBarStyle">@style/BlackBar</item>
         <item name="android:progressBarStyleHorizontal">@style/ProgressBarRouteStory</item>

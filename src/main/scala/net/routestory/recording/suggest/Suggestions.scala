@@ -39,7 +39,7 @@ class SuggestionsFragment extends RouteStoryFragment with RecordFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     l[SwipeRefreshLayout](
       w[StaggeredGridView] <~ Styles.grid <~ wire(grid)
-    ) <~ wire(swiper) <~ On.refresh[SwipeRefreshLayout](Ui(actor.foreach(_ ! Suggester.Update)))
+    ) <~ Styles.swiper <~ wire(swiper) <~ On.refresh[SwipeRefreshLayout](Ui(actor.foreach(_ ! Suggester.Update)))
   }
 
   override def onStart() = {
