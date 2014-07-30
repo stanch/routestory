@@ -18,7 +18,7 @@ object Styles {
     val field = x.getClass.getDeclaredField("mItemMargin")
     field.setAccessible(true)
     field.set(x, 8 dp)
-  }
+  } + (narrowerThan(400 dp) ? Tweak[StaggeredGridView](_.setColumnCount(1)) | Tweak.blank)
 
   val stopRefresh = Tweak[SwipeRefreshLayout](_.setRefreshing(false))
   val startRefresh = Tweak[SwipeRefreshLayout](_.setRefreshing(true))
