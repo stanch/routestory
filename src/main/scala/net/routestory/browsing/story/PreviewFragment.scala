@@ -13,24 +13,7 @@ import macroid.{ ActivityContext, AppContext, Tweak }
 import net.routestory.data.Clustering
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.viewable.ClusteringTreeViewable
-
-class PreviewPagerAdapter(trees: Vector[Clustering.Tree[Unit]])(implicit ctx: ActivityContext, appCtx: AppContext) extends PagerAdapter {
-  def viewables = new ClusteringTreeViewable[Unit](200 dp)
-
-  override def instantiateItem(container: ViewGroup, position: Int) = {
-    val view = getUi(viewables.layout(trees(position)))
-    container.addView(view, 0)
-    view
-  }
-
-  override def destroyItem(container: ViewGroup, position: Int, `object`: Any) = {
-    container.removeView(`object`.asInstanceOf[View])
-  }
-
-  def getCount = trees.length
-
-  def isViewFromObject(view: View, `object`: Any) = view == `object`
-}
+import macroid.viewable._
 
 class PreviewFragment extends RouteStoryFragment with AkkaFragment {
   lazy val actor = Some(actorSystem.actorSelection("/user/previewer"))
@@ -39,8 +22,10 @@ class PreviewFragment extends RouteStoryFragment with AkkaFragment {
   var pager = slot[ViewPager]
 
   def viewTrees(trees: Vector[Clustering.Tree[Unit]]) = {
-    val adapter = new PreviewPagerAdapter(trees)
-    pager <~ PagerTweaks.adapter(adapter) <~ Tweak[ViewPager] { x ⇒
+    val viewable = new ClusteringTreeViewable[Unit](200 dp)
+    import viewable._
+
+    pager <~ trees.pagerAdapterTweak <~ Tweak[ViewPager] { x ⇒
       x.setOnPageChangeListener(new OnPageChangeListener {
         override def onPageScrollStateChanged(state: Int) = ()
         override def onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) = ()

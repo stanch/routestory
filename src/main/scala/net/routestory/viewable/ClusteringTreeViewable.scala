@@ -2,21 +2,19 @@ package net.routestory.viewable
 
 import android.view.View
 import android.widget.TextView
-import macroid.Ui
 import macroid.FullDsl._
-import macroid.{ AppContext, ActivityContext }
 import macroid.viewable.Viewable
-import net.routestory.data.{ Timed, Story, Clustering }
+import macroid.{ ActivityContext, AppContext }
+import net.routestory.data.{ Clustering, Story, Timed }
 
-class ClusteringTreeViewable[A](maxImageSize: Int) extends Viewable[Clustering.Tree[A]] {
-  override type W = View
-
+class ClusteringTreeViewable[A](maxImageSize: Int) {
   def delegate(x: Story.KnownElement)(implicit ctx: ActivityContext, appCtx: AppContext) =
-    new StoryElementDetailedViewable(maxImageSize).layout(x)
+    new StoryElementViewable(maxImageSize).storyElementViewable.layout(x)
 
-  override def layout(data: Clustering.Tree[A])(implicit ctx: ActivityContext, appCtx: AppContext) = data match {
+  implicit def clusteringTreeViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Clustering.Tree[A], View] {
     case Clustering.Leaf(Timed(_, x: Story.Image), _, _, _) ⇒ delegate(x)
     case Clustering.Leaf(Timed(_, x: Story.TextNote), _, _, _) ⇒ delegate(x)
+
     case x @ Clustering.Node(_, _, _, _) ⇒
       val elements = x.leaves.map(_.element.data)
       elements find {
@@ -27,6 +25,7 @@ class ClusteringTreeViewable[A](maxImageSize: Int) extends Viewable[Clustering.T
       } getOrElse {
         w[TextView]
       }
+
     case _ ⇒ w[TextView]
   }
 }

@@ -14,7 +14,7 @@ import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.Layouts.HorizontalLinearLayout
 import macroid.contrib.{ ImageTweaks, ListTweaks, TextTweaks }
-import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
+import macroid.viewable.Listable
 import macroid.{ IdGeneration, Transformer, Tweak, Ui }
 import net.routestory.R
 import net.routestory.data.Story
@@ -44,19 +44,20 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
       (R.drawable.ic_action_mic, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog))
     )
 
-    val adapter = FillableViewableAdapter(buttons)(FillableViewable.tr(
+    val listable = Listable.tr {
       l[HorizontalLinearLayout](
         w[ImageView],
         w[TextView] <~ TextTweaks.large
-      ) <~ padding(top = 12 dp, bottom = 12 dp, left = 8 dp)) { button ⇒
-        Transformer {
-          case img: ImageView ⇒ img <~ ImageTweaks.res(button._1)
-          case txt: TextView ⇒ txt <~ text(button._2)
-          case l @ Transformer.Layout(_*) ⇒ l <~ On.click(button._3)
-        }
-      })
+      ) <~ padding(top = 12 dp, bottom = 12 dp, left = 8 dp)
+    } { button: (Int, String, Ui[Unit]) ⇒
+      Transformer {
+        case img: ImageView ⇒ img <~ ImageTweaks.res(button._1)
+        case txt: TextView ⇒ txt <~ text(button._2)
+        case l @ Transformer.Layout(_*) ⇒ l <~ On.click(button._3)
+      }
+    }
 
-    w[ListView] <~ ListTweaks.adapter(adapter)
+    w[ListView] <~ listable.listAdapterTweak(buttons)
   }
 
   override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) = {

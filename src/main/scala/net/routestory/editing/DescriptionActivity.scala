@@ -16,7 +16,7 @@ import android.widget._
 import macroid.Tweak
 import macroid.FullDsl._
 import macroid.contrib.Layouts.VerticalLinearLayout
-import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
+import macroid.viewable.Listable
 
 import net.routestory.R
 import net.routestory.ui.{ RouteStoryActivity, Styles }
@@ -73,7 +73,7 @@ class DescriptionActivity extends RouteStoryActivity {
     async {
       val tagz = await(app.webApi.tags.go).map(_.tag)
       runUi(Ui {
-        val adapter = FillableViewableAdapter(tagz)(FillableViewable.text(Tweak.blank, t ⇒ text(t)))
+        val adapter = Listable.text(Tweak.blank).listAdapter(tagz)
         tags.setAdapter(adapter)
         tags.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)
       })

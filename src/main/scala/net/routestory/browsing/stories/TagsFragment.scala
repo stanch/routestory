@@ -9,7 +9,7 @@ import macroid.LogTag
 import macroid.Ui
 import net.routestory.ui.Styles._
 import net.routestory.ui.{ RouteStoryFragment, Styles }
-import net.routestory.viewable.StoryPreviewViewable
+import net.routestory.viewable.StoryPreviewListable
 import org.apmem.tools.layouts.FlowLayout
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -42,7 +42,7 @@ class TagsFragment extends RouteStoryFragment {
       val shuffled = Random.shuffle(t).take(50)
       val (max, min) = (shuffled.maxBy(_.count).count, shuffled.minBy(_.count).count)
       def n(x: Int) = if (max == min) 1 else (x - min).toDouble / (max - min)
-      val views = shuffled.map(t ⇒ StoryPreviewViewable.tag(t.tag, Some(n(t.count))))
+      val views = shuffled.map(t ⇒ StoryPreviewListable.tag(t.tag, Some(n(t.count))))
       runUi(
         tags <~ addViews(views, removeOld = true),
         swiper <~ Styles.stopRefresh

@@ -12,29 +12,29 @@ import com.google.android.gms.maps.model.LatLng
 import macroid.FullDsl._
 import macroid.akkafragments.{ AkkaFragment, FragmentActor }
 import macroid.contrib.ListTweaks
-import macroid.viewable.FillableViewableAdapter
 import macroid.{ ActivityContext, AppContext, Ui }
 import net.routestory.Apis
 import net.routestory.data.Story
 import net.routestory.recording.{ RecordFragment, RecordActivity, Cartographer }
 import net.routestory.ui.{ RouteStoryFragment, Styles }
 import net.routestory.util.Implicits._
-import net.routestory.viewable.StoryElementViewable
+import net.routestory.viewable.StoryElementListable
+import macroid.viewable._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class SuggestionsFragment extends RouteStoryFragment with RecordFragment {
   lazy val actor = actorSystem.map(_.actorSelection("/user/suggester"))
 
-  lazy val viewables = new StoryElementViewable(200 dp)
+  lazy val listable = new StoryElementListable(200 dp)
+  import listable._
 
   var grid = slot[StaggeredGridView]
   var swiper = slot[SwipeRefreshLayout]
 
-  def showElements(elements: List[Story.KnownElement]) = {
-    val adapter = FillableViewableAdapter(elements)(viewables)
-    (grid <~ ListTweaks.adapter(adapter)) ~ (swiper <~ Styles.stopRefresh)
-  }
+  def showElements(elements: List[Story.KnownElement]) =
+    (grid <~ elements.listAdapterTweak) ~
+      (swiper <~ Styles.stopRefresh)
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     l[SwipeRefreshLayout](

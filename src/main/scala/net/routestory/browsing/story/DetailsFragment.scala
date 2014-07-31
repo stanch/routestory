@@ -11,7 +11,7 @@ import macroid.contrib.Layouts.VerticalLinearLayout
 import net.routestory.R
 import net.routestory.data.Story
 import net.routestory.ui.{ RouteStoryFragment, Styles }
-import net.routestory.viewable.StoryPreviewViewable
+import net.routestory.viewable.StoryPreviewListable
 import org.apmem.tools.layouts.FlowLayout
 
 import scala.concurrent.Future
@@ -59,7 +59,7 @@ class DetailsFragment extends RouteStoryFragment {
       val fillDescription = description <~ text(d)
 
       val fillTags = Option(s.meta.tags).filter(_.nonEmpty) map { t ⇒
-        tags <~ addViews(t.map(StoryPreviewViewable.tag(_, None)), removeOld = true)
+        tags <~ addViews(t.map(StoryPreviewListable.tag(_, None)), removeOld = true)
       } getOrElse {
         tagStuff <~ hide
       }

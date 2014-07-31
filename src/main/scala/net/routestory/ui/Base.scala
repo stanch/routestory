@@ -8,11 +8,11 @@ import android.support.v4.app.{ ActionBarDrawerToggle, Fragment, FragmentActivit
 import android.support.v4.widget.DrawerLayout
 import android.view.ViewGroup.LayoutParams._
 import android.view._
-import android.widget.{ ListView, ProgressBar, SearchView }
+import android.widget.{ TextView, ListView, ProgressBar, SearchView }
 import macroid.FullDsl._
 import macroid.contrib.{ LpTweaks, BgTweaks, ListTweaks, TextTweaks }
 import macroid.Ui
-import macroid.viewable.{ FillableViewable, FillableViewableAdapter }
+import macroid.viewable.Listable
 import macroid.{ Contexts, Tweak }
 import net.routestory.browsing.stories.ExploreActivity
 import net.routestory.recording.RecordActivity
@@ -53,15 +53,16 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
       ("Explore", clicker[ExploreActivity]),
       ("Create a story", clicker[RecordActivity])
     )
-    val adapter = FillableViewableAdapter(data)(FillableViewable.text(
-      TextTweaks.medium + TextTweaks.boldItalic + padding(all = 10 dp),
-      data ⇒ text(data._1) + data._2
-    ))
+    val listable = Listable.tw {
+      w[TextView] <~ TextTweaks.medium <~ TextTweaks.boldItalic <~ padding(all = 10 dp)
+    } { data: (String, Tweak[View]) ⇒
+      text(data._1) + data._2
+    }
     // format: ON
     val layout = l[DrawerLayout](
       view <~ LpTweaks.matchParent,
       w[ListView] <~
-        ListTweaks.adapter(adapter) <~
+        listable.listAdapterTweak(data) <~
         lp[DrawerLayout](240 dp, MATCH_PARENT, Gravity.START) <~
         BgTweaks.res(R.color.drawer)
     )
