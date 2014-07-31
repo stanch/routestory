@@ -53,11 +53,9 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
       ("Explore", clicker[ExploreActivity]),
       ("Create a story", clicker[RecordActivity])
     )
-    val listable = Listable.tw {
+    val listable = Listable[(String, Tweak[View])].tw {
       w[TextView] <~ TextTweaks.medium <~ TextTweaks.boldItalic <~ padding(all = 10 dp)
-    } { data: (String, Tweak[View]) ⇒
-      text(data._1) + data._2
-    }
+    }(data ⇒ text(data._1) + data._2)
     // format: ON
     val layout = l[DrawerLayout](
       view <~ LpTweaks.matchParent,

@@ -82,7 +82,7 @@ class StoryElementListable(maxImageSize: Int) {
   }
 
   def soundListable(implicit ctx: ActivityContext, appCtx: AppContext) =
-    Listable.tw[Story.Sound, View] {
+    Listable[Story.Sound].tw {
       l[HorizontalLinearLayout](
         w[ImageView] <~ ImageTweaks.res(R.drawable.ic_action_volume_on) <~
           Styles.p8dding,

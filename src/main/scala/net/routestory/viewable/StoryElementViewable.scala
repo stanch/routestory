@@ -13,7 +13,7 @@ import net.routestory.util.BitmapPool.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class StoryElementViewable(maxImageSize: Int) {
-  def imageViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.Image, ImageView] { x ⇒
+  def imageViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.Image] { x ⇒
     val bitmapTweak = x.data.map(_.bitmapTweak(maxImageSize) + Tweak[ImageView] { v ⇒
       new PhotoViewAttacher(v).update()
     })
@@ -28,11 +28,11 @@ class StoryElementViewable(maxImageSize: Int) {
     }
   }.contraMap[Story.TextNote](_.text)
 
-  def audioViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.Audio, TextView] { x ⇒
+  def audioViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.Audio] { x ⇒
     w[TextView] <~ text("Sound")
   }
 
-  def foursquareVenueViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.FoursquareVenue, TextView] { x ⇒
+  def foursquareVenueViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.FoursquareVenue] { x ⇒
     w[TextView] <~ text("Venue here")
   }
 

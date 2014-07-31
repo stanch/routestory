@@ -11,7 +11,7 @@ class ClusteringTreeViewable[A](maxImageSize: Int) {
   def delegate(x: Story.KnownElement)(implicit ctx: ActivityContext, appCtx: AppContext) =
     new StoryElementViewable(maxImageSize).storyElementViewable.layout(x)
 
-  implicit def clusteringTreeViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Clustering.Tree[A], View] {
+  implicit def clusteringTreeViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Clustering.Tree[A]] {
     case Clustering.Leaf(Timed(_, x: Story.Image), _, _, _) ⇒ delegate(x)
     case Clustering.Leaf(Timed(_, x: Story.TextNote), _, _, _) ⇒ delegate(x)
 

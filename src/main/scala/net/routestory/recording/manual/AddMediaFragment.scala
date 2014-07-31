@@ -44,18 +44,16 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
       (R.drawable.ic_action_mic, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog))
     )
 
-    val listable = Listable.tr {
+    val listable = Listable[(Int, String, Ui[Unit])].tr {
       l[HorizontalLinearLayout](
         w[ImageView],
         w[TextView] <~ TextTweaks.large
       ) <~ padding(top = 12 dp, bottom = 12 dp, left = 8 dp)
-    } { button: (Int, String, Ui[Unit]) ⇒
-      Transformer {
-        case img: ImageView ⇒ img <~ ImageTweaks.res(button._1)
-        case txt: TextView ⇒ txt <~ text(button._2)
-        case l @ Transformer.Layout(_*) ⇒ l <~ On.click(button._3)
-      }
-    }
+    }(button ⇒ Transformer {
+      case img: ImageView ⇒ img <~ ImageTweaks.res(button._1)
+      case txt: TextView ⇒ txt <~ text(button._2)
+      case l @ Transformer.Layout(_*) ⇒ l <~ On.click(button._3)
+    })
 
     w[ListView] <~ listable.listAdapterTweak(buttons)
   }
