@@ -1,6 +1,5 @@
 package net.routestory.viewable
 
-import android.view.View
 import android.widget.TextView
 import macroid.FullDsl._
 import macroid.viewable.Viewable
@@ -9,7 +8,7 @@ import net.routestory.data.{ Clustering, Story, Timed }
 
 class ClusteringTreeViewable[A](maxImageSize: Int) {
   def delegate(x: Story.KnownElement)(implicit ctx: ActivityContext, appCtx: AppContext) =
-    new StoryElementViewable(maxImageSize).storyElementViewable.layout(x)
+    new StoryElementViewable(maxImageSize).storyElementViewable.view(x)
 
   implicit def clusteringTreeViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Clustering.Tree[A]] {
     case Clustering.Leaf(Timed(_, x: Story.Image), _, _, _) ⇒ delegate(x)

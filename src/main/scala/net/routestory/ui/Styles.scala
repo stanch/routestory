@@ -2,10 +2,11 @@ package net.routestory.ui
 
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.widget.CardView
-import android.view.View
+import android.view.{ Gravity, View }
+import android.widget.TextView
 import com.etsy.android.grid.StaggeredGridView
 import macroid.FullDsl._
-import macroid.contrib.TextTweaks
+import macroid.contrib.{ LpTweaks, TextTweaks }
 import macroid.{ AppContext, Tweak }
 import net.routestory.R
 
@@ -27,14 +28,18 @@ object Styles {
   val stopRefresh = Tweak[SwipeRefreshLayout](_.setRefreshing(false))
   val startRefresh = Tweak[SwipeRefreshLayout](_.setRefreshing(true))
 
-  def header(noPadding: Boolean = false)(implicit ctx: AppContext) =
-    TextTweaks.bold + TextTweaks.size(25) +
-      TextTweaks.color(ctx.get.getResources.getColor(R.color.orange)) +
-      (if (!noPadding) padding(top = 15 sp) else Tweak.blank)
+  def header(implicit ctx: AppContext) =
+    TextTweaks.size(25) + TextTweaks.bold +
+      TextTweaks.color(ctx.get.getResources.getColor(R.color.aquadark))
 
   def title(implicit ctx: AppContext) =
     TextTweaks.size(30) + TextTweaks.bold +
       TextTweaks.color(ctx.get.getResources.getColor(R.color.aquadark))
+
+  def empty(implicit ctx: AppContext) =
+    TextTweaks.size(25) + TextTweaks.italic + TextTweaks.serif +
+      TextTweaks.color(ctx.get.getResources.getColor(R.color.aquadark)) +
+      LpTweaks.matchParent + Tweak[TextView](_.setGravity(Gravity.CENTER))
 
   def tag(implicit ctx: AppContext) =
     TextTweaks.medium + TextTweaks.serif +

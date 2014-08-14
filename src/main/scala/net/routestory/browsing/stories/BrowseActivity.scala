@@ -4,6 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.{ Menu, MenuItem }
+import com.applause.android.Applause
+import com.applause.android.config.Configuration
 import com.google.android.gms.common.{ ConnectionResult, GooglePlayServicesUtil }
 import macroid.FullDsl._
 import macroid.IdGeneration
@@ -11,7 +13,7 @@ import net.routestory.R
 import net.routestory.recording.RecordActivity
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 
-class ExploreActivity extends RouteStoryActivity with FragmentPaging with IdGeneration {
+class BrowseActivity extends RouteStoryActivity with FragmentPaging with IdGeneration {
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
 
@@ -21,6 +23,13 @@ class ExploreActivity extends RouteStoryActivity with FragmentPaging with IdGene
       GooglePlayServicesUtil.getErrorDialog(result, this, 0).show()
     }
 
+    // configure Applause SDK
+    //    val applauseConfig = new Configuration.Builder(this)
+    //      .withAPIKey("242aebf296488bbedfea375f3b7621b79ab9fc51")
+    //      .withServerURL("https://aph.applause.com")
+    //      .build()
+    //    Applause.startNewSession(this, applauseConfig)
+
     // set default preferences
     PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
 
@@ -29,14 +38,15 @@ class ExploreActivity extends RouteStoryActivity with FragmentPaging with IdGene
     bar.setDisplayHomeAsUpEnabled(true)
 
     setContentView(getUi(drawer(getTabs(
-      "Latest" → f[LatestFragment].pass("number" → 10).factory,
-      "Popular tags" → f[TagsFragment].factory
+      "My stories" → f[LocalFragment].factory,
+      "Stories online" → f[OnlineFragment].pass("number" → 10).factory //,
+    //"Popular tags" → f[TagsFragment].factory
     ))))
   }
 
   override def onCreateOptionsMenu(menu: Menu) = {
     getMenuInflater.inflate(R.menu.activity_explore, menu)
-    setupSearch(menu)
+    //setupSearch(menu)
     true
   }
 

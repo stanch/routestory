@@ -7,22 +7,24 @@ import android.net.Uri
 import android.nfc.{ NdefMessage, NfcAdapter }
 import android.os.Bundle
 import android.view.ViewGroup.LayoutParams._
-import android.view.{ LayoutInflater, ViewGroup }
+import android.view.{ MenuItem, Menu, LayoutInflater, ViewGroup }
 import android.widget.{ FrameLayout, LinearLayout, ProgressBar }
 import macroid.FullDsl._
 import macroid.akkafragments.AkkaActivity
 import macroid.contrib.Layouts.VerticalLinearLayout
 import macroid.Ui
+import macroid.contrib.PagerTweaks
 import macroid.{ AppContext, IdGeneration }
 import net.routestory.R
 import net.routestory.browsing._
 import net.routestory.data.{ Timed, Clustering, Story }
+import net.routestory.editing.EditActivity
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity, RouteStoryFragment }
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object StoryActivity {
+object DisplayActivity {
   object NfcIntent {
     def unapply(i: Intent) = Option(i).filter(_.getAction == NfcAdapter.ACTION_NDEF_DISCOVERED).flatMap { intent ⇒
       Option(intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)) map { rawMsgs ⇒
@@ -40,8 +42,8 @@ object StoryActivity {
   }
 }
 
-class StoryActivity extends RouteStoryActivity with AkkaActivity with FragmentPaging with IdGeneration {
-  import StoryActivity._
+class DisplayActivity extends RouteStoryActivity with AkkaActivity with FragmentPaging with IdGeneration {
+  import DisplayActivity._
 
   val actorSystemName = "StoryActorSystem"
   lazy val coordinator = actorSystem.actorOf(Coordinator.props(this), "coordinator")
@@ -80,7 +82,7 @@ class StoryActivity extends RouteStoryActivity with AkkaActivity with FragmentPa
           //"Details" → f[StoryDetailsFragment].factory,
           "Space" → f[SpaceFragment].factory,
           "Timeline" → f[TimelineFragment].factory
-        ) <~ lp[LinearLayout](MATCH_PARENT, 0, 1.0f)
+        )
       )
     )))
 
@@ -104,6 +106,31 @@ class StoryActivity extends RouteStoryActivity with AkkaActivity with FragmentPa
     super.onDestroy()
     actorSystem.shutdown()
   }
+
+  override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
+    case R.id.edit ⇒
+      val intent = new Intent(this, classOf[EditActivity])
+      intent.putExtra("id", storyId)
+      startActivity(intent)
+      true
+    case R.id.delete ⇒
+      runUi {
+        dialog("Do you want to delete this story?") <~
+          positiveOk(Ui(app.hybridApi.delete(storyId)) ~ Ui(finish())) <~
+          negativeCancel(Ui.nop) <~
+          speak
+      }
+      true
+    case _ ⇒ super.onOptionsItemSelected(item)
+  }
+
+  override def onCreateOptionsMenu(menu: Menu) = {
+    getMenuInflater.inflate(R.menu.activity_display, menu)
+    val editable = app.hybridApi.isLocal(storyId)
+    menu.findItem(R.id.edit).setEnabled(editable)
+    menu.findItem(R.id.delete).setEnabled(editable)
+    true
+  }
 }
 
 object Coordinator {
@@ -112,10 +139,10 @@ object Coordinator {
   case class UpdateFocus(chapter: Story.Chapter, focus: Int)
   case object Remind
 
-  def props(activity: StoryActivity)(implicit appCtx: AppContext) = Props(new Coordinator(activity))
+  def props(activity: DisplayActivity)(implicit appCtx: AppContext) = Props(new Coordinator(activity))
 }
 
-class Coordinator(activity: StoryActivity)(implicit appCtx: AppContext) extends Actor with ActorLogging {
+class Coordinator(activity: DisplayActivity)(implicit appCtx: AppContext) extends Actor with ActorLogging {
   import Coordinator._
 
   var chapter: Option[Story.Chapter] = None

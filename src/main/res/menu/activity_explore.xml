@@ -3,9 +3,4 @@
           android:title="@string/menu_create"
           android:icon="@drawable/create"
           android:showAsAction="always" />
-    <item android:id="@+id/search"
-          android:title="@string/search"
-          android:icon="@android:drawable/ic_menu_search"
-          android:showAsAction="ifRoom|collapseActionView"
-          android:actionViewClass="android.widget.SearchView" />
 </menu>

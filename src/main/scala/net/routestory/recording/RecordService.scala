@@ -52,9 +52,11 @@ class RecordService extends Service with LocationListening with AutoLogTag { sel
 
   implicit lazy val appCtx = AppContext(getApplicationContext)
 
-  lazy val typewriter = actorSystem.actorOf(Typewriter.props, "typewriter")
+  lazy val app = getApplication.asInstanceOf[RouteStoryApp]
+
+  lazy val typewriter = actorSystem.actorOf(Typewriter.props(this, app), "typewriter")
   lazy val cartographer = actorSystem.actorOf(Cartographer.props, "cartographer")
-  lazy val suggester = actorSystem.actorOf(Suggester.props(getApplication.asInstanceOf[RouteStoryApp]), "suggester")
+  lazy val suggester = actorSystem.actorOf(Suggester.props(app), "suggester")
   lazy val dictaphone = actorSystem.actorOf(Dictaphone.props, "dictaphone")
 
   override def onCreate() = {

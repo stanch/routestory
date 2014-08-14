@@ -28,13 +28,11 @@ class CartographyFragment extends RouteStoryFragment with IdGeneration with Reco
 
   override def onStart() = {
     super.onStart()
-    logW"Attaching"()
     actor.foreach(_ ! FragmentActor.AttachUi(this))
   }
 
   override def onStop() = {
     super.onStop()
-    logW"Detaching"()
     actor.foreach(_ ! FragmentActor.DetachUi(this))
   }
 

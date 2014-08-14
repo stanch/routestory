@@ -20,8 +20,9 @@ import macroid.Ui
 import macroid.contrib.PagerTweaks
 import macroid.{ IdGeneration, Tweak }
 import net.routestory.R
-import net.routestory.browsing.story.StoryActivity
+import net.routestory.browsing.story.DisplayActivity
 import net.routestory.data.Story
+import net.routestory.editing.EditActivity
 import net.routestory.recording.logged.{ ControlPanelFragment, Dictaphone }
 import net.routestory.recording.manual.AddMediaFragment
 import net.routestory.recording.suggest.{ Suggester, SuggestionsFragment }
@@ -48,6 +49,7 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
   lazy val pager = this.find[ViewPager](Id.pager)
 
   val actorSystem = Promise[ActorSystem]()
+  val typewriter = actorSystem.future.map(_.actorSelection("/user/typewriter"))
 
   override def onCreate(savedInstanceState: Bundle) = {
     super.onCreate(savedInstanceState)
@@ -91,20 +93,24 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
     unbindService(serviceConnection)
   }
 
-  def createNew = {
-    progress <~~ waitProgress(async {
-      //      implicit val timeout = Timeout(5 seconds)
-      //      val id = Shortuuid.make("story")
-      //      val chapter = await((typewriter ? Typewriter.Backup).mapTo[Story.Chapter])
-      //      val story = Story(id, Story.Meta(None, None), List(chapter), None)
-      //      // TODO: app.createStory(story)
-      //      val intent = new Intent(this, classOf[StoryActivity])
-      //      intent.putExtra("id", id)
-      //      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-      //      Ui(startActivity(intent)).run
-    } recover {
-      case NonFatal(t) ⇒ t.printStackTrace(); throw t
-    })
+  def discard = {
+    val done = Promise[Unit]()
+    typewriter.foreach(_ ! Typewriter.Discard(done))
+    (progress <~~ waitProgress(done.future)) ~~ Ui {
+      finish()
+    }
+  }
+
+  def save = {
+    val id = Shortuuid.make("story")
+    val done = Promise[Unit]()
+    typewriter.foreach(_ ! Typewriter.Save(id, done))
+    (progress <~~ waitProgress(done.future)) ~~ Ui {
+      val intent = new Intent(this, classOf[EditActivity])
+      intent.putExtra("id", id)
+      startActivity(intent)
+      finish()
+    }
   }
 
   override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
@@ -118,11 +124,19 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
         pager <~ PagerTweaks.page(3, smoothScroll = true)
       }
       true
-    case R.id.stopRecord ⇒
+    case R.id.finish ⇒
       runUi {
-        dialog(getResources.getString(R.string.message_stoprecord)) <~
-          positiveYes(createNew) <~
-          negativeNo(Ui.nop) <~
+        dialog("Do you want to finish and save the story?") <~
+          positiveOk(save) <~
+          negativeCancel(Ui.nop) <~
+          speak
+      }
+      true
+    case R.id.discard ⇒
+      runUi {
+        dialog("Do you want to discard the story?") <~
+          positiveOk(discard) <~
+          negativeCancel(Ui.nop) <~
           speak
       }
       true

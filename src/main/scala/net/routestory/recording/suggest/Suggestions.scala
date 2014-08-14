@@ -6,7 +6,8 @@ import android.app.Activity
 import android.location.Location
 import android.os.Bundle
 import android.support.v4.widget.SwipeRefreshLayout
-import android.view.{ LayoutInflater, ViewGroup }
+import android.view.{ View, LayoutInflater, ViewGroup }
+import android.widget.AdapterView
 import com.etsy.android.grid.StaggeredGridView
 import com.google.android.gms.maps.model.LatLng
 import macroid.FullDsl._
@@ -15,26 +16,32 @@ import macroid.contrib.ListTweaks
 import macroid.{ ActivityContext, AppContext, Ui }
 import net.routestory.Apis
 import net.routestory.data.Story
-import net.routestory.recording.{ RecordFragment, RecordActivity, Cartographer }
+import net.routestory.recording.{ Typewriter, RecordFragment, RecordActivity, Cartographer }
 import net.routestory.ui.{ RouteStoryFragment, Styles }
 import net.routestory.util.Implicits._
-import net.routestory.viewable.StoryElementListable
+import net.routestory.viewable.{ CardListable, StoryElementListable }
 import macroid.viewable._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class SuggestionsFragment extends RouteStoryFragment with RecordFragment {
   lazy val actor = actorSystem.map(_.actorSelection("/user/suggester"))
-
-  lazy val listable = new StoryElementListable(200 dp)
-  import listable._
+  lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
 
   var grid = slot[StaggeredGridView]
   var swiper = slot[SwipeRefreshLayout]
 
-  def showElements(elements: List[Story.KnownElement]) =
-    (grid <~ elements.listAdapterTweak) ~
-      (swiper <~ Styles.stopRefresh)
+  def showElements(elements: List[Story.KnownElement]) = {
+    val listable = CardListable.cardListable(
+      new StoryElementListable(200 dp).storyElementListable)
+
+    val updateGrid = grid <~ listable.listAdapterTweak(elements) <~
+      FuncOn.itemClick[StaggeredGridView] { (_: AdapterView[_], _: View, index: Int, _: Long) ⇒
+        Ui(typewriter.foreach(_ ! Typewriter.Element(elements(index))))
+      }
+
+    updateGrid ~ (swiper <~ Styles.stopRefresh)
+  }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     l[SwipeRefreshLayout](

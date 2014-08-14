@@ -7,8 +7,14 @@
           android:title="Control panel"
           android:icon="@drawable/settings"
           android:showAsAction="always" />
-    <item android:id="@+id/stopRecord"
-        android:title="@string/menu_stoprecord"
+    <item android:id="@+id/finish"
+        android:title="Finish"
+        android:icon="@drawable/ic_action_accept"
         android:orderInCategory="100"
         android:showAsAction="always" />
+    <item android:id="@+id/discard"
+          android:title="Discard"
+          android:icon="@drawable/ic_action_discard"
+          android:orderInCategory="200"
+          android:showAsAction="always" />
 </menu>

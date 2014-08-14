@@ -69,7 +69,7 @@ class SearchActivity extends RouteStoryActivity
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
     setContentView(getUi(drawer(getTabs(
-      "Results" → f[LatestFragment].factory
+      "Results" → f[OnlineFragment].factory
     ))))
   }
 

@@ -7,7 +7,7 @@ import macroid.FullDsl._
 import macroid.IdGeneration
 import macroid.contrib.Layouts.VerticalLinearLayout
 import macroid.contrib.{ LpTweaks, TextTweaks }
-import net.routestory.browsing.stories.LatestFragment
+import net.routestory.browsing.stories.OnlineFragment
 import net.routestory.data.StoryPreview
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import rx.Var
@@ -37,7 +37,7 @@ class AuthorActivity extends RouteStoryActivity
         w[ImageView] <~ lp[LinearLayout](100 dp, WRAP_CONTENT) <~ wire(picture) <~ hide,
         w[TextView] <~ LpTweaks.matchWidth <~ wire(name) <~ TextTweaks.medium,
         getTabs(
-          "Stories" → f[LatestFragment].factory
+          "Stories" → f[OnlineFragment].factory
         )
       )
     )))

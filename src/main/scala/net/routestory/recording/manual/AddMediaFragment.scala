@@ -4,9 +4,10 @@ import java.io.File
 
 import android.app.Activity
 import android.content.Intent
-import android.media.MediaRecorder
+import android.media.MediaScannerConnection.OnScanCompletedListener
+import android.media.{ MediaScannerConnection, MediaRecorder }
 import android.net.Uri
-import android.os.Bundle
+import android.os.{ Environment, Bundle }
 import android.provider.MediaStore
 import android.support.v4.app.DialogFragment
 import android.view.{ Gravity, LayoutInflater, ViewGroup }
@@ -24,7 +25,13 @@ import net.routestory.ui.RouteStoryFragment
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordFragment {
-  lazy val photoFile = File.createTempFile("photo", ".jpg", getActivity.getExternalCacheDir)
+  def photoFile = {
+    val root = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "RouteStory")
+    root.mkdirs()
+    File.createTempFile("photo", ".jpg", root)
+  }
+  var lastPhotoFile = photoFile
+
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
   val requestCodePhoto = 0
 
@@ -34,7 +41,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
 
     val cameraClicker = Ui {
       val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile))
+      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(lastPhotoFile))
       startActivityForResult(intent, requestCodePhoto)
     }
 
@@ -61,7 +68,9 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
   override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) = {
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode == requestCodePhoto && resultCode == Activity.RESULT_OK) {
-      typewriter.foreach(_ ! Typewriter.Element(Story.Photo(photoFile)))
+      MediaScannerConnection.scanFile(getActivity.getApplicationContext, Array(lastPhotoFile.getAbsolutePath), null, null)
+      typewriter.foreach(_ ! Typewriter.Element(Story.Photo(lastPhotoFile)))
+      lastPhotoFile = photoFile
     }
   }
 }
@@ -87,26 +96,31 @@ class AddTextNote extends AddSomething {
 }
 
 class AddVoiceNote extends AddSomething {
-  var mMediaRecorder: MediaRecorder = null
-  var mRecording = false
-  var mRecorded = false
-  var mStartStop = slot[Button]
-  lazy val mOutputPath = File.createTempFile("voice", ".mp4", getActivity.getExternalCacheDir).getAbsolutePath
+  var mediaRecorder: MediaRecorder = null
+  var recording = false
+  var recorded = false
+  var startStop = slot[Button]
+
+  lazy val voiceNoteFile = {
+    val root = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "RouteStory")
+    root.mkdirs()
+    File.createTempFile("voice-note", ".mp4", root)
+  }
 
   def start() = {
-    mMediaRecorder = new MediaRecorder {
+    mediaRecorder = new MediaRecorder {
       setAudioSource(AudioSource.MIC)
       setOutputFormat(OutputFormat.MPEG_4)
       setAudioEncoder(AudioEncoder.AAC)
-      setOutputFile(mOutputPath)
+      setOutputFile(voiceNoteFile.getAbsolutePath)
     }
     try {
-      mMediaRecorder.prepare()
-      mMediaRecorder.start()
-      mRecording = true
-      mRecorded = true
+      mediaRecorder.prepare()
+      mediaRecorder.start()
+      recording = true
+      recorded = true
       runUi {
-        mStartStop <~ text("Stop recording")
+        startStop <~ text("Stop recording")
       }
     } catch {
       case e: Throwable ⇒ e.printStackTrace()
@@ -114,28 +128,28 @@ class AddVoiceNote extends AddSomething {
   }
 
   def stop() = {
-    mMediaRecorder.stop()
-    mMediaRecorder.release()
-    mMediaRecorder = null
-    mRecording = false
+    mediaRecorder.stop()
+    mediaRecorder.release()
+    mediaRecorder = null
+    recording = false
     runUi {
-      mStartStop <~ text("Click if you want to try again")
+      startStop <~ text("Click if you want to try again")
     }
   }
 
   override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
-    w[Button] <~ text("Start recording") <~ wire(mStartStop) <~ On.click(Ui {
-      if (!mRecording) start() else stop()
+    w[Button] <~ text("Start recording") <~ wire(startStop) <~ On.click(Ui {
+      if (!recording) start() else stop()
     })
   } <~ positiveOk(Ui {
-    if (mRecording) {
+    if (recording) {
       stop()
     }
-    if (mRecorded) {
-      typewriter.foreach(_ ! Typewriter.Element(Story.VoiceNote(new File(mOutputPath))))
+    if (recorded) {
+      typewriter.foreach(_ ! Typewriter.Element(Story.VoiceNote(voiceNoteFile)))
     }
   }) <~ negativeCancel(Ui {
-    if (mRecording) {
+    if (recording) {
       stop()
     }
   })).create()

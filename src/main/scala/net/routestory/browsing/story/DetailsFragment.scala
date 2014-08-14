@@ -28,15 +28,15 @@ class DetailsFragment extends RouteStoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
     l[ScrollView](
       l[VerticalLinearLayout](
-        w[TextView] <~ text("Author") <~ Styles.header(noPadding = true),
+        w[TextView] <~ text("Author") <~ Styles.header,
         w[ImageView] <~ lp[LinearLayout](100 dp, WRAP_CONTENT) <~ wire(authorPicture),
         w[TextView] <~ LpTweaks.matchWidth <~ wire(authorName) <~ TextTweaks.medium,
 
-        w[TextView] <~ text(R.string.description) <~ Styles.header(),
+        w[TextView] <~ text(R.string.description) <~ Styles.header,
         w[TextView] <~ LpTweaks.matchWidth <~ wire(description) <~ TextTweaks.medium,
 
         l[VerticalLinearLayout](
-          w[TextView] <~ text(R.string.tags) <~ Styles.header(),
+          w[TextView] <~ text(R.string.tags) <~ Styles.header,
           l[FlowLayout]() <~ wire(tags)
         ) <~ wire(tagStuff)
       ) <~ padding(left = 8 dp)

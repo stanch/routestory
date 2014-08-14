@@ -14,7 +14,7 @@ import macroid.viewable._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
 
-class LatestFragment extends RouteStoryFragment {
+class OnlineFragment extends RouteStoryFragment {
 
   var grid = slot[StaggeredGridView]
   var swiper = slot[SwipeRefreshLayout]
@@ -23,7 +23,6 @@ class LatestFragment extends RouteStoryFragment {
 
   def viewStories(stories: List[StoryPreview]) = {
     import StoryPreviewListable._
-    stories.listAdapterTweak
     (grid <~ stories.listAdapterTweak) ~ (swiper <~ Styles.stopRefresh)
   }
 

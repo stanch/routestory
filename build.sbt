@@ -5,8 +5,6 @@ android.Plugin.androidBuild
 
 name := "RouteStory"
 
-net.virtualvoid.sbt.graph.Plugin.graphSettings
-
 version := "1.0"
 
 scalaVersion := "2.10.4"
@@ -56,8 +54,9 @@ libraryDependencies ++= Seq(
   "com.android.support" % "support-v4" % "20.0.0",
   "com.android.support" % "support-v13" % "19.1.0",
   "com.github.chrisbanes.photoview" % "library" % "1.2.2",
+  aar("com.applause" % "applause-sdk-preprod" % "2.2.0"),
   aar("com.android.support" % "cardview-v7" % "21.0.0-rc1"),
-  aar("com.couchbase.lite" % "couchbase-lite-android" % "1.0.0"),
+  aar("com.couchbase.lite" % "couchbase-lite-android" % "1.0.1"),
   aar("com.google.android.gms" % "play-services" % "4.0.30"),
   aar("org.apmem.tools" % "layouts" % "1.0"),
   aar("com.etsy.android.grid" % "library" % "1.0.5"),
@@ -98,12 +97,15 @@ proguardOptions in Android ++= Seq(
   "-keep class scala.Function0",
   "-keep class scala.Function1",
   "-keep class scala.collection.Set.hashCode { *; }",
-  "-keepattributes *Annotation*,EnclosingMethod",
+  "-keepattributes **",
   "-keep public enum * { public static **[] values(); public static ** valueOf(java.lang.String); }",
   "-keepnames class com.codehaus.jackson.** { *; }",
   "-keepnames class com.fasterxml.jackson.** { *; }",
   "-keep class com.couchbase.touchdb.TDCollateJSON { *; }",
   "-keepclasseswithmembers class * { native <methods>; }",
+  "-keepclassmembers class * { @ext.com.google.inject.Inject <init>(...); }",
+  "-keep class ext.com.google.inject.** { *; }",
+  "-keep class ext.com.google.inject.Binder",
   "-keep class com.couchbase.lite.android.AndroidLogger { *; }",
   "-keep class com.couchbase.lite.android.AndroidSQLiteStorageEngine { *; }"
 )

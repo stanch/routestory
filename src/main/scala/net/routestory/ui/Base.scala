@@ -14,7 +14,7 @@ import macroid.contrib.{ LpTweaks, BgTweaks, ListTweaks, TextTweaks }
 import macroid.Ui
 import macroid.viewable.Listable
 import macroid.{ Contexts, Tweak }
-import net.routestory.browsing.stories.ExploreActivity
+import net.routestory.browsing.stories.BrowseActivity
 import net.routestory.recording.RecordActivity
 import net.routestory.{ R, RouteStoryApp }
 
@@ -50,11 +50,12 @@ trait RouteStoryActivity extends FragmentActivity with Contexts[FragmentActivity
     })
     // format: OFF
     val data = Seq(
-      ("Explore", clicker[ExploreActivity]),
+      ("Explore", clicker[BrowseActivity]),
       ("Create a story", clicker[RecordActivity])
     )
     val listable = Listable[(String, Tweak[View])].tw {
-      w[TextView] <~ TextTweaks.medium <~ TextTweaks.boldItalic <~ padding(all = 10 dp)
+      w[TextView] <~ TextTweaks.color(Color.WHITE) <~ TextTweaks.medium <~
+        TextTweaks.boldItalic <~ padding(all = 10 dp)
     }(data ⇒ text(data._1) + data._2)
     // format: ON
     val layout = l[DrawerLayout](

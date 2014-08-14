@@ -45,10 +45,10 @@
         </activity>
         <service android:name=".recording.RecordService" />
         <activity
-            android:name=".editing.DescriptionActivity"
+            android:name=".editing.EditActivity"
             android:label="@string/title_activity_description" >
         </activity>
-        <activity android:name=".browsing.story.StoryActivity">
+        <activity android:name=".browsing.story.DisplayActivity">
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -72,7 +72,7 @@
                 android:resource="@xml/searchable" />
         </activity>
         <activity
-            android:name=".browsing.stories.ExploreActivity"
+            android:name=".browsing.stories.BrowseActivity"
             android:label="@string/title_activity_explore" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
