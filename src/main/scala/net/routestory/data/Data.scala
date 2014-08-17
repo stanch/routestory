@@ -99,10 +99,26 @@ object Story {
     def empty = Chapter(System.currentTimeMillis / 1000, 0, Vector.empty, Vector.empty)
   }
 
-  case class Meta(title: Option[String], description: Option[String], tags: List[String] = Nil)
+  case class Meta(title: Option[String], description: Option[String], tags: List[String])
+
+  object Meta {
+    def fromStrings(title: String, description: String, tags: String) = new Meta(
+      Option(title).filter(_.nonEmpty),
+      Option(description).filter(_.nonEmpty),
+      Option(tags).map(_.split(",\\s*")).map(_.filter(_.nonEmpty)).fold(List.empty[String])(_.toList)
+    )
+    def empty = Meta(None, None, Nil)
+  }
+
+  def empty(id: String) = Story(id, Meta.empty, Nil, None)
 }
 
-case class Story(id: String, meta: Story.Meta, chapters: List[Story.Chapter], author: Option[Author], `private`: Boolean = true)
+case class Story(id: String, meta: Story.Meta, chapters: List[Story.Chapter], author: Option[Author], `private`: Boolean = true) {
+  def withChapter(chapter: Story.Chapter) = copy(chapters = chapters :+ chapter)
+  def withMeta(meta: Story.Meta) = copy(meta = meta)
+
+  def preview = StoryPreview(id, meta.title, meta.tags, author)
+}
 
 case class StoryPreview(id: String, title: Option[String], tags: List[String], author: Option[Author])
 

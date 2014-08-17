@@ -2,24 +2,17 @@ package net.routestory.couch
 
 import com.couchbase.lite.Database
 import org.codehaus.jackson.map.ObjectMapper
-import play.api.libs.json.{Json, JsObject}
+import play.api.libs.json.{JsArray, Json, JsObject}
 import resolvable.EndpointLogger
 import resolvable.json.JsonEndpoint
+import scala.collection.JavaConversions._
 
 import scala.concurrent.{Future, ExecutionContext}
 
-trait Endpoints {
+trait Endpoints extends JsonHelpers {
   def couch: Database
 
-  implicit class RichJsObject(js: JsObject) {
-    def toJavaMap = (new ObjectMapper).readValue(js.toString(), classOf[java.util.Map[String, Object]])
-  }
-
-  implicit class RichJavaMap(map: java.util.Map[String, Object]) {
-    def toJsObject = Json.parse((new ObjectMapper).writeValueAsString(map)).asInstanceOf[JsObject]
-  }
-
-  abstract class CouchEndpoint(id: String) extends JsonEndpoint {
+  abstract class CouchDocEndpoint(id: String) extends JsonEndpoint {
     val logger = EndpointLogger.none
     case object NotFound extends Throwable
     protected def fetch(implicit ec: ExecutionContext) = Future {
@@ -27,6 +20,17 @@ trait Endpoints {
     }
   }
 
-  case class LocalAuthor(id: String) extends CouchEndpoint(id)
-  case class LocalStory(id: String) extends CouchEndpoint(id)
+  case class LocalAuthor(id: String) extends CouchDocEndpoint(id)
+  case class LocalStory(id: String) extends CouchDocEndpoint(id)
+
+  case class LocalView(name: String) extends JsonEndpoint {
+    val logger = EndpointLogger.none
+    protected def fetch(implicit ec: ExecutionContext) = Future {
+      JsArray {
+        val q = couch.getView(name).createQuery()
+        q.setDescending(true)
+        q.run().map(_.getDocument.getProperties.toJsObject).toSeq
+      }
+    }
+  }
 }
