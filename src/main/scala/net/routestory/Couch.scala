@@ -15,7 +15,6 @@ trait Couch { self: RouteStoryApp ⇒
           val start = doc.get("chapters").asInstanceOf[java.util.List[AnyRef]]
             .get(0).asInstanceOf[java.util.Map[String, AnyRef]]
             .get("start")
-          Log.w("Couch", s"start is $start")
           emitter.emit(start, null)
         }
       }

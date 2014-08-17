@@ -1,15 +1,16 @@
 package net.routestory.editing
 
-import akka.actor.{ Props, Actor }
+import akka.actor.{ TypedProps, TypedActor, Props, Actor }
 import android.os.Bundle
 import android.support.v7.widget.CardView
 import android.text.InputType
-import android.view.{ View, ViewGroup, LayoutInflater }
+import android.view.{ KeyEvent, View, ViewGroup, LayoutInflater }
+import android.widget.TextView.OnEditorActionListener
 import android.widget._
 import macroid.{ Ui, Tweak }
-import macroid.akkafragments.AkkaFragment
+import macroid.akkafragments.{ FragmentActor, AkkaFragment }
 import macroid.contrib.Layouts.VerticalLinearLayout
-import macroid.contrib.LpTweaks
+import macroid.contrib.{ TextTweaks, LpTweaks }
 import macroid.viewable.Listable
 import net.routestory.data.Story
 import net.routestory.ui.{ Styles, RouteStoryFragment }
@@ -19,6 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class MetadataFragment extends RouteStoryFragment with AkkaFragment {
   lazy val actor = Some(actorSystem.actorSelection("/user/metadata"))
+  lazy val editor = actorSystem.actorSelection("/user/editor")
 
   var title = slot[EditText]
   var description = slot[EditText]
@@ -35,9 +37,20 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
       (tags <~ text(meta.tags.mkString(", ")))
   }
 
+  def grabMeta = Ui {
+    val meta = Story.Meta.fromStrings(
+      title.get.getText.toString,
+      description.get.getText.toString,
+      tags.get.getText.toString
+    )
+    actor.foreach(_ ! Metadata.Update(meta))
+  }
+
   def cardWithMargin(w: Ui[View]) =
-    l[LinearLayout](l[CardView](w) <~ Styles.card <~ LpTweaks.matchParent) <~
+    l[LinearLayout](l[CardView](w) <~ Styles.card <~ Styles.p8dding <~ LpTweaks.matchParent) <~
       padding(top = 8 dp, left = 8 dp, right = 8 dp)
+
+  def hook = On.focusChange[EditText](grabMeta)
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     l[ScrollView](
@@ -46,8 +59,9 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
           l[VerticalLinearLayout](
             w[TextView] <~
               text("Title") <~ Styles.header,
-            w[EditText] <~ wire(title) <~ LpTweaks.matchWidth <~
-              inputType(InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE)
+            w[EditText] <~ wire(title) <~ LpTweaks.matchWidth <~ hook <~
+              inputType(InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE) <~
+              Tweak[EditText](_.setHint("Untitled"))
           )
         ),
 
@@ -55,8 +69,8 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
           l[VerticalLinearLayout](
             w[TextView] <~
               text("Description") <~ Styles.header,
-            w[EditText] <~ wire(description) <~ LpTweaks.matchWidth <~
-              inputType(InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE)
+            w[EditText] <~ wire(description) <~ LpTweaks.matchWidth <~ hook <~
+              inputType(InputType.TYPE_TEXT_FLAG_MULTI_LINE)
           )
         ),
 
@@ -64,7 +78,7 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
           l[VerticalLinearLayout](
             w[TextView] <~
               text("Tags") <~ Styles.header,
-            w[MultiAutoCompleteTextView] <~ wire(tags) <~ LpTweaks.matchWidth <~
+            w[MultiAutoCompleteTextView] <~ wire(tags) <~ LpTweaks.matchWidth <~ hook <~
               inputType(InputType.TYPE_CLASS_TEXT) <~ Tweak[MultiAutoCompleteTextView] { x ⇒
                 x.setHint("Lisbon, nice weather, tour")
                 x.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)
@@ -80,18 +94,29 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
     runUi {
       tags <~ app.webApi.tags.go
         .map(_.map(_.tag))
-        .map(Listable.text(Tweak.blank).listAdapter)
+        .map(Listable.text(TextTweaks.medium + Styles.p8dding).listAdapter)
         .map(multiAutoCompleteAdapterTweak)
     }
   }
 }
 
-object MetadataActor {
-  def props = Props(new MetadataActor)
+object Metadata {
+  def props = Props(new Metadata)
+
+  case class Init(meta: Story.Meta)
+  case class Update(meta: Story.Meta)
 }
 
-class MetadataActor extends Actor {
+class Metadata extends FragmentActor[MetadataFragment] {
+  import Metadata._
+
+  lazy val editor = context.actorSelection("../editor")
+
   def receive = {
-    case _ ⇒
+    case Init(meta) ⇒
+      withUi(_.viewMeta(meta))
+
+    case Update(meta) ⇒
+      editor ! Editor.Meta(meta)
   }
 }

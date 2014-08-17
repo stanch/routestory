@@ -13,6 +13,8 @@
         <item name="android:actionBarStyle">@style/BlackBar</item>
         <item name="android:progressBarStyleHorizontal">@style/ProgressBarRouteStory</item>
         <item name="android:seekBarStyle">@style/SeekBarRouteStory</item>
+        <item name="android:editTextBackground">@drawable/routestory_edit_text_holo_light</item>
+        <item name="android:autoCompleteTextViewStyle">@style/AutoCompleteTextViewRouteStory</item>
     </style>
 
     <style name="BlackBar" parent="@android:style/Widget.Holo.Light.ActionBar.Solid.Inverse">

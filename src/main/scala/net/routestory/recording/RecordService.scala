@@ -1,49 +1,18 @@
 package net.routestory.recording
 
-import akka.actor.{ ActorSystem, ActorRef }
+import akka.actor.ActorSystem
 import android.app.{ NotificationManager, PendingIntent, Service }
-import android.content.{ Context, Intent }
-import android.location.{ Location }
-import android.os.{ Bundle, Parcel, Binder, IBinder }
-import android.support.v4.app.{ NotificationCompat, TaskStackBuilder }
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GooglePlayServicesClient.{ OnConnectionFailedListener, ConnectionCallbacks }
-import com.google.android.gms.location.{ LocationListener, LocationRequest, LocationClient }
+import android.content._
+import android.os.Binder
+import android.support.v4.app.NotificationCompat
 import com.typesafe.config.ConfigFactory
-import macroid.{ AutoLogTag, AppContext }
-import net.routestory.{ RouteStoryApp, R }
-import net.routestory.recording.logged.Dictaphone
-import net.routestory.recording.suggest.Suggester
 import macroid.FullDsl._
+import macroid.{ AppContext, AutoLogTag }
+import net.routestory.recording.logged.{ Dictaphone, Locator }
+import net.routestory.recording.suggest.Suggester
+import net.routestory.{ R, RouteStoryApp }
 
-trait LocationListening { self: RecordService ⇒
-  lazy val locationClient = new LocationClient(
-    getApplicationContext,
-    locationConnectionCallbacks,
-    locationConnectionFailedListener
-  )
-
-  object locationConnectionCallbacks extends ConnectionCallbacks {
-    override def onConnected(bundle: Bundle) = {
-      val request = LocationRequest.create()
-        .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-        .setInterval(5000) // 5 seconds
-        .setFastestInterval(5000) // 5 seconds
-      locationClient.requestLocationUpdates(request, locationListener)
-    }
-    override def onDisconnected() = ()
-  }
-
-  object locationConnectionFailedListener extends OnConnectionFailedListener {
-    override def onConnectionFailed(result: ConnectionResult) = ()
-  }
-
-  object locationListener extends LocationListener {
-    override def onLocationChanged(location: Location) = cartographer ! Cartographer.Locate(location)
-  }
-}
-
-class RecordService extends Service with LocationListening with AutoLogTag { self ⇒
+class RecordService extends Service with AutoLogTag { self ⇒
   lazy val actorSystem = ActorSystem(
     "recording",
     ConfigFactory.load(getApplication.getClassLoader),
@@ -59,17 +28,19 @@ class RecordService extends Service with LocationListening with AutoLogTag { sel
   lazy val suggester = actorSystem.actorOf(Suggester.props(app), "suggester")
   lazy val dictaphone = actorSystem.actorOf(Dictaphone.props, "dictaphone")
 
+  lazy val locator = new Locator
+
   override def onCreate() = {
     logW"RecordService created"()
     super.onCreate()
     addNotification()
     (typewriter, cartographer, suggester, dictaphone)
-    locationClient.connect()
+    locator.locationClient.connect()
   }
 
   override def onDestroy() = {
     logW"RecordService destroyed"()
-    locationClient.disconnect()
+    locator.locationClient.disconnect()
     actorSystem.shutdown()
     removeNotification()
     super.onDestroy()

@@ -40,13 +40,11 @@
 
         <activity
             android:name=".recording.RecordActivity"
-            android:label="@string/title_activity_record"
             android:launchMode="singleTop">
         </activity>
         <service android:name=".recording.RecordService" />
-        <activity
-            android:name=".editing.EditActivity"
-            android:label="@string/title_activity_description" >
+        <receiver android:name=".recording.logged.LocationBroadcastReceiver" />
+        <activity android:name=".editing.EditActivity">
         </activity>
         <activity android:name=".browsing.story.DisplayActivity">
             <intent-filter>
@@ -71,9 +69,7 @@
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
         </activity>
-        <activity
-            android:name=".browsing.stories.BrowseActivity"
-            android:label="@string/title_activity_explore" >
+        <activity android:name=".browsing.stories.BrowseActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
