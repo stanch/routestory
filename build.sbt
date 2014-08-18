@@ -9,6 +9,7 @@ exportJars := true
 resolvers ++= Seq(
   "Stanch" at "http://dl.bintray.com/stanch/maven",
   "JTO snapshots" at "https://raw.github.com/jto/mvn-repo/master/snapshots",
+  "Typesafe" at "http://repo.typesafe.com/typesafe/releases/",
   "Couchbase" at "http://files.couchbase.com/maven2"
 )
 
