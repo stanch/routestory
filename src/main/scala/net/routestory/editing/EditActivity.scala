@@ -1,16 +1,16 @@
 package net.routestory.editing
 
-import akka.actor.{ TypedActor, Props, Actor }
+import akka.actor.{Actor, Props}
 import android.os.Bundle
-import android.view.{ MenuItem, Menu }
+import android.view.{Menu, MenuItem}
 import android.widget._
 import macroid.FullDsl._
-import macroid.{ AppContext, IdGeneration, Ui, Tweak }
 import macroid.akkafragments.AkkaActivity
 import macroid.contrib.Layouts.VerticalLinearLayout
+import macroid.{AppContext, IdGeneration, Ui}
 import net.routestory.R
 import net.routestory.data.Story
-import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import net.routestory.ui.{FragmentPaging, RouteStoryActivity}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -78,7 +78,7 @@ object Editor {
 }
 
 class Editor(implicit ctx: AppContext) extends Actor {
-  import Editor._
+  import net.routestory.editing.Editor._
 
   lazy val metadata = context.actorSelection("../metadata")
 
