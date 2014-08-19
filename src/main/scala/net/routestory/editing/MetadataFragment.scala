@@ -20,7 +20,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class MetadataFragment extends RouteStoryFragment with AkkaFragment {
   lazy val actor = Some(actorSystem.actorSelection("/user/metadata"))
-  lazy val editor = actorSystem.actorSelection("/user/editor")
 
   var title = slot[EditText]
   var description = slot[EditText]
@@ -103,20 +102,26 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
 object Metadata {
   def props = Props(new Metadata)
 
-  case class Init(meta: Story.Meta)
   case class Update(meta: Story.Meta)
 }
 
 class Metadata extends FragmentActor[MetadataFragment] {
   import Metadata._
+  import Editor._
+  import FragmentActor._
 
   lazy val editor = context.actorSelection("../editor")
 
-  def receive = {
-    case Init(meta) ⇒
-      withUi(_.viewMeta(meta))
+  def receive = receiveUi andThen {
+    case AttachUi(_) ⇒
+      editor ! Editor.Remind
+
+    case Init(story) ⇒
+      withUi(_.viewMeta(story.meta))
 
     case Update(meta) ⇒
       editor ! Editor.Meta(meta)
+
+    case _ ⇒
   }
 }

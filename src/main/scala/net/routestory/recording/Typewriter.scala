@@ -33,12 +33,21 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
   var chapter = Story.Chapter.empty
   var tree: Option[Clustering.Tree[Unit]] = None
 
+  def elementName(element: Story.KnownElement) = element match {
+    case x: Story.Photo ⇒ "a photo"
+    case x: Story.VoiceNote ⇒ "a voice note"
+    case x: Story.TextNote ⇒ "a text note"
+    case x: Story.Sound ⇒ "background sound"
+    case x: Story.FlickrPhoto ⇒ "a photo from Flickr"
+    case x: Story.FoursquareVenue ⇒ "a Foursquare venue"
+  }
+
   def receive = {
     case Element(element) ⇒
       chapter = chapter.withElement(Timed(chapter.ts, element))
       Future(Clustering.cluster(chapter)).map(Cluster).pipeTo(self)
       runUi {
-        toast(s"Added $element") <~ fry
+        toast(s"Added ${elementName(element)}") <~ fry
       }
 
     case Location(location) ⇒
@@ -60,7 +69,7 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
     case Save(id, done) ⇒
       // TODO: add to existing story
       val story = Story.empty(id).withChapter(chapter.finish)
-      apis.hybridApi.saveStory(story)
+      apis.hybridApi.createStory(story)
       done.success(())
       Ui(service.stopSelf()).run
   }

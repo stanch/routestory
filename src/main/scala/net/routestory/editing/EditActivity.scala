@@ -1,22 +1,23 @@
 package net.routestory.editing
 
-import akka.actor.{Actor, Props}
+import akka.actor.{ Actor, Props }
 import android.os.Bundle
-import android.view.{Menu, MenuItem}
+import android.view.{ Menu, MenuItem }
 import android.widget._
 import macroid.FullDsl._
 import macroid.akkafragments.AkkaActivity
 import macroid.contrib.Layouts.VerticalLinearLayout
-import macroid.{AppContext, IdGeneration, Ui}
-import net.routestory.R
+import macroid.{ AppContext, IdGeneration, Ui }
+import net.routestory.{ Apis, R }
 import net.routestory.data.Story
-import net.routestory.ui.{FragmentPaging, RouteStoryActivity}
+import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Promise
 
 class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPaging with AkkaActivity {
   val actorSystemName = "StoryActorSystem"
-  lazy val editor = actorSystem.actorOf(Editor.props, "editor")
+  lazy val editor = actorSystem.actorOf(Editor.props(app), "editor")
   lazy val metadata = actorSystem.actorOf(Metadata.props, "metadata")
 
   lazy val storyId = getIntent.getStringExtra("id")
@@ -43,7 +44,13 @@ class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPag
     }
   }
 
-  def save = Ui.nop
+  def save = {
+    val done = Promise[Unit]()
+    editor ! Editor.Save(done)
+    (progress <~~ waitProgress(done.future)) ~~ Ui {
+      finish()
+    }
+  }
 
   def discard = Ui {
     finish()
@@ -71,13 +78,15 @@ class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPag
 }
 
 object Editor {
-  def props(implicit ctx: AppContext) = Props(new Editor)
+  def props(apis: Apis)(implicit ctx: AppContext) = Props(new Editor(apis))
 
   case class Init(story: Story)
   case class Meta(meta: Story.Meta)
+  case class Save(done: Promise[Unit])
+  case object Remind
 }
 
-class Editor(implicit ctx: AppContext) extends Actor {
+class Editor(apis: Apis)(implicit ctx: AppContext) extends Actor {
   import net.routestory.editing.Editor._
 
   lazy val metadata = context.actorSelection("../metadata")
@@ -87,10 +96,16 @@ class Editor(implicit ctx: AppContext) extends Actor {
   def receive = {
     case Init(s) ⇒
       story = s
-      metadata ! Metadata.Init(s.meta)
+      metadata ! Init(story)
+
+    case Remind ⇒
+      sender ! Init(story)
 
     case Meta(m) ⇒
       story = story.withMeta(m)
-      runUi(toast(s"got $m") <~ fry)
+
+    case Save(done) ⇒
+      apis.hybridApi.updateStory(story)
+      done.success(())
   }
 }

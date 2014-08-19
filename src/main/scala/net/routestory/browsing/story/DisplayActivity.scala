@@ -116,7 +116,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
     case R.id.delete ⇒
       runUi {
         dialog("Do you want to delete this story?") <~
-          positiveOk(Ui(app.hybridApi.delete(storyId)) ~ Ui(finish())) <~
+          positiveOk(Ui(app.hybridApi.deleteStory(storyId)) ~ Ui(finish())) <~
           negativeCancel(Ui.nop) <~
           speak
       }
@@ -127,8 +127,8 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
   override def onCreateOptionsMenu(menu: Menu) = {
     getMenuInflater.inflate(R.menu.activity_display, menu)
     val editable = app.hybridApi.isLocal(storyId)
-    menu.findItem(R.id.edit).setEnabled(editable)
-    menu.findItem(R.id.delete).setEnabled(editable)
+    menu.findItem(R.id.edit).setVisible(editable)
+    menu.findItem(R.id.delete).setVisible(editable)
     true
   }
 }

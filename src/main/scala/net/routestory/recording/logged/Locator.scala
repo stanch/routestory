@@ -22,12 +22,20 @@ class Locator(implicit ctx: AppContext) {
 
   object connectionCallbacks extends ConnectionCallbacks {
     def onConnected(bundle: Bundle) = locationClient.requestLocationUpdates(request, pendingIntent)
-    def onDisconnected() = locationClient.removeLocationUpdates(pendingIntent)
+    def onDisconnected() = ()
   }
 
   object connectionFailedListener extends OnConnectionFailedListener {
     // TODO: ???
     def onConnectionFailed(result: ConnectionResult) = ()
+  }
+
+  def connect() = locationClient.connect()
+  def disconnect() = {
+    if (locationClient.isConnected) {
+      locationClient.removeLocationUpdates(pendingIntent)
+      locationClient.disconnect()
+    }
   }
 }
 
