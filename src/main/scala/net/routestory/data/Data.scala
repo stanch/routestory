@@ -105,7 +105,7 @@ object Story {
     def fromStrings(title: String, description: String, tags: String) = new Meta(
       Option(title).filter(_.nonEmpty),
       Option(description).filter(_.nonEmpty),
-      Option(tags).map(_.split(",\\s*")).map(_.filter(_.nonEmpty)).fold(List.empty[String])(_.toList)
+      tags.split(",\\s*").filter(_.nonEmpty).toList
     )
     def empty = Meta(None, None, Nil)
   }
