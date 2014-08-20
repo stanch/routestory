@@ -92,7 +92,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
 
     story mapUi { s ⇒
       bar.setTitle(s.meta.title.filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))
-      bar.setSubtitle("by " + s.author.map(_.name).getOrElse("me"))
+      s.author.map(_.name).foreach(name ⇒ bar.setSubtitle("by " + name))
       coordinator ! Coordinator.UpdateChapter(s.chapters(0))
     } onFailureUi {
       case t ⇒
@@ -112,6 +112,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
       val intent = new Intent(this, classOf[EditActivity])
       intent.putExtra("id", storyId)
       startActivity(intent)
+      finish()
       true
     case R.id.delete ⇒
       runUi {
