@@ -35,4 +35,9 @@ trait Apis { self: RouteStoryApp ⇒
     "b8888816f155ed6f419b9a2348e16fee",
     webApi
   )
+
+  lazy val instagramApi = net.routestory.external.instagram.Api(
+    "36601c1b02194ca59254e31cd3a1400d",
+    webApi
+  )
 }

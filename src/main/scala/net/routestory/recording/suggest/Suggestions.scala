@@ -64,6 +64,7 @@ object Suggester {
   case object Update
   case class FoursquareVenues(venues: List[Story.FoursquareVenue])
   case class FlickrPhotos(photos: List[Story.FlickrPhoto])
+  case class InstagramPhotos(photos: List[Story.InstagramPhoto])
 
   def props(apis: Apis) = Props(new Suggester(apis))
 }
@@ -97,12 +98,13 @@ class Suggester(apis: Apis) extends FragmentActor[SuggestionsFragment] with Acto
     case Some(location: Location) ⇒
       log.debug("Calling external APIs")
       val venues = apis.foursquareApi.nearbyVenues(location, 100).go.map(FoursquareVenues)
-      val photos = apis.flickrApi.nearbyPhotos(location, 1).go.map(FlickrPhotos)
-      venues zip photos pipeTo self
+      val flickrPhotos = apis.flickrApi.nearbyPhotos(location, 1).go.map(FlickrPhotos)
+      val instagramPhotos = apis.instagramApi.nearbyPhotos(location, 1000).go.map(InstagramPhotos)
+      venues zip flickrPhotos zip instagramPhotos pipeTo self
 
-    case (FoursquareVenues(venues), FlickrPhotos(photos)) ⇒
-      log.debug(s"Received $venues, $photos")
-      val elements = interleave(List(venues, photos)).take(10)
+    case ((FoursquareVenues(venues), FlickrPhotos(flickrPhotos)), InstagramPhotos(instagramPhotos)) ⇒
+      log.debug(s"Received $venues, $flickrPhotos, $instagramPhotos")
+      val elements = interleave(List(venues, flickrPhotos, instagramPhotos)).take(10)
       withUi(_.showElements(elements))
 
     case _ ⇒
