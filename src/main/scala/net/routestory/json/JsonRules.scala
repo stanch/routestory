@@ -53,6 +53,12 @@ trait ElementRules extends AuxiliaryRules {
     (__ \ "url").read[String] and
     (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
   })
+  val instagramPhotoRule = elementTypeRule("instagram-photo")(Resolvable.rule[JsValue, InstagramPhoto] { __ : Reader[JsValue] ⇒
+    (__ \ "id").read[String] and
+    (__ \ "title").read[Option[String]] and
+    (__ \ "url").read[String] and
+    (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
+  })
   val textNoteRule = elementTypeRule("text-note")(Resolvable.pureRule(Rule.gen[JsValue, TextNote]))
   val foursquareVenueRule = elementTypeRule("foursquare-venue")(Resolvable.pureRule(Rule.gen[JsValue, FoursquareVenue]))
 
@@ -61,6 +67,7 @@ trait ElementRules extends AuxiliaryRules {
     voiceNoteRule orElse
     photoRule orElse
     flickrPhotoRule orElse
+    instagramPhotoRule orElse
     textNoteRule orElse
     foursquareVenueRule orElse
     unknownElementRule

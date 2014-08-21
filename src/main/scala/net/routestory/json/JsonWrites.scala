@@ -40,6 +40,13 @@ trait ElementWrites extends AuxiliaryWrites {
       "url" → m.url
     )
   }
+  val instagramPhotoWrite = Write[InstagramPhoto, JsObject] { m ⇒
+    Json.obj(
+      "id" → m.id,
+      "title" → m.title,
+      "url" → m.url
+    )
+  }
   val textNoteWrite = Write.gen[TextNote, JsObject]
   val foursquareVenueWrite = Write.gen[FoursquareVenue, JsObject]
 
@@ -51,6 +58,7 @@ trait ElementWrites extends AuxiliaryWrites {
       case m @ VoiceNote(_, _) ⇒ (voiceNoteWrite.writes(m), "voice-note")
       case m @ Photo(_, _) ⇒ (photoWrite.writes(m), "photo")
       case m @ FlickrPhoto(_, _, _, _) ⇒ (flickrPhotoWrite.writes(m), "flickr-photo")
+      case m @ InstagramPhoto(_, _, _, _) ⇒ (instagramPhotoWrite.writes(m), "instagram-photo")
       case m @ TextNote(_) ⇒ (textNoteWrite.writes(m), "text-note")
       case m @ FoursquareVenue(_, _, _) ⇒ (foursquareVenueWrite.writes(m), "foursquare-venue")
       case m @ UnknownElement(tp, _) ⇒ (unknownElementWrite.writes(m), tp)

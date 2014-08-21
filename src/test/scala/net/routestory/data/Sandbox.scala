@@ -2,30 +2,21 @@ package net.routestory.data
 
 import java.io.File
 
+import com.javadocmd.simplelatlng.LatLng
 import net.routestory.web.Api
 import net.routestory.zip.{Load, Save}
 import org.scalatest.FlatSpec
 import resolvable.http.DispatchClient
 import resolvable.{Resolvable, EndpointLogger}
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class Sandbox extends FlatSpec {
-  val api = Api(new DispatchClient, EndpointLogger.println(success = true, failure = false), new File("."))
+  val api = Api(new DispatchClient, EndpointLogger.println(success = true, failure = true), new File("."))
+  val insta = net.routestory.external.instagram.Api("36601c1b02194ca59254e31cd3a1400d", api)
 
   it should "do something" in {
-//    val story = api.story("story-T9i5sZLKXzDDzaoGvu4osD").go
-//
-//    story.flatMap { s ⇒
-//      Save(s, new File("story.zip"))
-//    } onComplete println
-    val story = Load(new File("story.zip"), new File("tmp/"))
-    story foreach { s ⇒
-      println(s.chapters(0).locations)
-      println(Pruning.pruneLocations(s.chapters(0).locations, 0.0000001))
-    }
-    //story.flatMap(_.chapters.head.elements.head.asInstanceOf[Story.Photo].data) onComplete println
+    val x = insta.nearbyPhotos(new LatLng(38.713811, -9.139386), 5000).go
+    x onComplete println
   }
 }

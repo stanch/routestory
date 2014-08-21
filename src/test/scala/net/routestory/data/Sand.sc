@@ -1,11 +1,11 @@
 import com.javadocmd.simplelatlng.LatLng
 import net.routestory.data.Story.Chapter
-import net.routestory.data.{Clustering, Story, Timed}
+import net.routestory.data.{Sandbox, Clustering, Story, Timed}
 
-val chapter = Chapter.empty
-  .withElement(Timed(0, Story.TextNote("asd")))
-  .withElement(Timed(100, Story.TextNote("qwe")))
-  .withLocation(Timed(0, new LatLng(0, 0)))
-  .withLocation(Timed(100, new LatLng(0, 0)))
+import scala.concurrent.ExecutionContext.Implicits.global
 
-Clustering.cluster(chapter)
+val sand = new Sandbox
+
+val x = sand.insta.nearbyPhotos(new LatLng(38.4, 9.8), 5000).go
+
+x onComplete println

@@ -49,6 +49,9 @@ object Story {
   case class FlickrPhoto(id: String, title: String, url: String, data: Future[File]) extends Image with ExternalElement {
     def withFile(file: File) = FlickrPhoto(id, title, file.getPath, Future.successful(file))
   }
+  case class InstagramPhoto(id: String, title: Option[String], url: String, data: Future[File]) extends Image with ExternalElement {
+    def withFile(file: File) = InstagramPhoto(id, title, file.getPath, Future.successful(file))
+  }
 
   case class TextNote(text: String) extends KnownElement
 
