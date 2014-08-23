@@ -46,7 +46,10 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
   def receive = {
     case Element(element) ⇒
       chapter = chapter.withElement(Timed(chapter.ts, element))
-      Future(Clustering.cluster(chapter)).map(Cluster).pipeTo(self)
+      Future {
+        tree.map(t ⇒ Clustering.appendLast(t, chapter))
+          .orElse(Clustering.cluster(chapter))
+      }.map(Cluster).pipeTo(self)
       runUi {
         toast(s"Added ${elementName(element)}") <~ fry
       }
