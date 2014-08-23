@@ -86,14 +86,23 @@ trait Trees {
 
   object Node {
     def merge(tree1: Tree[Unit], tree2: Tree[Unit], chapter: Story.Chapter) = (tree1, tree2) match {
-      case (node @ Node(children, minScale, _, data), leaf: Leaf[Unit]) if children.forall(item ⇒ distance(item.location, leaf.location) < minScale) ⇒
-        Node(children :+ leaf, minScale, chapter, data)
+      case (node @ Node(children, minScale, _, _), leaf: Leaf[Unit]) if children.forall(item ⇒ distance(item.location, leaf.location) < minScale) ⇒
+        Node(children :+ leaf, minScale, chapter, ())
 
-      case (leaf: Leaf[Unit], node @ Node(children, minScale, c, data)) if children.forall(item ⇒ distance(item.location, leaf.location) < minScale) ⇒
-        Node(children :+ leaf, minScale, chapter, data)
+      case (leaf: Leaf[Unit], node @ Node(children, minScale, c, _)) if children.forall(item ⇒ distance(item.location, leaf.location) < minScale) ⇒
+        Node(children :+ leaf, minScale, chapter, ())
 
       case (_, _) ⇒
-        Node(Vector(tree1, tree2), distance(tree1.location, tree2.location), chapter, tree1.data)
+        Node(Vector(tree1, tree2), distance(tree1.location, tree2.location), chapter, ())
+    }
+
+    @tailrec
+    def mergeRecursive(tree: Tree[Unit], leaf: Leaf[Unit], chapter: Story.Chapter): Tree[Unit] = tree match {
+      case Node(children, minScale, _, _) if children.forall(item => distance(item.location, leaf.location) < minScale) =>
+        mergeRecursive(children.last, leaf, chapter)
+
+      case _ =>
+        Node(Vector(tree, leaf), distance(tree.location, leaf.location), chapter, ())
     }
   }
 
@@ -108,7 +117,7 @@ object Clustering extends Trees {
   type DistanceTable = Map[(Tree[Unit], Tree[Unit]), Double]
 
   @tailrec
-  def fillDistanceTable(nodes: Vector[Tree[Unit]], radius: Double, table: DistanceTable): (DistanceTable, Double) = if (table.isEmpty) {
+  private def fillDistanceTable(nodes: Vector[Tree[Unit]], radius: Double, table: DistanceTable): (DistanceTable, Double) = if (table.isEmpty) {
     val add = nodes.tails.flatMap {
       case current +: next ⇒
         next.takeWhile {
@@ -124,7 +133,7 @@ object Clustering extends Trees {
     fillDistanceTable(nodes, radius * 2, table ++ add)
   } else (table, radius)
 
-  def patchDistanceTable(left: Vector[Tree[Unit]], right: Vector[Tree[Unit]], insert: Tree[Unit], radius: Double, table: DistanceTable) = {
+  private def patchDistanceTable(left: Vector[Tree[Unit]], right: Vector[Tree[Unit]], insert: Tree[Unit], radius: Double, table: DistanceTable) = {
     val fromRight = right.takeWhile {
       _.timestamp < insert.timestamp + radius
     }.map { item ⇒
@@ -141,7 +150,7 @@ object Clustering extends Trees {
   }
 
   @tailrec
-  def clusterRound(chapter: Story.Chapter, nodes: Vector[Tree[Unit]], clusterRadius: Double, distanceTable: DistanceTable = Map.empty): Tree[Unit] = {
+  private def clusterRound(chapter: Story.Chapter, nodes: Vector[Tree[Unit]], clusterRadius: Double, distanceTable: DistanceTable = Map.empty): Tree[Unit] = {
     nodes match {
       case Vector(single) ⇒ single
       case _ ⇒
@@ -178,5 +187,10 @@ object Clustering extends Trees {
     case es ⇒
       val leaves = es.zipWithIndex map { case (e, i) ⇒ Leaf(e, i, chapter, ()) }
       Some(clusterRound(chapter, leaves, chapter.effectiveDuration.toDouble / 4))
+  }
+
+  def appendLast(tree: Tree[Unit], chapter: Story.Chapter) = {
+    val leaf = Leaf(chapter.knownElements.last, chapter.knownElements.length - 1, chapter, ())
+    Node.mergeRecursive(tree, leaf, chapter)
   }
 }
