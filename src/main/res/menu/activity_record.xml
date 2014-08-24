@@ -3,10 +3,6 @@
           android:title="Add stuff"
           android:icon="@drawable/create"
           android:showAsAction="always" />
-    <item android:id="@+id/controlPanel"
-          android:title="Control panel"
-          android:icon="@drawable/settings"
-          android:showAsAction="always" />
     <item android:id="@+id/finish"
         android:title="Finish"
         android:icon="@drawable/ic_action_accept"
