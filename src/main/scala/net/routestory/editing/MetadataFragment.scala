@@ -43,7 +43,7 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
       description.get.getText.toString,
       tags.get.getText.toString
     )
-    actor.foreach(_ ! Metadata.Update(meta))
+    editor ! Editor.Meta(meta)
   }
 
   def cardWithMargin(w: Ui[View]) =
@@ -102,21 +102,21 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
 
 object Metadata {
   def props = Props(new Metadata)
-
-  case class Init(meta: Story.Meta)
-  case class Update(meta: Story.Meta)
 }
 
 class Metadata extends FragmentActor[MetadataFragment] {
-  import Metadata._
+  import Editor._
+  import FragmentActor._
 
   lazy val editor = context.actorSelection("../editor")
 
-  def receive = {
-    case Init(meta) ⇒
-      withUi(_.viewMeta(meta))
+  def receive = receiveUi andThen {
+    case AttachUi(_) ⇒
+      editor ! Editor.Remind
 
-    case Update(meta) ⇒
-      editor ! Editor.Meta(meta)
+    case Init(story) ⇒
+      withUi(_.viewMeta(story.meta))
+
+    case _ ⇒
   }
 }

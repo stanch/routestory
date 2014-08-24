@@ -10,7 +10,7 @@
         android:showAsAction="always" />
     <item android:id="@+id/discard"
           android:title="Discard"
-          android:icon="@drawable/ic_action_discard"
+          android:icon="@drawable/delete"
           android:orderInCategory="200"
           android:showAsAction="always" />
 </menu>

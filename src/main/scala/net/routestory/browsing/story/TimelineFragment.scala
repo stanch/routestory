@@ -14,13 +14,11 @@ import net.routestory.ui._
 import net.routestory.viewable.{ CardListable, TimedListable, StoryElementListable }
 import macroid.viewable._
 
-class TimelineFragment extends RouteStoryFragment with AkkaFragment {
+class TimelineFragment extends RouteStoryFragment with AkkaFragment with StaggeredFragment {
   lazy val actor = Some(actorSystem.actorSelection("/user/timeliner"))
   lazy val coordinator = actorSystem.actorSelection("/user/coordinator")
 
-  var grid = slot[StaggeredGridView]
-
-  def addChapter(chapter: Story.Chapter) = {
+  def viewChapter(chapter: Story.Chapter) = {
     val listable = CardListable.cardListable(
       new TimedListable(chapter).timedListable(
         new StoryElementListable(displaySize(0) / 2).storyElementListable))
@@ -32,10 +30,6 @@ class TimelineFragment extends RouteStoryFragment with AkkaFragment {
           f ⇒ coordinator ! Coordinator.UpdateFocus(chapter, f)
         )
       }
-  }
-
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
-    w[StaggeredGridView] <~ wire(grid) <~ Styles.grid
   }
 }
 
@@ -56,7 +50,7 @@ class Timeliner extends FragmentActor[TimelineFragment] with ActorLogging {
 
     case UpdateChapter(c) ⇒
       log.debug("Updating")
-      withUi(_.addChapter(c))
+      withUi(_.viewChapter(c))
 
     case _ ⇒
   }

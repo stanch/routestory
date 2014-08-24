@@ -30,7 +30,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     root.mkdirs()
     File.createTempFile("photo", ".jpg", root)
   }
-  var lastPhotoFile = photoFile
+  var lastPhotoFile: Option[File] = None
 
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
   val requestCodePhoto = 0
@@ -40,8 +40,9 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
       factory.map(_.show(getChildFragmentManager, tag))
 
     val cameraClicker = Ui {
+      lastPhotoFile = Some(photoFile)
       val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(lastPhotoFile))
+      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(lastPhotoFile.get))
       startActivityForResult(intent, requestCodePhoto)
     }
 
@@ -68,9 +69,11 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
   override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) = {
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode == requestCodePhoto && resultCode == Activity.RESULT_OK) {
-      MediaScannerConnection.scanFile(getActivity.getApplicationContext, Array(lastPhotoFile.getAbsolutePath), null, null)
-      typewriter.foreach(_ ! Typewriter.Element(Story.Photo(lastPhotoFile)))
-      lastPhotoFile = photoFile
+      lastPhotoFile foreach { file ⇒
+        MediaScannerConnection.scanFile(getActivity.getApplicationContext, Array(file.getAbsolutePath), null, null)
+        typewriter.foreach(_ ! Typewriter.Element(Story.Photo(file)))
+      }
+      lastPhotoFile = None
     }
   }
 }

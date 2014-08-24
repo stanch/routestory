@@ -92,7 +92,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
 
     story mapUi { s ⇒
       bar.setTitle(s.meta.title.filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))
-      bar.setSubtitle("by " + s.author.map(_.name).getOrElse("me"))
+      s.author.map(_.name).foreach(name ⇒ bar.setSubtitle("by " + name))
       coordinator ! Coordinator.UpdateChapter(s.chapters(0))
     } onFailureUi {
       case t ⇒
@@ -112,11 +112,12 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
       val intent = new Intent(this, classOf[EditActivity])
       intent.putExtra("id", storyId)
       startActivity(intent)
+      finish()
       true
     case R.id.delete ⇒
       runUi {
         dialog("Do you want to delete this story?") <~
-          positiveOk(Ui(app.hybridApi.delete(storyId)) ~ Ui(finish())) <~
+          positiveOk(Ui(app.hybridApi.deleteStory(storyId)) ~ Ui(finish())) <~
           negativeCancel(Ui.nop) <~
           speak
       }
@@ -127,8 +128,8 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
   override def onCreateOptionsMenu(menu: Menu) = {
     getMenuInflater.inflate(R.menu.activity_display, menu)
     val editable = app.hybridApi.isLocal(storyId)
-    menu.findItem(R.id.edit).setEnabled(editable)
-    menu.findItem(R.id.delete).setEnabled(editable)
+    menu.findItem(R.id.edit).setVisible(editable)
+    menu.findItem(R.id.delete).setVisible(editable)
     true
   }
 }
