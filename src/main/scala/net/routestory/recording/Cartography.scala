@@ -12,10 +12,12 @@ import macroid._
 import macroid.akkafragments.FragmentActor
 import net.routestory.browsing.story.MapManager
 import net.routestory.data.{ Clustering, Story }
+import net.routestory.recording.Cartographer.FirstPromise
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.Implicits._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Promise
 
 class CartographyFragment extends RouteStoryFragment with IdGeneration with RecordFragment with AutoLogTag {
   lazy val actor = actorSystem.map(_.actorSelection("/user/cartographer"))
@@ -50,6 +52,7 @@ object Cartographer {
   case class UpdateRoute(chapter: Story.Chapter)
   case class UpdateMarkers(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]])
   case object QueryLastLocation
+  case class FirstPromise(promise: Promise[Unit])
   def props = Props(new Cartographer)
 }
 
@@ -59,6 +62,7 @@ class Cartographer extends FragmentActor[CartographyFragment] with ActorLogging 
   import net.routestory.recording.Cartographer._
 
   var last: Option[Location] = None
+  val first = Promise[Unit]()
 
   lazy val typewriter = context.actorSelection("../typewriter")
 
@@ -76,15 +80,19 @@ class Cartographer extends FragmentActor[CartographyFragment] with ActorLogging 
       withUi(_.mapManager.addMarkers(chapter, tree))
 
     case Locate(location) ⇒
+      last = Some(location)
+      first.trySuccess(())
+      typewriter ! Typewriter.Location(location)
       withUi { f ⇒
         f.positionMap(location) ~
-          f.mapManager.addMan(location) ~
-          Ui(last = Some(location)) ~
-          Ui(typewriter ! Typewriter.Location(location))
+          f.mapManager.addMan(location)
       }
 
     case QueryLastLocation ⇒
       sender ! last
+
+    case FirstPromise(promise) ⇒
+      promise.tryCompleteWith(first.future)
 
     case _ ⇒
   }

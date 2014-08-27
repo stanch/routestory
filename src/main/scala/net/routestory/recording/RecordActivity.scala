@@ -31,6 +31,9 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
 
   val actorSystem = Promise[ActorSystem]()
   val typewriter = actorSystem.future.map(_.actorSelection("/user/typewriter"))
+  val cartographer = actorSystem.future.map(_.actorSelection("/user/cartographer"))
+
+  val firstLocation = Promise[Unit]()
 
   override def onCreate(savedInstanceState: Bundle) = {
     super.onCreate(savedInstanceState)
@@ -61,9 +64,10 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
 
   override def onStart() = {
     super.onStart()
+    cartographer.foreach(_ ! Cartographer.FirstPromise(firstLocation))
     bindService(new Intent(this, classOf[RecordService]), serviceConnection, Context.BIND_AUTO_CREATE)
     runUi(
-      progress <~ waitProgress(actorSystem.future),
+      progress <~~ waitProgress(actorSystem.future) <~~ waitProgress(firstLocation.future),
       pager <~ PagerTweaks.page(1)
     )
   }
