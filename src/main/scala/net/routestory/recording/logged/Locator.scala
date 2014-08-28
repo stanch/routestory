@@ -4,11 +4,14 @@ import android.app.PendingIntent
 import android.content._
 import android.location.Location
 import android.os.Bundle
-import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.{ GooglePlayServicesUtil, ConnectionResult }
 import com.google.android.gms.common.GooglePlayServicesClient.{ ConnectionCallbacks, OnConnectionFailedListener }
 import com.google.android.gms.location.{ LocationClient, LocationRequest }
 import macroid.AppContext
 import net.routestory.recording.{ Cartographer, RecordService }
+import net.routestory.util.PlayServicesResolution
+
+import scala.util.Try
 
 class Locator(implicit ctx: AppContext) {
   val locationClient = new LocationClient(ctx.get, connectionCallbacks, connectionFailedListener)
@@ -26,8 +29,8 @@ class Locator(implicit ctx: AppContext) {
   }
 
   object connectionFailedListener extends OnConnectionFailedListener {
-    // TODO: ???
-    def onConnectionFailed(result: ConnectionResult) = ()
+    def onConnectionFailed(connectionResult: ConnectionResult) =
+      PlayServicesResolution.resolve(connectionResult)
   }
 
   def connect() = locationClient.connect()

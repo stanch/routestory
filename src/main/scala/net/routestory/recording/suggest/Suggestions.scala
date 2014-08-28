@@ -23,6 +23,8 @@ import net.routestory.viewable.{ CardListable, StoryElementListable }
 import macroid.viewable._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.control.NonFatal
 
 class SuggestionsFragment extends RouteStoryFragment with RecordFragment {
   lazy val actor = actorSystem.map(_.actorSelection("/user/suggester"))
@@ -83,6 +85,12 @@ class Suggester(apis: Apis) extends FragmentActor[SuggestionsFragment] with Acto
     case heads ⇒ heads ::: interleave(lists.map(_.drop(1)))
   }
 
+  implicit class RichFuture[A](future: Future[List[A]]) {
+    def recoverWithNil(implicit ec: ExecutionContext) = future.recover {
+      case NonFatal(t) ⇒ t.printStackTrace(); Nil
+    }
+  }
+
   def receive = receiveUi andThen {
     case AttachUi(_) ⇒
       withUi(_.swiper <~ Styles.startRefresh)
@@ -97,9 +105,10 @@ class Suggester(apis: Apis) extends FragmentActor[SuggestionsFragment] with Acto
 
     case Some(location: Location) ⇒
       log.debug("Calling external APIs")
-      val venues = apis.foursquareApi.nearbyVenues(location, 100).go.map(FoursquareVenues)
-      val flickrPhotos = apis.flickrApi.nearbyPhotos(location, 1).go.map(FlickrPhotos)
-      val instagramPhotos = apis.instagramApi.nearbyPhotos(location, 1000).go.map(InstagramPhotos)
+
+      val venues = apis.foursquareApi.nearbyVenues(location, 100).go.recoverWithNil.map(FoursquareVenues)
+      val flickrPhotos = apis.flickrApi.nearbyPhotos(location, 1).go.recoverWithNil.map(FlickrPhotos)
+      val instagramPhotos = apis.instagramApi.nearbyPhotos(location, 1000).go.recoverWithNil.map(InstagramPhotos)
       venues zip flickrPhotos zip instagramPhotos pipeTo self
 
     case ((FoursquareVenues(venues), FlickrPhotos(flickrPhotos)), InstagramPhotos(instagramPhotos)) ⇒

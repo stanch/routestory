@@ -37,7 +37,7 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
     case x: Story.Photo ⇒ "a photo"
     case x: Story.VoiceNote ⇒ "a voice note"
     case x: Story.TextNote ⇒ "a text note"
-    case x: Story.Sound ⇒ "background sound"
+    case x: Story.Sound ⇒ "ambient sound"
     case x: Story.FlickrPhoto ⇒ "a photo from Flickr"
     case x: Story.InstagramPhoto ⇒ "a photo from Instagram"
     case x: Story.FoursquareVenue ⇒ "a Foursquare venue"

@@ -79,7 +79,7 @@ class Cartographer extends FragmentActor[CartographyFragment] with ActorLogging 
     case UpdateMarkers(chapter, tree) ⇒
       withUi(_.mapManager.addMarkers(chapter, tree))
 
-    case Locate(location) ⇒
+    case Locate(location) if location.getAccuracy < 20 ⇒
       last = Some(location)
       first.trySuccess(())
       typewriter ! Typewriter.Location(location)

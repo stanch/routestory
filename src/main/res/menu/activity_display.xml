@@ -11,4 +11,10 @@
         android:orderInCategory="200"
         android:icon="@drawable/delete"
         android:showAsAction="ifRoom" />
+
+    <item android:id="@+id/share"
+          android:title="Share"
+          android:orderInCategory="300"
+          android:icon="@drawable/share"
+          android:showAsAction="ifRoom" />
 </menu>

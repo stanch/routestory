@@ -57,7 +57,7 @@ libraryDependencies ++= Seq(
   aar("com.applause" % "applause-sdk-preprod" % "2.2.0"),
   aar("com.android.support" % "cardview-v7" % "21.0.0-rc1"),
   aar("com.couchbase.lite" % "couchbase-lite-android" % "1.0.1"),
-  aar("com.google.android.gms" % "play-services" % "4.0.30"),
+  aar("com.google.android.gms" % "play-services" % "5.0.77"),
   aar("org.apmem.tools" % "layouts" % "1.0"),
   aar("com.etsy.android.grid" % "library" % "1.0.5"),
   apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4")

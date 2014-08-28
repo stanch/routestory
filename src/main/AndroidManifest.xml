@@ -46,6 +46,8 @@
         <receiver android:name=".recording.logged.LocationBroadcastReceiver" />
         <activity android:name=".editing.EditActivity">
         </activity>
+        <activity android:name=".util.PlayServicesResolutionActivity">
+        </activity>
         <activity android:name=".browsing.story.DisplayActivity">
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
