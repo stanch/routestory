@@ -33,6 +33,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
   var lastPhotoFile: Option[File] = None
 
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
+  lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
   val requestCodePhoto = 0
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {

@@ -1,6 +1,5 @@
 package net.routestory.browsing.story
 
-import android.graphics.{ Color, BitmapFactory }
 import com.google.android.gms.maps.model._
 import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap }
 import com.javadocmd.simplelatlng.LatLngTool
@@ -25,6 +24,7 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
   var markerTree: Option[Clustering.Tree[Marker]] = None
   var currentTrees: Vector[Clustering.Tree[Marker]] = Vector.empty
   var markers: Map[Marker, Clustering.Tree[Marker]] = Map.empty
+  var bitmaps: MarkerBitmaps.BitmapCache = Map.empty
 
   val iconSize = 100.dp
 
@@ -74,7 +74,9 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
 
   def addMarkers(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]]) = Ui {
     lastZoom = 0f
-    val bitmapTree = tree.map(MarkerBitmaps.withBitmaps(iconSize))
+    val withBitmaps = tree.map(MarkerBitmaps.withBitmaps(iconSize, bitmaps))
+    val bitmapTree = withBitmaps.map(_._1)
+    bitmaps = withBitmaps.map(_._2).getOrElse(Map.empty)
     markerTree = bitmapTree.map(_.map { x ⇒
       val marker = map.addMarker(new MarkerOptions().position(x.location)
         .anchor(0.5f, 1f).alpha(iconAlpha)

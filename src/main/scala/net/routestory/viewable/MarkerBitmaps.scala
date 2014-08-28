@@ -23,28 +23,38 @@ object MarkerBitmaps {
     case _: Story.Image ⇒ None
   }
 
-  def withBitmaps(maxSize: Int)(tree: Clustering.Tree[Unit])(implicit ctx: ActivityContext, appCtx: AppContext, ec: ExecutionContext): Clustering.Tree[Future[Bitmap]] = tree match {
-    case x @ Clustering.Leaf(Timed(_, _: Story.VoiceNote), _, _, _) ⇒ x.withData(stock(R.drawable.ic_action_mic))
-    case x @ Clustering.Leaf(Timed(_, _: Story.Sound), _, _, _) ⇒ x.withData(stock(R.drawable.ic_action_volume_on))
-    case x @ Clustering.Leaf(Timed(_, _: Story.TextNote), _, _, _) ⇒ x.withData(stock(R.drawable.ic_action_view_as_list))
-    case x @ Clustering.Leaf(Timed(_, _: Story.FoursquareVenue), _, _, _) ⇒ x.withData(stock(R.drawable.foursquare))
+  type BitmapCache = Map[Clustering.Tree[Unit], Future[Bitmap]]
+
+  def withBitmaps(maxSize: Int, cached: BitmapCache)(tree: Clustering.Tree[Unit])(implicit ctx: ActivityContext, appCtx: AppContext, ec: ExecutionContext): (Clustering.Tree[Future[Bitmap]], BitmapCache) = tree match {
+    case x @ Clustering.Leaf(Timed(_, _: Story.VoiceNote), _, _, _) ⇒
+      x.withData(stock(R.drawable.ic_action_mic)) → Map.empty
+    case x @ Clustering.Leaf(Timed(_, _: Story.Sound), _, _, _) ⇒
+      x.withData(stock(R.drawable.ic_action_volume_on)) → Map.empty
+    case x @ Clustering.Leaf(Timed(_, _: Story.TextNote), _, _, _) ⇒
+      x.withData(stock(R.drawable.ic_action_view_as_list)) → Map.empty
+    case x @ Clustering.Leaf(Timed(_, _: Story.FoursquareVenue), _, _, _) ⇒
+      x.withData(stock(R.drawable.foursquare)) → Map.empty
 
     case x @ Clustering.Leaf(Timed(_, img: Story.Image), _, _, _) ⇒
-      x.withData(img.data.map(_.bitmap(maxSize)))
+      val bitmap = cached.getOrElse(x, img.data.map(_.bitmap(maxSize)))
+      x.withData(bitmap) → Map(x → bitmap)
 
     case x @ Clustering.Node(_, _, _, _) ⇒
-      val children = x.children.map(withBitmaps(maxSize))
+      val (children, caches) = x.children.map(withBitmaps(maxSize, cached)).unzip
       val intermediate = x.withChildren(children, Future.failed(new Exception))
-      val bitmaps = intermediate.leaves.groupBy(tp).toVector.sortBy(_._1.fold(0)(_ ⇒ 1)).flatMap {
-        case (None, items) ⇒
-          items.map(_.data)
-        case (_, items @ Vector(i)) ⇒
-          items.take(1).map(_.data)
-        case (_, items @ Vector(i, j, _*)) ⇒
-          items.take(1).map(_.data)
-        //items.take(1).map(_.data.map(BitmapUtils.createCountedBitmap(_, items.length)))
-      }
-      val grid = Future.sequence(bitmaps).map(MagicGrid.create(_, maxSize))
-      intermediate.withData(grid)
+      val bitmap = cached.getOrElse(x, {
+        val bitmaps = intermediate.leaves.groupBy(tp).toVector.sortBy(_._1.fold(0)(_ ⇒ 1)).flatMap {
+          case (None, items) ⇒
+            items.map(_.data)
+          case (_, items @ Vector(i)) ⇒
+            items.take(1).map(_.data)
+          case (_, items @ Vector(i, j, _*)) ⇒
+            items.take(1).map(_.data)
+          //items.take(1).map(_.data.map(BitmapUtils.createCountedBitmap(_, items.length)))
+        }
+        Future.sequence(bitmaps).map(MagicGrid.create(_, maxSize))
+      })
+
+      intermediate.withData(bitmap) → (caches.reduce(_ ++ _) ++ Map(x → bitmap))
   }
 }
