@@ -59,13 +59,8 @@ libraryDependencies ++= Seq(
   aar("com.couchbase.lite" % "couchbase-lite-android" % "1.0.1"),
   aar("com.google.android.gms" % "play-services" % "5.0.77"),
   aar("org.apmem.tools" % "layouts" % "1.0"),
-  aar("com.etsy.android.grid" % "library" % "1.0.5"),
-  apklib("com.viewpagerindicator" % "library" % "2.4.1") exclude ("com.google.android", "support-v4")
+  aar("com.etsy.android.grid" % "library" % "1.0.5")
 )
-
-unmanagedClasspath in Compile <<= (unmanagedClasspath in Compile) map { cp =>
-  cp filterNot (_.data.getName == "android-support-v4.jar")
-}
 
 apkbuildExcludes in Android ++= Seq(
   "META-INF/LICENSE.txt",

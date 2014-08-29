@@ -24,7 +24,7 @@ object Dictaphone {
   case class RecordingData(ar: AudioRecord, offset: Int) extends Data
 
   def ms(v: Int) = (44.100 * v).toInt
-  val gapDuration = 50.seconds
+  val gapDuration = 230.seconds
   val fadeLength = ms(1500) // 1.5s
   val pieceLength = ms(10000) // 10s
   val frameSize = ms(10) * 2 // 10 ms * 2B per Float

@@ -11,7 +11,7 @@ import macroid.contrib.{ PagerTweaks, BgTweaks }
 import macroid.viewable._
 import macroid.{ ActivityContext, AppContext, Tweak }
 import net.routestory.data.Clustering
-import net.routestory.ui.Styles
+import net.routestory.ui.{ ScrollableViewPager, Styles }
 import net.routestory.viewable.{ CardListable, StoryElementListable, StoryElementViewable }
 
 object ElementPager {
@@ -21,7 +21,7 @@ object ElementPager {
     import viewable._
 
     dialog(android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
-      w[ViewPager] <~ BgTweaks.color(Color.BLACK) <~ Styles.lowProfile <~
+      w[ScrollableViewPager] <~ BgTweaks.color(Color.BLACK) <~ Styles.lowProfile <~
         elements.pagerAdapterTweak <~ PagerTweaks.page(leaf.index) <~
         Tweak[ViewPager] { x ⇒
           x.setOnPageChangeListener(new OnPageChangeListener {
