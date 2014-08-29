@@ -1,6 +1,6 @@
 package net.routestory.browsing.story
 
-import java.io.{ File, FileInputStream }
+import java.io.File
 
 import akka.actor._
 import akka.pattern.pipe
@@ -8,14 +8,8 @@ import android.content.Intent
 import android.net.Uri
 import android.nfc.{ NdefMessage, NfcAdapter }
 import android.os.Bundle
-import android.util.Log
 import android.view.{ Menu, MenuItem }
 import android.widget.{ FrameLayout, ProgressBar }
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.api._
-import com.google.android.gms.drive.DriveApi.ContentsResult
-import com.google.android.gms.drive.DriveFolder.DriveFileResult
-import com.google.android.gms.drive.{ DriveFile, Drive, MetadataChangeSet }
 import macroid.FullDsl._
 import macroid.akkafragments.AkkaActivity
 import macroid.contrib.Layouts.VerticalLinearLayout
@@ -24,12 +18,10 @@ import net.routestory.R
 import net.routestory.data.{ Clustering, Story, Timed }
 import net.routestory.editing.EditActivity
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
-import net.routestory.util.PlayServicesResolution
-import org.apache.commons.io.IOUtils
 
 import scala.async.Async._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ Future, Promise }
+import scala.concurrent.Future
 
 object DisplayActivity {
   object NfcIntent {
@@ -114,73 +106,6 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
     actorSystem.shutdown()
   }
 
-  def connectToDrive = {
-    val connected = Promise[GoogleApiClient]()
-
-    object connectionCallbacks extends GoogleApiClient.ConnectionCallbacks {
-      override def onConnected(p1: Bundle) = connected.trySuccess(apiClient)
-      override def onConnectionSuspended(p1: Int) = ()
-    }
-
-    object connectionFailedListener extends GoogleApiClient.OnConnectionFailedListener {
-      override def onConnectionFailed(connectionResult: ConnectionResult) =
-        PlayServicesResolution.resolve(connectionResult)
-    }
-
-    lazy val apiClient = new GoogleApiClient.Builder(this, connectionCallbacks, connectionFailedListener)
-      .addApi(Drive.API)
-      .addScope(Drive.SCOPE_FILE)
-      .build()
-
-    apiClient.connect()
-    connected.future
-  }
-
-  implicit class RichPendingResult[A <: Result](result: PendingResult[A]) {
-    def future[B](getter: A ⇒ B) = {
-      val promise = Promise[B]()
-      result.setResultCallback(new ResultCallback[A] {
-        override def onResult(result: A) = if (result.getStatus.isSuccess) {
-          promise.success(getter(result))
-        } else {
-          promise.failure(new Exception(result.getStatus.getStatusMessage))
-        }
-      })
-      promise.future
-    }
-  }
-
-  def writeToDrive(client: GoogleApiClient, name: String, file: File) = async {
-    val newContents = await {
-      Drive.DriveApi.newContents(client)
-        .future(_.getContents)
-    }
-
-    val changeSet = new MetadataChangeSet.Builder()
-      .setTitle(name + ".zip")
-      .setMimeType("application/routestory")
-      .build()
-
-    val driveFile = await {
-      Drive.DriveApi.getRootFolder(client)
-        .createFile(client, changeSet, newContents)
-        .future(_.getDriveFile)
-    }
-
-    val contents = await {
-      driveFile.openContents(client, DriveFile.MODE_WRITE_ONLY, null)
-        .future(_.getContents)
-    }
-
-    val stream = new FileInputStream(file)
-    IOUtils.copy(stream, contents.getOutputStream)
-
-    val status = await {
-      driveFile.commitAndCloseContents(client, contents)
-        .future(identity)
-    }
-  }
-
   override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
     case R.id.edit ⇒
       val intent = new Intent(this, classOf[EditActivity])
@@ -198,11 +123,13 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
       true
     case R.id.share ⇒
       val writing = async {
-        val drive = await(connectToDrive)
         val s = await(story)
-        val file = File.createTempFile("story", ".zip")
+        val file = File.createTempFile(s.meta.title.getOrElse("Untitled story"), ".zip", getExternalCacheDir)
         await(net.routestory.zip.Save(s, file))
-        await(writeToDrive(drive, s.meta.title.getOrElse("Untitled story"), file))
+        val emailIntent = new Intent(android.content.Intent.ACTION_SEND)
+          .setType("plain/text")
+          .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file))
+        Ui(startActivity(Intent.createChooser(emailIntent, "Send via..."))).run
       } recover {
         case t ⇒ t.printStackTrace()
       }
