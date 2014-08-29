@@ -1,11 +1,12 @@
 package net.routestory.viewable
 
-import android.content.Intent
 import android.graphics.Color
 import android.media.MediaPlayer
-import android.net.Uri
+import android.media.MediaPlayer.{ OnCompletionListener, OnSeekCompleteListener }
+import android.os.Handler
 import android.view.{ View, Gravity }
 import android.webkit.{ WebViewClient, WebView }
+import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
@@ -17,6 +18,7 @@ import uk.co.senab.photoview.PhotoViewAttacher
 import net.routestory.util.BitmapPool.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.R
+import net.routestory.util.Implicits._
 
 class StoryElementViewable(maxImageSize: Int) {
   def imageViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.Image] { x ⇒
@@ -34,43 +36,83 @@ class StoryElementViewable(maxImageSize: Int) {
   }.contraMap[Story.TextNote](_.text)
 
   def audioViewable(implicit ctx: ActivityContext, appCtx: AppContext): Viewable[Story.Audio, LinearLayout] = Viewable[Story.Audio] { x ⇒
-    var play = slot[Button]
-    var pause = slot[Button]
+    var playButton = slot[Button]
+    var pauseButton = slot[Button]
     var seekBar = slot[SeekBar]
 
+    val handler = new Handler
     val mediaPlayer = x.data.map { file ⇒
       new MediaPlayer {
         setDataSource(file.getAbsolutePath)
         prepare()
+        setOnCompletionListener(new OnCompletionListener {
+          def onCompletion(mp: MediaPlayer) = runUi(
+            pauseButton <~ hide,
+            playButton <~ show
+          )
+        })
       }
     }
 
-    val layout = l[HorizontalLinearLayout](
-      w[Button] <~
-        BgTweaks.res(R.drawable.play) <~
-        lp[LinearLayout](32 dp, 32 dp) <~
-        wire(play) <~
-        On.click {
-          (play <~ hide) ~
-            (pause <~ show) ~
-            Ui(mediaPlayer.foreach(_.start()))
-        },
-      w[Button] <~
-        BgTweaks.res(R.drawable.pause) <~
-        lp[LinearLayout](32 dp, 32 dp) <~
-        wire(pause) <~
-        hide <~
-        On.click {
-          (pause <~ hide) ~
-            (play <~ show) ~
-            Ui(mediaPlayer.foreach(_.pause()))
-        },
-      w[SeekBar] <~
-        wire(seekBar) <~
-        LpTweaks.matchWidth
-    )
+    def seek: Ui[Any] = Ui {
+      mediaPlayer foreachUi { mp ⇒
+        runUi(seekBar <~ SeekTweaks.seek(mp.getCurrentPosition))
+        if (mp.isPlaying) handler.postDelayed(seek, 100)
+      }
+    }
 
-    layout <~ LpTweaks.matchParent <~
+    val play = w[Button] <~
+      BgTweaks.res(R.drawable.play) <~
+      lp[LinearLayout](32 dp, 32 dp) <~
+      wire(playButton) <~
+      On.click {
+        (playButton <~ hide) ~
+          (pauseButton <~ show) ~
+          Ui(mediaPlayer.foreach(_.start())) ~
+          seek
+      }
+
+    val pause = w[Button] <~
+      BgTweaks.res(R.drawable.pause) <~
+      lp[LinearLayout](32 dp, 32 dp) <~
+      wire(pauseButton) <~
+      hide <~
+      On.click {
+        (pauseButton <~ hide) ~
+          (playButton <~ show) ~
+          Ui(mediaPlayer.foreach(_.pause()))
+      }
+
+    val bar = w[SeekBar] <~
+      wire(seekBar) <~
+      LpTweaks.matchWidth <~
+      mediaPlayer.map(mp ⇒ Tweak[SeekBar](_.setMax(mp.getDuration))) <~
+      Tweak[SeekBar] { x ⇒
+        x.setOnSeekBarChangeListener(new OnSeekBarChangeListener {
+          def onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) = {
+            if (fromUser) {
+              mediaPlayer.foreach(_.seekTo(progress))
+            }
+          }
+          def onStopTrackingTouch(seekBar: SeekBar) = ()
+          def onStartTrackingTouch(seekBar: SeekBar) = ()
+        })
+      }
+
+    val controls = l[HorizontalLinearLayout](play, pause, bar)
+
+    val caption = w[TextView] <~
+      TextTweaks.color(Color.WHITE) <~
+      TextTweaks.large <~
+      TextTweaks.italic <~
+      padding(left = 4 dp, bottom = 8 dp) <~
+      text(x match {
+        case _: Story.VoiceNote ⇒ "Voice note"
+        case _: Story.Sound ⇒ "Ambient sound"
+      })
+
+    l[VerticalLinearLayout](caption, controls) <~
+      LpTweaks.matchParent <~ padding(all = 8 dp) <~
       Tweak[LinearLayout](_.setGravity(Gravity.CENTER))
   }
 
