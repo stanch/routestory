@@ -96,10 +96,10 @@ trait Trees {
         Node(Vector(tree1, tree2), distance(tree1.location, tree2.location), chapter, ())
     }
 
-    @tailrec
     def mergeRecursive(tree: Tree[Unit], leaf: Leaf[Unit], chapter: Story.Chapter): Tree[Unit] = tree match {
-      case Node(children, minScale, _, _) if children.forall(item => distance(item.location, leaf.location) < minScale) =>
-        mergeRecursive(children.last, leaf, chapter)
+      case node @ Node(children @ (rest :+ last), minScale, _, _) if children.forall(item => distance(item.location, leaf.location) < minScale) =>
+        val merged = mergeRecursive(last, leaf, chapter)
+        node.copy(children = rest :+ merged)
 
       case _ =>
         Node(Vector(tree, leaf), distance(tree.location, leaf.location), chapter, ())
