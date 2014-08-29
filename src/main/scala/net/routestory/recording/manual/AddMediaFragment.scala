@@ -4,6 +4,7 @@ import java.io.File
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Color
 import android.media.MediaScannerConnection.OnScanCompletedListener
 import android.media.{ MediaScannerConnection, MediaRecorder }
 import android.net.Uri
@@ -14,7 +15,7 @@ import android.view.{ Gravity, LayoutInflater, ViewGroup }
 import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.Layouts.HorizontalLinearLayout
-import macroid.contrib.{ ImageTweaks, ListTweaks, TextTweaks }
+import macroid.contrib.{ LpTweaks, ImageTweaks, ListTweaks, TextTweaks }
 import macroid.viewable.Listable
 import macroid.{ IdGeneration, Transformer, Tweak, Ui }
 import net.routestory.R
@@ -100,10 +101,14 @@ class AddTextNote extends AddSomething {
 }
 
 class AddVoiceNote extends AddSomething {
-  var mediaRecorder: MediaRecorder = null
-  var recording = false
-  var recorded = false
-  var startStop = slot[Button]
+  val mediaRecorder = new MediaRecorder {
+    setAudioSource(AudioSource.MIC)
+    setOutputFormat(OutputFormat.MPEG_4)
+    setAudioEncoder(AudioEncoder.AAC)
+    setOutputFile(voiceNoteFile.getAbsolutePath)
+    prepare()
+    start()
+  }
 
   lazy val voiceNoteFile = {
     val root = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "RouteStory")
@@ -111,50 +116,19 @@ class AddVoiceNote extends AddSomething {
     File.createTempFile("voice-note", ".mp4", root)
   }
 
-  def start() = {
-    mediaRecorder = new MediaRecorder {
-      setAudioSource(AudioSource.MIC)
-      setOutputFormat(OutputFormat.MPEG_4)
-      setAudioEncoder(AudioEncoder.AAC)
-      setOutputFile(voiceNoteFile.getAbsolutePath)
-    }
-    try {
-      mediaRecorder.prepare()
-      mediaRecorder.start()
-      recording = true
-      recorded = true
-      runUi {
-        startStop <~ text("Stop recording")
-      }
-    } catch {
-      case e: Throwable ⇒ e.printStackTrace()
-    }
-  }
-
-  def stop() = {
+  def stop = Ui {
     mediaRecorder.stop()
     mediaRecorder.release()
-    mediaRecorder = null
-    recording = false
-    runUi {
-      startStop <~ text("Click if you want to try again")
-    }
   }
 
   override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
-    w[Button] <~ text("Start recording") <~ wire(startStop) <~ On.click(Ui {
-      if (!recording) start() else stop()
-    })
-  } <~ positiveOk(Ui {
-    if (recording) {
-      stop()
-    }
-    if (recorded) {
-      typewriter.foreach(_ ! Typewriter.Element(Story.VoiceNote(voiceNoteFile)))
-    }
-  }) <~ negativeCancel(Ui {
-    if (recording) {
-      stop()
-    }
-  })).create()
+    l[HorizontalLinearLayout](
+      w[ImageView] <~ ImageTweaks.res(R.drawable.ic_action_mic),
+      w[TextView] <~ TextTweaks.large <~ text("Recording...")
+    ) <~ LpTweaks.matchParent <~
+      Tweak[LinearLayout](_.setGravity(Gravity.CENTER)) <~
+      padding(top = 12 dp)
+  } <~ positive("Finish")(stop ~ Ui {
+    typewriter.foreach(_ ! Typewriter.Element(Story.VoiceNote(voiceNoteFile)))
+  }) <~ negativeCancel(stop)).create()
 }
