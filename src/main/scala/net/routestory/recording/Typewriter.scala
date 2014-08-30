@@ -18,6 +18,7 @@ import scala.concurrent.{ Promise, Future }
 object Typewriter {
   case class Element(element: Story.KnownElement)
   case class Location(location: LatLng)
+  case class Easiness(easiness: Float)
   case object Remind
   case class Discard(done: Promise[Unit])
   case class Save(storyId: String, done: Promise[Unit])
@@ -32,6 +33,8 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
   def cartographer = context.actorSelection("../cartographer")
   var chapter = Story.Chapter.empty
   var tree: Option[Clustering.Tree[Unit]] = None
+
+  var studyInfo = Story.StudyInfo.empty
 
   def elementName(element: Story.KnownElement) = element match {
     case x: Story.Photo ⇒ "a photo"
@@ -58,6 +61,9 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
       chapter = chapter.withLocation(Timed(chapter.ts, location))
       cartographer ! Cartographer.UpdateRoute(chapter)
 
+    case Easiness(easiness) ⇒
+      studyInfo = studyInfo.withEasiness(easiness)
+
     case Cluster(t) ⇒
       tree = t
       cartographer ! Cartographer.UpdateMarkers(chapter, tree)
@@ -72,7 +78,7 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
 
     case Save(id, done) ⇒
       // TODO: add to existing story
-      val story = Story.empty(id).withChapter(chapter.finish)
+      val story = Story.empty(id).withChapter(chapter.finish).withStudyInfo(studyInfo)
       apis.hybridApi.createStory(story)
       done.success(())
       Ui(service.stopSelf()).run

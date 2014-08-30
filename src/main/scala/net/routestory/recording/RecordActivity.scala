@@ -6,11 +6,11 @@ import android.os.{ Bundle, IBinder }
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
 import android.view.{ Menu, MenuItem }
-import android.widget.ProgressBar
+import android.widget.{ TextView, RatingBar, ProgressBar }
 import macroid.FullDsl._
-import macroid.{ IdGeneration, Ui }
+import macroid.{ Tweak, IdGeneration, Ui }
 import macroid.contrib.Layouts.VerticalLinearLayout
-import macroid.contrib.PagerTweaks
+import macroid.contrib.{ TextTweaks, LpTweaks, PagerTweaks }
 import net.routestory.R
 import net.routestory.editing.EditActivity
 import net.routestory.recording.manual.AddMediaFragment
@@ -85,16 +85,34 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
     }
   }
 
+  def rateEasiness = {
+    var rating = slot[RatingBar]
+    dialog {
+      l[VerticalLinearLayout](
+        w[TextView] <~ text("How easy was it?") <~
+          TextTweaks.large <~ padding(all = 4 dp),
+        w[RatingBar] <~ wire(rating) <~
+          Tweak[RatingBar](_.setNumStars(5)) <~
+          LpTweaks.wrapContent
+      )
+    } <~
+      positiveOk {
+        Ui(typewriter.map(_ ! Typewriter.Easiness(rating.get.getRating))) ~~ save
+      } <~
+      speak
+  }
+
   def save = {
     val id = Shortuuid.make("story")
     val done = Promise[Unit]()
-    typewriter.foreach(_ ! Typewriter.Save(id, done))
-    (progress <~~ waitProgress(done.future)) ~~ Ui {
-      val intent = new Intent(this, classOf[EditActivity])
-      intent.putExtra("id", id)
-      startActivity(intent)
-      finish()
-    }
+    Ui(typewriter.foreach(_ ! Typewriter.Save(id, done))) ~
+      (progress <~~ waitProgress(done.future)) ~~
+      Ui {
+        val intent = new Intent(this, classOf[EditActivity])
+        intent.putExtra("id", id)
+        startActivity(intent)
+        finish()
+      }
   }
 
   override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
@@ -106,7 +124,7 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
     case R.id.finish ⇒
       runUi {
         dialog("Do you want to finish and save the story?") <~
-          positiveOk(save) <~
+          positiveOk(rateEasiness) <~
           negativeCancel(Ui.nop) <~
           speak
       }
