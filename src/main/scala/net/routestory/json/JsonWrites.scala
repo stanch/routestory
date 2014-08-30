@@ -51,6 +51,7 @@ trait ElementWrites extends AuxiliaryWrites {
   val foursquareVenueWrite = Write.gen[FoursquareVenue, JsObject]
 
   implicit val metaWrite = Write.gen[Meta, JsObject]
+  implicit val studyInfoWrite = Write.gen[StudyInfo, JsObject]
 
   implicit val elementWrite = Write[Element, JsObject] { element ⇒
     val (j, t) = element match {
@@ -80,6 +81,6 @@ object JsonWrites extends ElementWrites {
      (__ \ "meta").write[Meta] and
      (__ \ "chapters").write[List[Chapter]] and
      (__ \ "authorId").write[Option[String]].contramap { a: Option[Author] ⇒ a.map(_.id) } and
-     (__ \ "private").write[Boolean])(unlift(Story.unapply))
+     (__ \ "studyInfo").write[Option[StudyInfo]])(unlift(Story.unapply))
   }
 }

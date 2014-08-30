@@ -113,12 +113,21 @@ object Story {
     def empty = Meta(None, None, Nil)
   }
 
-  def empty(id: String) = Story(id, Meta.empty, Nil, None)
+  case class StudyInfo(easiness: Float, externalMedia: List[Int]) {
+    def withEasiness(easiness: Float) = copy(easiness = easiness)
+  }
+
+  object StudyInfo {
+    def empty = StudyInfo(0f, Nil)
+  }
+
+  def empty(id: String) = Story(id, Meta.empty, Nil, None, None)
 }
 
-case class Story(id: String, meta: Story.Meta, chapters: List[Story.Chapter], author: Option[Author], `private`: Boolean = true) {
+case class Story(id: String, meta: Story.Meta, chapters: List[Story.Chapter], author: Option[Author], studyInfo: Option[Story.StudyInfo]) {
   def withChapter(chapter: Story.Chapter) = copy(chapters = chapters :+ chapter)
   def withMeta(meta: Story.Meta) = copy(meta = meta)
+  def withStudyInfo(studyInfo: Story.StudyInfo) = copy(studyInfo = Some(studyInfo))
 
   def preview = StoryPreview(id, meta.title, meta.tags, author)
 }

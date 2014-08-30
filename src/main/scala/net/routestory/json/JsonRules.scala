@@ -73,6 +73,7 @@ trait ElementRules extends AuxiliaryRules {
     unknownElementRule
 
   implicit val metaRule = Rule.gen[JsValue, Meta]
+  implicit val studyInfoRule = Rule.gen[JsValue, StudyInfo]
 }
 
 trait JsonRules extends ElementRules {
@@ -94,7 +95,7 @@ trait JsonRules extends ElementRules {
     (__ \ "meta").read[Meta] and
     (__ \ "chapters").read[List[Resolvable[Chapter]]].fmap(Resolvable.fromList) and
     (__ \ "authorId").read[Option[String]].fmap(_.map(author)).fmap(Resolvable.fromOption) and
-    (__ \ "private").read[Boolean]
+    (__ \ "studyInfo").read[Option[StudyInfo]]
   }
 
   /* Story preview */
