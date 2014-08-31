@@ -40,8 +40,8 @@ class RouteStoryServiceActor extends HttpServiceActor with RouteStoryService {
 }
 
 trait RouteStoryService extends HttpService
+  with SiteRoutes
   with AuthRoutes
-  with SyncRoutes
   with StoryRoutes
   with AuthorRoutes
   with TagRoutes {
@@ -52,7 +52,7 @@ trait RouteStoryService extends HttpService
   /* Pipelines */
   implicit def jsValueUnmarshaller = Unmarshaller.delegate[String, JsValue](MediaTypes.`application/json`)(Json.parse)
   implicit def jsValueMarshaller = Marshaller.delegate[JsValue, String](MediaTypes.`application/json`)(Json.stringify _)
-  val couchPipeline: SendReceive
+  def couchPipeline: SendReceive
   lazy val couchJsonPipeline = couchPipeline ~> unmarshal[JsValue]
   def couchComplete(request: HttpRequest) = complete(couchPipeline(request))
 
@@ -60,10 +60,8 @@ trait RouteStoryService extends HttpService
     pathPrefix("auth") {
       authRoutes
     } ~
-    pathPrefix("sync") {
-      syncRoutes
-    } ~
     pathPrefix("api") {
       storyRoutes ~ authorRoutes ~ tagRoutes
-    }
+    } ~
+    siteRoutes
 }

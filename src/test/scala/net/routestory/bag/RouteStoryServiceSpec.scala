@@ -27,61 +27,68 @@ class RouteStoryServiceSpec extends FlatSpec with ScalatestRouteTest with RouteS
 
   val couchPipeline = { request: HttpRequest ⇒ connector.flatMap(_(request)) }
 
-  it should "redirect HEAD requests on database" in {
+  it should "open site" in {
+    Get("/static/noise.png") ~> theRoute ~> check {
+      status should equal (StatusCodes.OK)
+      println(response)
+    }
+  }
+
+  ignore should "redirect HEAD requests on database" in {
     Head("/sync") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
     }
   }
 
-  it should "return latest stories" in {
+  ignore should "return latest stories" in {
     Get("/api/stories/latest?skip=1") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
     }
   }
 
-  it should "search by tag" in {
+  ignore should "search by tag" in {
     Get("/api/tags/lisbon/stories") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
     }
   }
 
-  it should "search by tag and title" in {
+  ignore should "search by tag and title" in {
     Get("/api/stories/search/lisbo%20n") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
     }
   }
 
-  it should "allow to get stories" in {
+  ignore should "allow to get stories" in {
     Get("/api/stories/story-Yt5toJcTsyu87ehpgqzqE5") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
     }
   }
 
-//  it should "allow to get story attachments" in {
+//  ignore should "allow to get story attachments" in {
 //    Get("/api/stories/story-Yt5toJcTsyu87ehpgqzqE5/images/1.jpg") ~> theRoute ~> check {
 //      status should equal (StatusCodes.OK)
 //    }
 //  }
 
-  it should "provide a list of all tags" in {
+  ignore should "provide a list of all tags" in {
     Get("/api/tags") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
     }
   }
 
-  it should "allow to get authors" in {
+  ignore should "allow to get authors" in {
     Get("/api/authors/author-27u6ExbZKej8ML9QcnYCf3") ~> theRoute ~> check {
       status should equal (StatusCodes.OK)
     }
   }
 
-  it should "allow to get authors in batch" in {
+  ignore should "allow to get authors in batch" in {
     Get("/api/authors/author-27u6ExbZKej8ML9QcnYCf3,author-56KSvs3obcffYQqVWJF3EE,author-WMVnW2qhqXTC7cCnbqG6DZ") ~> theRoute ~> check {
       println(responseAs[JsValue])
     }
   }
 
-//  it should "handle android auth" in {
+//  ignore should "handle android auth" in {
 //    Get("/auth/android?token=ya29.AHES6ZStuaz7Bsto7SGv-B6muc5OtgacXi7Bo6T-QDj3GkADNzk") ~> theRoute ~> check {
 //      println(response)
 //    }

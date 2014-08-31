@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<title>RouteStory</title>
+		<link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet"/>
+		<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="//use.typekit.net/avi4abt.js"></script>
+		<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+		<style type="text/css">
+			body {
+				background-image: url('static/noise.png');
+				background-repeat: repeat;
+				background-size: auto auto;
+				font-family: "fira-sans", sans-serif;
+				font-weight: 300;
+			}
+			.top {
+				text-align: center;
+				color: #286361;
+				padding-top: 50px;
+				position: absolute;
+				top: 0;
+				height: 400px;
+				width: 100%;
+				background-image: url('static/top.png');
+				background-size: auto 100%;
+				background-repeat: repeat-x;
+			}
+			.bottom {
+				margin-top: -350px;
+				height: 400px;
+				background-image: url('static/bottom.png');
+				background-size: auto 100%;
+				background-repeat: repeat-x;
+			}
+			.center {
+				text-align: center;
+			}
+			.center form {
+				width: 100%;
+			}
+			.container {
+				margin-top: 200px;
+				max-width: 800px;
+			}
+			.row {
+				padding-bottom: 0;
+				margin-bottom: 4em;
+			}
+			.row.section {
+				padding-bottom: 4em;
+				border-bottom: 1px solid #33807e;
+			}
+			h1 {
+				font-weight: 800;
+				font-style: italic;
+				font-size: 8em;
+			}
+			h2 {
+				margin: 0.3em 0 0.4em -0.1em;
+				font-size: 7em;
+				line-height: 1em;
+				font-weight: 300;
+			}
+			@media(max-width: 830px) {
+				h2 {
+					font-size: 5em;
+				}
+			}
+			@media(max-width: 600px) {
+				h2 {
+					font-size: 3em;
+				}
+			}
+			p {
+				font-size: 2em;
+				font-style: italic;
+				margin-bottom: 0;
+			}
+			strong {
+				font-weight: 500;
+			}
+			img {
+				max-width: 100%;
+			}
+			img.tablet {
+				margin-top: 4em;
+			}
+			.navbar-form {
+				box-shadow: none;
+				-webkit-box-shadow: none;
+				-moz-box-shadow: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="top">
+		</div>
+		<div class="container">
+			<div class="row section">
+				<div class="col-xs-4">
+					<img src="static/Space.png" alt="RouteStory app screenshot"/>
+				</div>
+				<div class="col-xs-8" style="vertical-align: bottom">
+					<h2>Reviving<br/> routes</h2>
+					<p>Annotate your adventures with photos, sounds, notes, and more.<p>
+				</div>
+			</div>
+			<div class="row section">
+				<div class="col-xs-8">
+					<h2>Keeping<br/> memories</h2>
+					<p>Travel diaries or virtual tour guides&nbsp;&mdash; <strong>RouteStory</strong> has got you covered.</p>
+				</div>
+				<div class="col-xs-4">
+					<img src="static/MyStories.png" alt="RouteStory app screenshot"/>
+				</div>
+			</div>
+			<div class="row section">
+				<div class="col-xs-6">
+					<img class="tablet" src="static/Dive.png" alt="RouteStory app screenshot"/>
+				</div>
+				<div class="col-xs-6" style="vertical-align: bottom">
+					<h2>Reliving the<br/> moment</h2>
+					<p>Explore the routes through interactive visualizations.<p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 center">
+					<p>Register for ß-testing and user study</p>
+					<form action="/signup" method="POST" class="navbar-form navbar-left">
+						<div class="form-group">
+							<input type="text" name="email" class="form-control" placeholder="e-mail">
+						</div>
+						<button type="submit" class="btn btn-default">Count me in!</button>
+					</form>
+				</div>
+			</div>
+		</div>
+		<div class="bottom"></div>
+	</body>
+</html>
