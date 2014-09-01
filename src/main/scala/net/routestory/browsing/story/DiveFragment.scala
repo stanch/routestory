@@ -54,17 +54,20 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
   var pause = slot[Button]
   var seekBar = slot[SeekBar]
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
-    l[VerticalLinearLayout](
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
+    val mapLayout =
       l[FrameLayout](
         f[SupportMapFragment].framed(Id.map, Tag.previewMap),
         w[Button] <~
           wire(playBig) <~
           lp[FrameLayout](80 dp, 80 dp, Gravity.CENTER) <~
           BgTweaks.res(R.drawable.play_big)
-      ) <~ lp[LinearLayout](WRAP_CONTENT, 0, 2.0f),
-      f[PreviewFragment].framed(Id.preview, Tag.preview) <~
-        lp[LinearLayout](WRAP_CONTENT, 0, 1.0f),
+      )
+
+    val previewLayout =
+      f[PreviewFragment].framed(Id.preview, Tag.preview)
+
+    val controlsLayout =
       l[HorizontalLinearLayout](
         w[Button] <~
           BgTweaks.res(R.drawable.play) <~
@@ -80,7 +83,25 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
           LpTweaks.matchWidth
       ) <~ padding(left = 16 dp, right = 8 dp, top = 8 dp, bottom = 8 dp) <~
         BgTweaks.color(Color.BLACK)
-    ) <~ wire(layout) <~ Styles.lowProfile
+
+    val portraitLayout =
+      l[VerticalLinearLayout](
+        mapLayout <~ lp[LinearLayout](WRAP_CONTENT, 0, 2.0f),
+        previewLayout <~ lp[LinearLayout](WRAP_CONTENT, 0, 1.0f),
+        controlsLayout
+      )
+
+    val landscapeLayout =
+      l[VerticalLinearLayout](
+        l[HorizontalLinearLayout](
+          mapLayout <~ lp[LinearLayout](0, WRAP_CONTENT, 1.0f),
+          previewLayout <~ lp[LinearLayout](0, WRAP_CONTENT, 1.0f)
+        ) <~ lp[LinearLayout](WRAP_CONTENT, 0, 1.0f),
+        controlsLayout
+      )
+
+    val fullLayout = portrait ? portraitLayout | landscapeLayout
+    getUi(fullLayout <~ wire(layout) <~ Styles.lowProfile)
   }
 
   override def onStart() = {

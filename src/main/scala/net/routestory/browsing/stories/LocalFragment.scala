@@ -6,7 +6,7 @@ import android.view.{ Gravity, View, ViewGroup, LayoutInflater }
 import android.widget.{ TextView, ProgressBar, FrameLayout }
 import com.etsy.android.grid.StaggeredGridView
 import macroid.Ui
-import net.routestory.data.Story
+import net.routestory.data.{ StoryPreview, Story }
 import net.routestory.ui.{ Styles, RouteStoryFragment }
 import net.routestory.viewable.StoryPreviewListable
 import macroid.FullDsl._
@@ -22,9 +22,9 @@ class LocalFragment extends RouteStoryFragment {
   var swiper = slot[SwipeRefreshLayout]
   var empty = slot[TextView]
 
-  def viewStories(stories: List[Story]) = {
+  def viewStories(stories: List[StoryPreview]) = {
     import StoryPreviewListable._
-    (grid <~ stories.map(_.preview).listAdapterTweak) ~
+    (grid <~ stories.listAdapterTweak) ~
       (empty <~ show(stories.isEmpty)) ~
       (swiper <~ Styles.stopRefresh)
   }

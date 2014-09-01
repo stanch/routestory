@@ -73,7 +73,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     if (requestCode == requestCodePhoto && resultCode == Activity.RESULT_OK) {
       lastPhotoFile foreach { file ⇒
         MediaScannerConnection.scanFile(getActivity.getApplicationContext, Array(file.getAbsolutePath), null, null)
-        typewriter.foreach(_ ! Typewriter.Element(Story.Photo(file)))
+        typewriter.foreach(_ ! Typewriter.Element(Story.Photo(None, file)))
       }
       lastPhotoFile = None
     }
