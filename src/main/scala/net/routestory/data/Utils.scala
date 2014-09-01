@@ -3,6 +3,7 @@ package net.routestory.data
 import java.io.File
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 object Utils {
   /** Replace urls with filenames */
@@ -10,8 +11,10 @@ object Utils {
     val chapters = Future.sequence(story.chapters.map { chapter ⇒
       val elements = Future.sequence(chapter.elements.map {
         case t @ Timed(_, e: Story.MediaElement) ⇒
-          e.data.map { file ⇒
+          e.data map { file ⇒
             t.copy(data = e.withFile(new File(file.getName))) → List(file → file.getName)
+          } recover {
+            case NonFatal(_) ⇒ t → Nil
           }
         case t ⇒
           Future.successful(t → Nil)

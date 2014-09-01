@@ -59,9 +59,9 @@ trait ElementWrites extends AuxiliaryWrites with WriteMonoid {
   val audioWrite = mediaElementWrite
 
   val imageWrite = mediaElementWrite.subtype[Image] |+| Write[Image, JsObject] {
-    case _: Photo ⇒ Json.obj()
-    case x: FlickrPhoto ⇒ Json.obj("id" → x.id)
-    case x: InstagramPhoto ⇒ Json.obj("id" → x.id)
+    case x: Photo ⇒ Json.obj("caption" → x.caption)
+    case x: FlickrPhoto ⇒ Json.obj("id" → x.id, "caption" → x.caption)
+    case x: InstagramPhoto ⇒ Json.obj("id" → x.id, "caption" → x.caption)
   }
 
   val textNoteWrite = Write.gen[TextNote, JsObject]
