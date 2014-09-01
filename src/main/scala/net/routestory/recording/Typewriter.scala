@@ -19,6 +19,7 @@ object Typewriter {
   case class Element(element: Story.KnownElement)
   case class Location(location: LatLng)
   case class Easiness(easiness: Float)
+  case class Suggestions(number: Int)
   case object Remind
   case class Discard(done: Promise[Unit])
   case class Save(storyId: String, done: Promise[Unit])
@@ -63,6 +64,9 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
 
     case Easiness(easiness) ⇒
       studyInfo = studyInfo.withEasiness(easiness)
+
+    case Suggestions(number) ⇒
+      studyInfo = studyInfo.addSuggestions(chapter.ts, number)
 
     case Cluster(t) ⇒
       tree = t

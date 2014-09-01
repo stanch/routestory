@@ -37,6 +37,10 @@ class SuggestionsFragment extends RouteStoryFragment with RecordFragment {
     val listable = CardListable.cardListable(
       new StoryElementListable(200 dp).storyElementListable)
 
+    if (getUserVisibleHint) {
+      typewriter.foreach(_ ! Typewriter.Suggestions(elements.length))
+    }
+
     val updateGrid = grid <~ listable.listAdapterTweak(elements) <~
       FuncOn.itemClick[StaggeredGridView] { (_: AdapterView[_], _: View, index: Int, _: Long) ⇒
         Ui(typewriter.foreach(_ ! Typewriter.Element(elements(index))))
@@ -59,6 +63,15 @@ class SuggestionsFragment extends RouteStoryFragment with RecordFragment {
   override def onStop() = {
     super.onStop()
     actor.foreach(_ ! FragmentActor.DetachUi(this))
+  }
+
+  override def setUserVisibleHint(isVisibleToUser: Boolean): Unit = {
+    super.setUserVisibleHint(isVisibleToUser)
+    if (isVisibleToUser) {
+      grid.flatMap(x ⇒ Option(x.getAdapter)).map(_.getCount) foreach { n ⇒
+        typewriter.foreach(_ ! Typewriter.Suggestions(n))
+      }
+    }
   }
 }
 
