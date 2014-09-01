@@ -30,6 +30,10 @@ trait AuxiliaryRules {
 trait ElementRules extends AuxiliaryRules {
   def media(url: String): Resolvable[File]
 
+  def elementTypeRule[A <: Resolvable[Element]](tp: String)(rule: Rule[JsValue, A]) = From[JsValue] { __ ⇒
+    (__ \ "type").read(Rules.equalTo(tp)) ~> rule.fmap(x ⇒ x: Resolvable[Element])
+  }
+
   val unknownElementRule = Resolvable.rule[JsValue, UnknownElement] { __ ⇒
     (__ \ "type").read[String] and
     __.read[JsObject]
@@ -40,25 +44,35 @@ trait ElementRules extends AuxiliaryRules {
     (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
   }
 
-  def elementTypeRule[A <: Resolvable[Element]](tp: String)(rule: Rule[JsValue, A]) = From[JsValue] { __ ⇒
-    (__ \ "type").read(Rules.equalTo(tp)) ~> rule.fmap(x ⇒ x: Resolvable[Element])
+  val audioRuleBuilder = mediaElementRuleBuilder
+
+  val soundRule = elementTypeRule("sound")(Resolvable.rule[JsValue, Sound](audioRuleBuilder))
+
+  val voiceNoteRule = elementTypeRule("voice-note")(Resolvable.rule[JsValue, VoiceNote](audioRuleBuilder))
+
+  val imageRuleBuilder = { __ : Reader[JsValue] ⇒
+    // unfortunately there is no `and:` to add to the bulider from left
+    (__ \ "caption").read[Option[String]] and
+    (__ \ "url").read[String] and
+    (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
   }
 
-  val soundRule = elementTypeRule("sound")(Resolvable.rule[JsValue, Sound](mediaElementRuleBuilder))
-  val voiceNoteRule = elementTypeRule("voice-note")(Resolvable.rule[JsValue, VoiceNote](mediaElementRuleBuilder))
-  val photoRule = elementTypeRule("photo")(Resolvable.rule[JsValue, Photo](mediaElementRuleBuilder))
+  val photoRule = elementTypeRule("photo")(Resolvable.rule[JsValue, Photo](imageRuleBuilder))
+
   val flickrPhotoRule = elementTypeRule("flickr-photo")(Resolvable.rule[JsValue, FlickrPhoto] { __ : Reader[JsValue] ⇒
     (__ \ "id").read[String] and
-    (__ \ "title").read[String] and
+    (__ \ "caption").read[Option[String]] and
     (__ \ "url").read[String] and
     (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
   })
+
   val instagramPhotoRule = elementTypeRule("instagram-photo")(Resolvable.rule[JsValue, InstagramPhoto] { __ : Reader[JsValue] ⇒
     (__ \ "id").read[String] and
-    (__ \ "title").read[Option[String]] and
+    (__ \ "caption").read[Option[String]] and
     (__ \ "url").read[String] and
     (__ \ "url").read[String].fmap(media).fmap(Resolvable.defer)
   })
+
   val textNoteRule = elementTypeRule("text-note")(Resolvable.pureRule(Rule.gen[JsValue, TextNote]))
   val foursquareVenueRule = elementTypeRule("foursquare-venue")(Resolvable.pureRule(Rule.gen[JsValue, FoursquareVenue]))
 

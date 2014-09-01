@@ -21,7 +21,7 @@ trait JsonRules {
 
   implicit val photoRule = Resolvable.rule[JsValue, Story.FlickrPhoto] { __ ⇒
     (__ \ "id").read[String] and
-    (__ \ "title").read[String] and
+    (__ \ "title").read[Option[String]].fmap(_.filter(_.nonEmpty)) and
     readUrl and
     readUrl.fmap(media).fmap(Resolvable.defer)
   }

@@ -39,18 +39,20 @@ object Story {
     def apply(file: File) = new VoiceNote(file.getAbsolutePath, Future.successful(file))
   }
 
-  sealed trait Image extends MediaElement
-  case class Photo(url: String, data: Future[File]) extends Image {
-    def withFile(file: File) = Photo(file.getPath, Future.successful(file))
+  sealed trait Image extends MediaElement {
+    def caption: Option[String]
+  }
+  case class Photo(caption: Option[String], url: String, data: Future[File]) extends Image {
+    def withFile(file: File) = Photo(caption, file.getPath, Future.successful(file))
   }
   object Photo {
-    def apply(file: File) = new Photo(file.getAbsolutePath, Future.successful(file))
+    def apply(caption: Option[String], file: File) = new Photo(caption, file.getAbsolutePath, Future.successful(file))
   }
-  case class FlickrPhoto(id: String, title: String, url: String, data: Future[File]) extends Image with ExternalElement {
-    def withFile(file: File) = FlickrPhoto(id, title, file.getPath, Future.successful(file))
+  case class FlickrPhoto(id: String, caption: Option[String], url: String, data: Future[File]) extends Image with ExternalElement {
+    def withFile(file: File) = FlickrPhoto(id, caption, file.getPath, Future.successful(file))
   }
-  case class InstagramPhoto(id: String, title: Option[String], url: String, data: Future[File]) extends Image with ExternalElement {
-    def withFile(file: File) = InstagramPhoto(id, title, file.getPath, Future.successful(file))
+  case class InstagramPhoto(id: String, caption: Option[String], url: String, data: Future[File]) extends Image with ExternalElement {
+    def withFile(file: File) = InstagramPhoto(id, caption, file.getPath, Future.successful(file))
   }
 
   case class TextNote(text: String) extends KnownElement

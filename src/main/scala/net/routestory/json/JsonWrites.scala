@@ -7,6 +7,7 @@ import play.api.data.mapping.{To, Write}
 import play.api.libs.json._
 import play.api.data.mapping.json.Writes._
 import play.api.libs.functional.syntax._
+import play.api.libs.functional.Monoid
 
 trait AuxiliaryWrites {
   implicit val latLngWrite = Write[LatLng, JsObject] { latLng ⇒
@@ -21,54 +22,64 @@ trait AuxiliaryWrites {
   }
 }
 
-trait ElementWrites extends AuxiliaryWrites {
-  val unknownElementWrite = Write.zero[JsObject].contramap { x: UnknownElement ⇒ x.raw }
-
-  def mediaElementWrite[A <: MediaElement] = Write[A, JsObject] { m ⇒
-    Json.obj(
-      "url" → m.url
-    )
+trait WriteMonoid {
+  implicit def `Write is a Monoid`[I, O: Monoid] = new Monoid[Write[I, O]] {
+    def append(a1: Write[I, O], a2: Write[I, O]) = Write[I, O] { x ⇒
+      a1.writes(x) |+| a2.writes(x)
+    }
+    def identity = Write[I, O] { _ ⇒
+      implicitly[Monoid[O]].identity
+    }
   }
 
-  val soundWrite = mediaElementWrite[Sound]
-  val voiceNoteWrite = mediaElementWrite[VoiceNote]
-  val photoWrite = mediaElementWrite[Photo]
-  val flickrPhotoWrite = Write[FlickrPhoto, JsObject] { m ⇒
-    Json.obj(
-      "id" → m.id,
-      "title" → m.title,
-      "url" → m.url
-    )
+  implicit class RichWrite[I, O](write: Write[I, O]) {
+    def subtype[I1 <: I] = Write[I1, O](write.writes)
   }
-  val instagramPhotoWrite = Write[InstagramPhoto, JsObject] { m ⇒
-    Json.obj(
-      "id" → m.id,
-      "title" → m.title,
-      "url" → m.url
-    )
+}
+
+trait ElementWrites extends AuxiliaryWrites with WriteMonoid {
+  val elementTypeWrite = Write[Element, JsObject] {
+    case _: Sound ⇒ Json.obj("type" → "sound")
+    case _: VoiceNote ⇒ Json.obj("type" → "voice-note")
+    case _: Photo ⇒ Json.obj("type" → "photo")
+    case _: FlickrPhoto ⇒ Json.obj("type" → "flickr-photo")
+    case _: InstagramPhoto ⇒ Json.obj("type" → "instagram-photo")
+    case _: TextNote ⇒ Json.obj("type" → "text-note")
+    case _: FoursquareVenue ⇒ Json.obj("type" → "foursquare-venue")
+    case x: UnknownElement ⇒ Json.obj("type" → x.`type`)
   }
+
+  val unknownElementWrite = Write.zero[JsObject]
+    .contramap { x: UnknownElement ⇒ x.raw }
+
+  val mediaElementWrite = Write[MediaElement, JsObject] { x ⇒
+    Json.obj("url" → x.url)
+  }
+
+  val audioWrite = mediaElementWrite
+
+  val imageWrite = mediaElementWrite.subtype[Image] |+| Write[Image, JsObject] {
+    case _: Photo ⇒ Json.obj()
+    case x: FlickrPhoto ⇒ Json.obj("id" → x.id)
+    case x: InstagramPhoto ⇒ Json.obj("id" → x.id)
+  }
+
   val textNoteWrite = Write.gen[TextNote, JsObject]
   val foursquareVenueWrite = Write.gen[FoursquareVenue, JsObject]
 
-  implicit val metaWrite = Write.gen[Meta, JsObject]
-  implicit val studyInfoWrite = Write.gen[StudyInfo, JsObject]
-
-  implicit val elementWrite = Write[Element, JsObject] { element ⇒
-    val (j, t) = element match {
-      case m @ Sound(_, _) ⇒ (soundWrite.writes(m), "sound")
-      case m @ VoiceNote(_, _) ⇒ (voiceNoteWrite.writes(m), "voice-note")
-      case m @ Photo(_, _) ⇒ (photoWrite.writes(m), "photo")
-      case m @ FlickrPhoto(_, _, _, _) ⇒ (flickrPhotoWrite.writes(m), "flickr-photo")
-      case m @ InstagramPhoto(_, _, _, _) ⇒ (instagramPhotoWrite.writes(m), "instagram-photo")
-      case m @ TextNote(_) ⇒ (textNoteWrite.writes(m), "text-note")
-      case m @ FoursquareVenue(_, _, _) ⇒ (foursquareVenueWrite.writes(m), "foursquare-venue")
-      case m @ UnknownElement(tp, _) ⇒ (unknownElementWrite.writes(m), tp)
-    }
-    j ++ Json.obj("type" → t)
+  implicit val elementWrite = elementTypeWrite |+| Write[Element, JsObject] {
+    case x: Audio ⇒ audioWrite.writes(x)
+    case x: Image ⇒ imageWrite.writes(x)
+    case x: TextNote ⇒ textNoteWrite.writes(x)
+    case x: FoursquareVenue ⇒ foursquareVenueWrite.writes(x)
+    case x: UnknownElement ⇒ unknownElementWrite.writes(x)
   }
 }
 
 object JsonWrites extends ElementWrites {
+  implicit val metaWrite = Write.gen[Meta, JsObject]
+  implicit val studyInfoWrite = Write.gen[StudyInfo, JsObject]
+
   implicit val chapterWrite = To[JsObject] { __ ⇒
     ((__ \ "start").write[Long] and
      (__ \ "duration").write[Int] and
