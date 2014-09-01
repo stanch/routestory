@@ -1,70 +1,62 @@
 package net.routestory.browsing.story
 
+import akka.actor.Props
 import android.os.Bundle
-import android.view.ViewGroup.LayoutParams._
 import android.view.{ LayoutInflater, View, ViewGroup }
-import android.widget.{ ImageView, LinearLayout, ScrollView, TextView }
+import android.widget.{ ScrollView, TextView }
 import macroid.FullDsl._
-import macroid.Tweak
-import macroid.contrib.{ TextTweaks, LpTweaks, ImageTweaks }
+import macroid.akkafragments.{ AkkaFragment, FragmentActor }
 import macroid.contrib.Layouts.VerticalLinearLayout
-import net.routestory.R
+import macroid.contrib.{ LpTweaks, TextTweaks }
 import net.routestory.data.Story
-import net.routestory.ui.{ RouteStoryFragment, Styles }
+import net.routestory.ui.RouteStoryFragment
 import net.routestory.viewable.StoryPreviewListable
 import org.apmem.tools.layouts.FlowLayout
 
-import scala.concurrent.Future
+class DetailsFragment extends RouteStoryFragment with AkkaFragment {
+  lazy val actor = Some(actorSystem.actorSelection("/user/detailer"))
 
-class DetailsFragment extends RouteStoryFragment {
-  lazy val story: Future[Story] = null // TODO: !
-
-  var authorPicture = slot[ImageView]
-  var authorName = slot[TextView]
   var description = slot[TextView]
-  var tagStuff = slot[LinearLayout]
   var tags = slot[FlowLayout]
+
+  def viewDetails(meta: Story.Meta) = {
+    (description <~ meta.description.map(text) <~ show(meta.description.isDefined)) ~
+      (Some(meta.tags).filter(_.nonEmpty) map { t ⇒
+        tags <~ addViews(t.map(StoryPreviewListable.tag(_, None)), removeOld = true) + show
+      } getOrElse {
+        tags <~ hide
+      })
+  }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
     l[ScrollView](
       l[VerticalLinearLayout](
-        w[TextView] <~ text("Author") <~ Styles.header,
-        w[ImageView] <~ lp[LinearLayout](100 dp, WRAP_CONTENT) <~ wire(authorPicture),
-        w[TextView] <~ LpTweaks.matchWidth <~ wire(authorName) <~ TextTweaks.medium,
+        w[TextView] <~ LpTweaks.matchWidth <~
+          TextTweaks.medium <~
+          padding(bottom = 12 dp) <~
+          wire(description),
 
-        w[TextView] <~ text(R.string.description) <~ Styles.header,
-        w[TextView] <~ LpTweaks.matchWidth <~ wire(description) <~ TextTweaks.medium,
-
-        l[VerticalLinearLayout](
-          w[TextView] <~ text(R.string.tags) <~ Styles.header,
-          l[FlowLayout]() <~ wire(tags)
-        ) <~ wire(tagStuff)
-      ) <~ padding(left = 8 dp)
+        w[FlowLayout] <~ wire(tags)
+      ) <~ padding(all = 8 dp)
     )
   }
+}
 
-  override def onStart() {
-    super.onStart()
+object Detailer {
+  def props = Props(new Detailer)
+}
 
-    story foreachUi { s ⇒
-      val fillAuthor = s.author map { a ⇒
-        (authorPicture <~ ImageTweaks.adjustBounds <~ Tweak[ImageView] { x ⇒
-          x.setScaleType(ImageView.ScaleType.FIT_START)
-        }) ~ (authorName <~ text(a.name))
-      } getOrElse {
-        (authorName <~ text("Me")) ~ (authorPicture <~ hide)
-      }
+class Detailer extends FragmentActor[DetailsFragment] {
+  import FragmentActor._
+  import Coordinator._
 
-      val d = s.meta.description.filter(!_.isEmpty).getOrElse("No description.")
-      val fillDescription = description <~ text(d)
+  lazy val coordinator = context.actorSelection("../coordinator")
 
-      val fillTags = Option(s.meta.tags).filter(_.nonEmpty) map { t ⇒
-        tags <~ addViews(t.map(StoryPreviewListable.tag(_, None)), removeOld = true)
-      } getOrElse {
-        tagStuff <~ hide
-      }
+  def receive = receiveUi andThen {
+    case AttachUi(_) ⇒
+      coordinator ! Coordinator.RemindMeta
 
-      runUi(fillAuthor, fillDescription, fillTags)
-    }
+    case UpdateMeta(meta) ⇒
+      withUi(_.viewDetails(meta))
   }
 }

@@ -50,6 +50,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
   lazy val diver = actorSystem.actorOf(Diver.props, "diver")
   lazy val previewer = actorSystem.actorOf(Previewer.props, "previewer")
   lazy val astronaut = actorSystem.actorOf(Astronaut.props, "astronaut")
+  lazy val detailer = actorSystem.actorOf(Detailer.props, "detailer")
 
   lazy val storyId = getIntent match {
     case NfcIntent(uri) ⇒
@@ -71,16 +72,16 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
     super.onCreate(savedInstanceState)
 
     story // start loading
-    (coordinator, timeliner, diver, previewer, astronaut) // start actors
+    (coordinator, timeliner, diver, previewer, astronaut, detailer) // start actors
 
     setContentView(getUi(drawer(
       l[VerticalLinearLayout](
         activityProgress <~ wire(progress),
         getTabs(
           "Dive" → f[DiveFragment].factory,
-          //"Details" → f[StoryDetailsFragment].factory,
           "Space" → f[SpaceFragment].factory,
-          "Timeline" → f[TimelineFragment].factory
+          "Timeline" → f[TimelineFragment].factory,
+          "Details" → f[DetailsFragment].factory
         )
       )
     )))
@@ -93,6 +94,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
       bar.setTitle(s.meta.title.filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))
       s.author.map(_.name).foreach(name ⇒ bar.setSubtitle("by " + name))
       coordinator ! Coordinator.UpdateChapter(s.chapters(0))
+      coordinator ! Coordinator.UpdateMeta(s.meta)
     } onFailureUi {
       case t ⇒
         t.printStackTrace()
@@ -150,10 +152,12 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
 }
 
 object Coordinator {
+  case class UpdateMeta(meta: Story.Meta)
   case class UpdateChapter(chapter: Story.Chapter)
   case class UpdateTree(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]])
   case class UpdateFocus(chapter: Story.Chapter, focus: Int)
   case object Remind
+  case object RemindMeta
 
   def props(activity: DisplayActivity)(implicit appCtx: AppContext) = Props(new Coordinator(activity))
 }
@@ -161,6 +165,7 @@ object Coordinator {
 class Coordinator(activity: DisplayActivity)(implicit appCtx: AppContext) extends Actor with ActorLogging {
   import Coordinator._
 
+  var meta: Option[Story.Meta] = None
   var chapter: Option[Story.Chapter] = None
   var tree: Option[Clustering.Tree[Unit]] = None
   var focus = 0
@@ -169,6 +174,7 @@ class Coordinator(activity: DisplayActivity)(implicit appCtx: AppContext) extend
   lazy val diver = context.actorSelection("../diver")
   lazy val previewer = context.actorSelection("../previewer")
   lazy val astronaut = context.actorSelection("../astronaut")
+  lazy val detailer = context.actorSelection("../detailer")
   lazy val recipients = List(timeliner, diver, previewer, astronaut)
 
   def receive = {
@@ -202,6 +208,15 @@ class Coordinator(activity: DisplayActivity)(implicit appCtx: AppContext) extend
         sender ! UpdateChapter(c)
         sender ! UpdateTree(c, tree)
         sender ! UpdateFocus(c, focus)
+      }
+
+    case m @ UpdateMeta(me) ⇒
+      meta = Some(me)
+      detailer ! m
+
+    case RemindMeta ⇒
+      meta foreach { me ⇒
+        sender ! UpdateMeta(me)
       }
 
     case _ ⇒
