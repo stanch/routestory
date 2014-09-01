@@ -29,7 +29,7 @@ trait Endpoints extends JsonHelpers {
       JsArray {
         val q = couch.getView(name).createQuery()
         q.setDescending(true)
-        q.run().map(_.getDocument.getProperties.toJsObject).toSeq
+        q.run().map(_.asJSONDictionary.toJsObject).toSeq
       }
     }
   }

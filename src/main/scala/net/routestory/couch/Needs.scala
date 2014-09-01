@@ -2,7 +2,7 @@ package net.routestory.couch
 
 import java.io.File
 
-import net.routestory.data.{Story, Author}
+import net.routestory.data.{Story, StoryPreview, Author}
 import net.routestory.json.JsonRules
 import resolvable.{Source, Resolvable}
 import play.api.data.mapping.json.Rules._
@@ -21,7 +21,9 @@ trait Needs { self: Endpoints with JsonRules ⇒
   def media(url: String): Resolvable[File] =
     webApi.media(url)
 
-  def localStories(viewName: String): Resolvable[List[Story]] =
-    Source[List[Resolvable[Story]]].from(LocalView(viewName))
+  def localStories(viewName: String): Resolvable[List[StoryPreview]] = {
+    import storyPreviewReadsLatest.storyPreviewRule
+    Source[List[Resolvable[StoryPreview]]].from(LocalView(viewName))
       .flatMap(Resolvable.fromList)
+  }
 }
