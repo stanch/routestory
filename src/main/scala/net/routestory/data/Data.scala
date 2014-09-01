@@ -115,8 +115,10 @@ object Story {
     def empty = Meta(None, None, Nil)
   }
 
-  case class StudyInfo(easiness: Float, externalMedia: List[Int]) {
+  case class StudyInfo(easiness: Float, suggestions: List[List[Int]]) {
     def withEasiness(easiness: Float) = copy(easiness = easiness)
+    def addSuggestions(timestamp: Int, number: Int) =
+      copy(suggestions = List(timestamp, number) :: suggestions)
   }
 
   object StudyInfo {
