@@ -7,7 +7,7 @@ import android.view.ViewGroup.LayoutParams._
 import android.view.{ Gravity, View }
 import android.widget._
 import macroid.FullDsl._
-import macroid.contrib.Layouts.HorizontalLinearLayout
+import macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
 import macroid.contrib.{ ImageTweaks, TextTweaks }
 import macroid.viewable.{ Listable, SlottedListable }
 import macroid.{ ActivityContext, AppContext, Tweak }
@@ -23,21 +23,28 @@ class StoryElementListable(maxImageSize: Int) {
     class Slots {
       var imageView = slot[ImageView]
       var progress = slot[ProgressBar]
+      var caption = slot[TextView]
     }
 
     def makeSlots(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = {
       val slots = new Slots
-      val view = l[FrameLayout](
-        w[ImageView] <~ wire(slots.imageView) <~
-          ImageTweaks.adjustBounds <~ padding(top = 4 dp, bottom = 4 dp) <~ hide,
-        w[ProgressBar](null, android.R.attr.progressBarStyleLarge) <~ wire(slots.progress) <~
-          lp[FrameLayout](WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER)
+      val view = l[VerticalLinearLayout](
+        l[FrameLayout](
+          w[ImageView] <~ wire(slots.imageView) <~
+            ImageTweaks.adjustBounds <~ padding(top = 4 dp, bottom = 4 dp) <~ hide,
+          w[ProgressBar](null, android.R.attr.progressBarStyleLarge) <~ wire(slots.progress) <~
+            lp[FrameLayout](WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER)
+        ),
+        w[TextView] <~ wire(slots.caption) <~
+          TextTweaks.medium <~ hide <~
+          padding(all = 4 dp)
       )
       (view, slots)
     }
 
     def fillSlots(slots: Slots, data: Story.Image)(implicit ctx: ActivityContext, appCtx: AppContext) =
-      (slots.progress <~ show) ~
+      (slots.caption <~ data.caption.map(text) <~ show(data.caption.isDefined)) ~
+        (slots.progress <~ show) ~
         (slots.imageView <~~ data.data.map(_.bitmapTweak(maxImageSize))) ~~
         (slots.progress <~~ fadeOut(200)) ~
         (slots.imageView <~ fadeIn(500))

@@ -36,8 +36,7 @@ object Dictaphone {
   case object SwitchedOff
   case object ReadFrame
 
-  def processPiece(filename: String)(implicit ec: ExecutionContext) = future {
-    val pcmFile = new File(filename)
+  def processPiece(pcmFile: File)(implicit ctx: AppContext, ec: ExecutionContext) = future {
     val data = FileUtils.readFileToByteArray(pcmFile)
     pcmFile.delete()
 
@@ -55,7 +54,7 @@ object Dictaphone {
     shortBuffer.put(faded)
 
     /* encode to aac */
-    val aacFile = new File(filename + ".aac")
+    val aacFile = File.createTempFile("audio", ".aac", ctx.get.getExternalFilesDir(null))
     new AACEncoder {
       init(64000, 1, 44100, 16, aacFile.getAbsolutePath)
       encode(data)
@@ -112,7 +111,7 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
       dumpStream.write(buffer)
       dumpStream.close()
       // pipeTo, y u no work with ActorSelection?
-      processPiece(dump.getAbsolutePath).map(Story.Sound.apply) foreach { s ⇒ typewriter ! Typewriter.Element(s) }
+      processPiece(dump).map(Story.Sound.apply) foreach { s ⇒ typewriter ! Typewriter.Element(s) }
       goto(Idle) using NoData
     case Event(SwitchOff, RecordingData(ar, _)) ⇒
       ar.stop()

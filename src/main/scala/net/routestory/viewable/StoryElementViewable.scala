@@ -14,18 +14,25 @@ import macroid.{ Ui, AppContext, ActivityContext, Tweak }
 import macroid.contrib._
 import macroid.viewable.Viewable
 import net.routestory.data.Story
-import uk.co.senab.photoview.PhotoViewAttacher
+import uk.co.senab.photoview.PhotoView
 import net.routestory.util.BitmapPool.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.R
 import net.routestory.util.Implicits._
+import android.view.ViewGroup.LayoutParams._
 
 class StoryElementViewable(maxImageSize: Int) {
-  def imageViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.Image] { x ⇒
-    val bitmapTweak = x.data.map(_.bitmapTweak(maxImageSize) + Tweak[ImageView] { v ⇒
-      new PhotoViewAttacher(v).update()
-    })
-    w[ImageView] <~ ImageTweaks.adjustBounds <~ bitmapTweak <~ LpTweaks.matchParent
+  def imageViewable(implicit ctx: ActivityContext, appCtx: AppContext): Viewable[Story.Image, LinearLayout] = Viewable[Story.Image] { x ⇒
+    val bitmapTweak = x.data.map(_.bitmapTweak(maxImageSize))
+    l[VerticalLinearLayout](
+      w[PhotoView] <~ bitmapTweak <~
+        ImageTweaks.adjustBounds <~
+        lp[LinearLayout](MATCH_PARENT, MATCH_PARENT, 1.0f),
+      w[TextView] <~ x.caption.map(text).getOrElse(hide) <~
+        TextTweaks.color(Color.WHITE) <~
+        TextTweaks.medium <~
+        padding(all = 4 dp)
+    )
   }
 
   def textNoteViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable.text {

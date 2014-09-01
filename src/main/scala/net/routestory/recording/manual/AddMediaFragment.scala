@@ -73,7 +73,21 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     if (requestCode == requestCodePhoto && resultCode == Activity.RESULT_OK) {
       lastPhotoFile foreach { file ⇒
         MediaScannerConnection.scanFile(getActivity.getApplicationContext, Array(file.getAbsolutePath), null, null)
-        typewriter.foreach(_ ! Typewriter.Element(Story.Photo(None, file)))
+        var caption = slot[EditText]
+        runUi {
+          dialog {
+            w[EditText] <~ Tweak[EditText] { x ⇒
+              x.setHint("Type a caption here")
+              x.setMinLines(5)
+              x.setGravity(Gravity.TOP)
+            } <~ wire(caption)
+          } <~ positiveOk(Ui {
+            val cap = caption.map(_.getText.toString).filter(_.nonEmpty)
+            typewriter.foreach(_ ! Typewriter.Element(Story.Photo(cap, file)))
+          }) <~ negative("No caption")(Ui {
+            typewriter.foreach(_ ! Typewriter.Element(Story.Photo(None, file)))
+          }) <~ speak
+        }
       }
       lastPhotoFile = None
     }
@@ -94,7 +108,7 @@ class AddTextNote extends AddSomething {
       x.setGravity(Gravity.TOP)
     } <~ wire(input)
   } <~ positiveOk(Ui {
-    Some(input.get.getText.toString).filter(!_.isEmpty).foreach { text ⇒
+    input.map(_.getText.toString).filter(_.nonEmpty).foreach { text ⇒
       typewriter.foreach(_ ! Typewriter.Element(Story.TextNote(text)))
     }
   }) <~ negativeCancel(Ui.nop)).create()
