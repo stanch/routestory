@@ -112,7 +112,6 @@ class Suggester(apis: Apis) extends FragmentActor[SuggestionsFragment] with Acto
       venues zip flickrPhotos zip instagramPhotos pipeTo self
 
     case ((FoursquareVenues(venues), FlickrPhotos(flickrPhotos)), InstagramPhotos(instagramPhotos)) ⇒
-      log.debug(s"Received $venues, $flickrPhotos, $instagramPhotos")
       val elements = interleave(List(venues, flickrPhotos, instagramPhotos)).take(10)
       withUi(_.showElements(elements))
 

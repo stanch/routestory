@@ -2,10 +2,9 @@ package net.routestory.recording.manual
 
 import java.io.File
 
+import akka.util.Timeout
 import android.app.Activity
-import android.content.Intent
-import android.graphics.Color
-import android.media.MediaScannerConnection.OnScanCompletedListener
+import android.content.{ DialogInterface, Intent }
 import android.media.{ MediaScannerConnection, MediaRecorder }
 import android.net.Uri
 import android.os.{ Environment, Bundle }
@@ -15,13 +14,15 @@ import android.view.{ Gravity, LayoutInflater, ViewGroup }
 import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.Layouts.HorizontalLinearLayout
-import macroid.contrib.{ LpTweaks, ImageTweaks, ListTweaks, TextTweaks }
+import macroid.contrib.{ LpTweaks, ImageTweaks, TextTweaks }
 import macroid.viewable.Listable
 import macroid.{ IdGeneration, Transformer, Tweak, Ui }
 import net.routestory.R
 import net.routestory.data.Story
+import net.routestory.recording.logged.Dictaphone
 import net.routestory.recording.{ Typewriter, RecordFragment }
 import net.routestory.ui.RouteStoryFragment
+import akka.pattern.ask
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -34,7 +35,6 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
   var lastPhotoFile: Option[File] = None
 
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
-  lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
   val requestCodePhoto = 0
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
@@ -115,14 +115,18 @@ class AddTextNote extends AddSomething {
 }
 
 class AddVoiceNote extends AddSomething {
-  val mediaRecorder = new MediaRecorder {
-    setAudioSource(AudioSource.MIC)
-    setOutputFormat(OutputFormat.MPEG_4)
-    setAudioEncoder(AudioEncoder.AAC)
-    setOutputFile(voiceNoteFile.getAbsolutePath)
-    prepare()
-    start()
-  }
+  implicit val dictaphoneSwitchOffTimeout = Timeout(2000)
+  lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
+
+  lazy val mediaRecorder = dictaphone.flatMap(_ ? Dictaphone.SwitchOff)
+    .map(_ ⇒ new MediaRecorder {
+      setAudioSource(AudioSource.MIC)
+      setOutputFormat(OutputFormat.MPEG_4)
+      setAudioEncoder(AudioEncoder.AAC)
+      setOutputFile(voiceNoteFile.getAbsolutePath)
+      prepare()
+      start()
+    })
 
   lazy val voiceNoteFile = {
     val root = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "RouteStory")
@@ -131,8 +135,21 @@ class AddVoiceNote extends AddSomething {
   }
 
   def stop = Ui {
-    mediaRecorder.stop()
-    mediaRecorder.release()
+    dictaphone.foreach(_ ! Dictaphone.SwitchOn)
+    mediaRecorder.foreach { m ⇒
+      m.stop()
+      m.release()
+    }
+  }
+
+  override def onDismiss(dialog: DialogInterface) = {
+    stop.run
+    super.onDismiss(dialog)
+  }
+
+  override def onStart() = {
+    super.onStart()
+    mediaRecorder // touch
   }
 
   override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {

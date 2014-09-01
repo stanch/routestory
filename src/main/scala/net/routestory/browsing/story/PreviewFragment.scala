@@ -40,7 +40,7 @@ class PreviewFragment extends RouteStoryFragment with AkkaFragment {
   def focus(focus: Int) = pager <~ PagerTweaks.page(focus, smoothScroll = true)
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
-    w[ViewPager] <~ BgTweaks.color(Color.BLACK) <~ padding(all = 4 dp) <~ wire(pager)
+    w[ViewPager] <~ BgTweaks.color(Color.BLACK) <~ padding(all = 6 dp) <~ wire(pager)
   }
 }
 
