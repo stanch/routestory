@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.{ Environment, Bundle }
 import android.provider.MediaStore
 import android.support.v4.app.DialogFragment
+import android.util.Log
 import android.view.{ Gravity, LayoutInflater, ViewGroup }
 import android.widget._
 import macroid.FullDsl._
@@ -25,6 +26,7 @@ import net.routestory.ui.RouteStoryFragment
 import akka.pattern.ask
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordFragment {
   def photoFile = {
@@ -32,7 +34,6 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     root.mkdirs()
     File.createTempFile("photo", ".jpg", root)
   }
-  var lastPhotoFile: Option[File] = None
 
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
   val requestCodePhoto = 0
@@ -42,10 +43,10 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
       factory.map(_.show(getChildFragmentManager, tag))
 
     val cameraClicker = Ui {
-      lastPhotoFile = Some(photoFile)
+      activity.lastPhotoFile = Some(photoFile)
       val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(lastPhotoFile.get))
-      startActivityForResult(intent, requestCodePhoto)
+      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(activity.lastPhotoFile.get))
+      getActivity.startActivityForResult(intent, requestCodePhoto)
     }
 
     val buttons = Seq(
@@ -66,31 +67,6 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     })
 
     w[ListView] <~ listable.listAdapterTweak(buttons)
-  }
-
-  override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) = {
-    super.onActivityResult(requestCode, resultCode, data)
-    if (requestCode == requestCodePhoto && resultCode == Activity.RESULT_OK) {
-      lastPhotoFile foreach { file ⇒
-        MediaScannerConnection.scanFile(getActivity.getApplicationContext, Array(file.getAbsolutePath), null, null)
-        var caption = slot[EditText]
-        runUi {
-          dialog {
-            w[EditText] <~ Tweak[EditText] { x ⇒
-              x.setHint("Type a caption here")
-              x.setMinLines(5)
-              x.setGravity(Gravity.TOP)
-            } <~ wire(caption)
-          } <~ positiveOk(Ui {
-            val cap = caption.map(_.getText.toString).filter(_.nonEmpty)
-            typewriter.foreach(_ ! Typewriter.Element(Story.Photo(cap, file)))
-          }) <~ negative("No caption")(Ui {
-            typewriter.foreach(_ ! Typewriter.Element(Story.Photo(None, file)))
-          }) <~ speak
-        }
-      }
-      lastPhotoFile = None
-    }
   }
 }
 
@@ -118,15 +94,7 @@ class AddVoiceNote extends AddSomething {
   implicit val dictaphoneSwitchOffTimeout = Timeout(2000)
   lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
 
-  lazy val mediaRecorder = dictaphone.flatMap(_ ? Dictaphone.SwitchOff)
-    .map(_ ⇒ new MediaRecorder {
-      setAudioSource(AudioSource.MIC)
-      setOutputFormat(OutputFormat.MPEG_4)
-      setAudioEncoder(AudioEncoder.AAC)
-      setOutputFile(voiceNoteFile.getAbsolutePath)
-      prepare()
-      start()
-    })
+  var mediaRecorder: Option[Future[MediaRecorder]] = None
 
   lazy val voiceNoteFile = {
     val root = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "RouteStory")
@@ -136,10 +104,12 @@ class AddVoiceNote extends AddSomething {
 
   def stop = Ui {
     dictaphone.foreach(_ ! Dictaphone.SwitchOn)
-    mediaRecorder.foreach { m ⇒
+    mediaRecorder.foreach(_.foreachUi { m ⇒
       m.stop()
+      m.reset()
       m.release()
-    }
+      mediaRecorder = None
+    })
   }
 
   override def onDismiss(dialog: DialogInterface) = {
@@ -149,7 +119,17 @@ class AddVoiceNote extends AddSomething {
 
   override def onStart() = {
     super.onStart()
-    mediaRecorder // touch
+    mediaRecorder = Some {
+      dictaphone.flatMap(_ ? Dictaphone.SwitchOff)
+        .mapUi(_ ⇒ new MediaRecorder {
+          setAudioSource(AudioSource.MIC)
+          setOutputFormat(OutputFormat.MPEG_4)
+          setAudioEncoder(AudioEncoder.AAC)
+          setOutputFile(voiceNoteFile.getAbsolutePath)
+          prepare()
+          start()
+        })
+    }
   }
 
   override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {

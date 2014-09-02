@@ -75,7 +75,9 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
   startWith(Idle, NoData)
 
   when(Off) {
-    case Event(SwitchOn, _) ⇒ goto(Idle)
+    case Event(SwitchOn, _) ⇒
+      log.debug("Switching on")
+      goto(Idle)
     case Event(SwitchOff, _) ⇒
       sender ! SwitchedOff; stay()
     case _ ⇒ stay()
@@ -84,6 +86,7 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
   when(Idle, stateTimeout = gapDuration) {
     case Event(SwitchOff, _) ⇒
       sender ! SwitchedOff
+      log.debug("Switching off")
       goto(Off)
     case Event(StateTimeout, _) ⇒
       log.debug("Start recording")
@@ -105,6 +108,7 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
       stay() using RecordingData(ar, off)
     case Event(ReadFrame, RecordingData(ar, _)) ⇒
       ar.stop()
+      ar.release()
       log.debug("Saving record")
       val dump = File.createTempFile("audio-sample", ".snd", ctx.get.getExternalCacheDir)
       val dumpStream = new FileOutputStream(dump)
@@ -115,7 +119,9 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
       goto(Idle) using NoData
     case Event(SwitchOff, RecordingData(ar, _)) ⇒
       ar.stop()
+      ar.release()
       sender ! SwitchedOff
+      log.debug("Switching off")
       goto(Off) using NoData
   }
 

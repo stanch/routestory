@@ -1,17 +1,22 @@
 package net.routestory.recording
 
+import java.io.File
+
 import akka.actor.ActorSystem
+import android.app.Activity
 import android.content.{ ComponentName, Context, Intent, ServiceConnection }
+import android.media.MediaScannerConnection
 import android.os.{ Bundle, IBinder }
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
-import android.view.{ Menu, MenuItem }
-import android.widget.{ TextView, RatingBar, ProgressBar }
+import android.view.{ Gravity, Menu, MenuItem }
+import android.widget.{ EditText, TextView, RatingBar, ProgressBar }
 import macroid.FullDsl._
 import macroid.{ Tweak, IdGeneration, Ui }
 import macroid.contrib.Layouts.VerticalLinearLayout
 import macroid.contrib.{ TextTweaks, LpTweaks, PagerTweaks }
 import net.routestory.R
+import net.routestory.data.Story
 import net.routestory.editing.EditActivity
 import net.routestory.recording.manual.AddMediaFragment
 import net.routestory.recording.suggest.SuggestionsFragment
@@ -23,6 +28,7 @@ import scala.concurrent.Promise
 
 trait RecordFragment { self: Fragment ⇒
   lazy val actorSystem = getActivity.asInstanceOf[RecordActivity].actorSystem.future
+  def activity = getActivity.asInstanceOf[RecordActivity]
 }
 
 class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentPaging {
@@ -34,9 +40,15 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
   val cartographer = actorSystem.future.map(_.actorSelection("/user/cartographer"))
 
   val firstLocation = Promise[Unit]()
+  var lastPhotoFile: Option[File] = None
+  val requestCodePhoto = 0
 
   override def onCreate(savedInstanceState: Bundle) = {
     super.onCreate(savedInstanceState)
+    lastPhotoFile = for {
+      sis ← Option(savedInstanceState)
+      lpf ← Option(sis.getString("lastPhotoFile"))
+    } yield new File(lpf)
 
     setContentView(getUi {
       l[VerticalLinearLayout](
@@ -143,5 +155,35 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
   override def onCreateOptionsMenu(menu: Menu) = {
     getMenuInflater.inflate(R.menu.activity_record, menu)
     true
+  }
+
+  override def onSaveInstanceState(outState: Bundle): Unit = {
+    super.onSaveInstanceState(outState)
+    lastPhotoFile.foreach(f ⇒ outState.putString("lastPhotoFile", f.getAbsolutePath))
+  }
+
+  override def onActivityResult(requestCode: Int, resultCode: Int, data: Intent) = {
+    super.onActivityResult(requestCode, resultCode, data)
+    if (requestCode == requestCodePhoto && resultCode == Activity.RESULT_OK) {
+      lastPhotoFile foreach { file ⇒
+        lastPhotoFile = None
+        MediaScannerConnection.scanFile(getApplicationContext, Array(file.getAbsolutePath), null, null)
+        var caption = slot[EditText]
+        runUi {
+          dialog {
+            w[EditText] <~ Tweak[EditText] { x ⇒
+              x.setHint("Type a caption here")
+              x.setMinLines(5)
+              x.setGravity(Gravity.TOP)
+            } <~ wire(caption)
+          } <~ positiveOk(Ui {
+            val cap = caption.map(_.getText.toString).filter(_.nonEmpty)
+            typewriter.foreach(_ ! Typewriter.Element(Story.Photo(cap, file)))
+          }) <~ negative("No caption")(Ui {
+            typewriter.foreach(_ ! Typewriter.Element(Story.Photo(None, file)))
+          }) <~ speak
+        }
+      }
+    }
   }
 }
