@@ -47,19 +47,22 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
     case x: Story.FoursquareVenue ⇒ "a Foursquare venue"
   }
 
+  def cluster() = Future {
+    tree.map(t ⇒ Clustering.appendLast(t, chapter))
+      .orElse(Clustering.cluster(chapter))
+  }.map(Cluster).pipeTo(self)
+
   def receive = {
     case Element(element) ⇒
       chapter = chapter.withElement(Timed(chapter.ts, element))
-      Future {
-        tree.map(t ⇒ Clustering.appendLast(t, chapter))
-          .orElse(Clustering.cluster(chapter))
-      }.map(Cluster).pipeTo(self)
+      cluster()
       runUi {
         toast(s"Added ${elementName(element)}") <~ fry
       }
 
     case Location(location) ⇒
       chapter = chapter.withLocation(Timed(chapter.ts, location))
+      if (chapter.locations.length == 1) cluster()
       cartographer ! Cartographer.UpdateRoute(chapter)
 
     case Easiness(easiness) ⇒
