@@ -121,7 +121,7 @@ class Suggester(apis: Apis) extends FragmentActor[SuggestionsFragment] with Acto
 
       val venues = apis.foursquareApi.nearbyVenues(location, 100).go.recoverWithNil.map(FoursquareVenues)
       val flickrPhotos = apis.flickrApi.nearbyPhotos(location, 1).go.recoverWithNil.map(FlickrPhotos)
-      val instagramPhotos = apis.instagramApi.nearbyPhotos(location, 1000).go.recoverWithNil.map(InstagramPhotos)
+      val instagramPhotos = apis.instagramApi.nearbyPhotos(location, 100).go.recoverWithNil.map(InstagramPhotos)
       venues zip flickrPhotos zip instagramPhotos pipeTo self
 
     case ((FoursquareVenues(venues), FlickrPhotos(flickrPhotos)), InstagramPhotos(instagramPhotos)) ⇒

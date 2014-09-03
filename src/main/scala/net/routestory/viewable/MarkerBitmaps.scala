@@ -1,18 +1,24 @@
 package net.routestory.viewable
 
 import android.graphics.{ BitmapFactory, Bitmap }
+import android.util.LruCache
+import com.google.android.gms.maps.model.Marker
 import macroid.{ ActivityContext, AppContext }
 import net.routestory.R
 import net.routestory.data.{ Timed, Story, Clustering }
 import net.routestory.util.BitmapPool.Implicits._
-import net.routestory.util.BitmapUtils
+import net.routestory.util.BitmapPool._
 import net.routestory.util.BitmapUtils.MagicGrid
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 object MarkerBitmaps {
+  val stockCache = new LruCache[Int, Bitmap](4)
+
   def stock(res: Int)(implicit appCtx: AppContext) = Future.successful {
-    BitmapFactory.decodeResource(appCtx.get.getResources, res)
+    stockCache.getOrPut(res, !_.isRecycled) {
+      BitmapFactory.decodeResource(appCtx.get.getResources, res)
+    }
   }
 
   def tp[A](leaf: Clustering.Leaf[A]) = leaf.element.data match {
@@ -23,38 +29,29 @@ object MarkerBitmaps {
     case _: Story.Image ⇒ None
   }
 
-  type BitmapCache = Map[Clustering.Tree[Unit], Future[Bitmap]]
+  val bitmapCache = new LruCache[Clustering.Tree[Marker], Future[Bitmap]](10)
 
-  def withBitmaps(maxSize: Int, cached: BitmapCache)(tree: Clustering.Tree[Unit])(implicit ctx: ActivityContext, appCtx: AppContext, ec: ExecutionContext): (Clustering.Tree[Future[Bitmap]], BitmapCache) = tree match {
-    case x @ Clustering.Leaf(Timed(_, _: Story.VoiceNote), _, _, _) ⇒
-      x.withData(stock(R.drawable.ic_action_mic)) → Map.empty
-    case x @ Clustering.Leaf(Timed(_, _: Story.Sound), _, _, _) ⇒
-      x.withData(stock(R.drawable.ic_action_volume_on)) → Map.empty
-    case x @ Clustering.Leaf(Timed(_, _: Story.TextNote), _, _, _) ⇒
-      x.withData(stock(R.drawable.ic_action_view_as_list)) → Map.empty
-    case x @ Clustering.Leaf(Timed(_, _: Story.FoursquareVenue), _, _, _) ⇒
-      x.withData(stock(R.drawable.foursquare)) → Map.empty
+  def bitmap(maxSize: Int)(tree: Clustering.Tree[Marker])(implicit ctx: ActivityContext, appCtx: AppContext, ec: ExecutionContext): Future[Bitmap] = tree match {
+    case x @ Clustering.Leaf(Timed(_, _: Story.VoiceNote), _, _, _) ⇒ stock(R.drawable.ic_action_mic)
+    case x @ Clustering.Leaf(Timed(_, _: Story.Sound), _, _, _) ⇒ stock(R.drawable.ic_action_volume_on)
+    case x @ Clustering.Leaf(Timed(_, _: Story.TextNote), _, _, _) ⇒ stock(R.drawable.ic_action_view_as_list)
+    case x @ Clustering.Leaf(Timed(_, _: Story.FoursquareVenue), _, _, _) ⇒ stock(R.drawable.foursquare)
 
     case x @ Clustering.Leaf(Timed(_, img: Story.Image), _, _, _) ⇒
-      val bitmap = cached.getOrElse(x, img.data.map(_.bitmap(maxSize)))
-      x.withData(bitmap) → Map(x → bitmap)
+      bitmapCache.getOrPut(x)(img.data.map(_.bitmap(maxSize)))
 
     case x @ Clustering.Node(_, _, _, _) ⇒
-      val (children, caches) = x.children.map(withBitmaps(maxSize, cached)).unzip
-      val intermediate = x.withChildren(children, Future.failed(new Exception))
-      val bitmap = cached.getOrElse(x, {
-        val bitmaps = intermediate.leaves.groupBy(tp).toVector.sortBy(_._1.fold(0)(_ ⇒ 1)).flatMap {
+      // no sense in caching composite bitmaps
+      bitmapCache.getOrElse(x) {
+        val bitmaps = x.leaves.groupBy(tp).toVector.sortBy(_._1.fold(0)(_ ⇒ 1)).flatMap {
           case (None, items) ⇒
-            items.map(_.data)
+            items.map(bitmap(maxSize))
           case (_, items @ Vector(i)) ⇒
-            items.take(1).map(_.data)
+            items.take(1).map(bitmap(maxSize))
           case (_, items @ Vector(i, j, _*)) ⇒
-            items.take(1).map(_.data)
-          //items.take(1).map(_.data.map(BitmapUtils.createCountedBitmap(_, items.length)))
+            items.take(1).map(bitmap(maxSize))
         }
         Future.sequence(bitmaps).map(MagicGrid.create(_, maxSize))
-      })
-
-      intermediate.withData(bitmap) → (caches.reduce(_ ++ _) ++ Map(x → bitmap))
+      }
   }
 }

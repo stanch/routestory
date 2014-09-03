@@ -25,11 +25,6 @@ import net.routestory.ui.Styles._
 import net.routestory.util.Implicits._
 import rx.{ Obs, Rx, Var }
 
-object DiveFragment {
-  val photoDuration = 1500
-  val photoFade = 300
-}
-
 class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneration {
   lazy val actor = Some(actorSystem.actorSelection("/user/diver"))
   lazy val coordinator = actorSystem.actorSelection("/user/coordinator")

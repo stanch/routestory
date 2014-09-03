@@ -24,7 +24,6 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
   var markerTree: Option[Clustering.Tree[Marker]] = None
   var currentTrees: Vector[Clustering.Tree[Marker]] = Vector.empty
   var markers: Map[Marker, Clustering.Tree[Marker]] = Map.empty
-  var bitmaps: MarkerBitmaps.BitmapCache = Map.empty
 
   val iconSize = 100.dp
 
@@ -72,21 +71,18 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
     manMarker = None
   }
 
+  import BitmapDescriptorFactory.{ fromBitmap ⇒ iconBitmap, fromResource ⇒ iconResource }
+
   def addMarkers(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]]) = Ui {
     lastZoom = 0f
-    val withBitmaps = tree.map(MarkerBitmaps.withBitmaps(iconSize, bitmaps))
-    val bitmapTree = withBitmaps.map(_._1)
-    bitmaps = withBitmaps.map(_._2).getOrElse(Map.empty)
-    markerTree = bitmapTree.map(_.map { x ⇒
-      val marker = map.addMarker(new MarkerOptions().position(x.location)
-        .anchor(0.5f, 1f).alpha(iconAlpha)
-        .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_action_place)).visible(false)
+    markerTree = tree.map(_.map { x ⇒
+      map.addMarker(new MarkerOptions()
+        .position(x.location)
+        .anchor(0.5f, 1f)
+        .alpha(iconAlpha)
+        .icon(iconResource(R.drawable.ic_action_place))
+        .visible(false)
       )
-      x.data.map(BitmapUtils.cardFrame) foreachUi { b ⇒
-        if (centerIcons) marker.setAnchor(0.5f, 0.5f)
-        marker.setIcon(BitmapDescriptorFactory.fromBitmap(b))
-      }
-      marker
     })
     markerTree.foreach(_.foreach { x ⇒
       markers += (x.data → x)
@@ -97,10 +93,25 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
   }
 
   def markersAtScale(scale: Double) = Ui {
-    markers.keys.foreach(_.setVisible(false))
     markerTree foreach { t ⇒
-      currentTrees = t.childrenAtScale(scale)
-      currentTrees.foreach(_.data.setVisible(true))
+      val newCurrentTrees = t.childrenAtScale(scale)
+      (currentTrees diff newCurrentTrees).foreach { ct ⇒
+        ct.data.setVisible(false)
+        ct.data.setIcon(iconResource(R.drawable.ic_action_place))
+        ct.data.setAnchor(0.5f, 1f)
+      }
+      (newCurrentTrees diff currentTrees).foreach { ct ⇒
+        // show a dummy marker only if there was nothing at all before
+        if (currentTrees.isEmpty) ct.data.setVisible(true)
+        MarkerBitmaps.bitmap(iconSize)(ct)
+          .map(BitmapUtils.cardFrame)
+          .foreachUi { bitmap ⇒
+            if (centerIcons) ct.data.setAnchor(0.5f, 0.5f)
+            ct.data.setIcon(iconBitmap(bitmap))
+            ct.data.setVisible(true)
+          }
+      }
+      currentTrees = newCurrentTrees
     }
   }
 

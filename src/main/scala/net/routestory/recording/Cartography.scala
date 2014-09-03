@@ -77,7 +77,10 @@ class Cartographer extends FragmentActor[CartographyFragment] with ActorLogging 
       withUi(_.mapManager.addRoute(chapter))
 
     case UpdateMarkers(chapter, tree) ⇒
-      withUi(_.mapManager.addMarkers(chapter, tree))
+      withUi { f ⇒
+        f.mapManager.removeMarkers() ~
+          f.mapManager.addMarkers(chapter, tree)
+      }
 
     case Locate(location) if location.getAccuracy < 20 ⇒
       last = Some(location)
