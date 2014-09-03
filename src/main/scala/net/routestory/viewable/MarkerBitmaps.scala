@@ -29,27 +29,25 @@ object MarkerBitmaps {
     case _: Story.Image ⇒ None
   }
 
-  val bitmapCache = new LruCache[Clustering.Tree[Marker], Future[Bitmap]](10)
-
-  def bitmap(maxSize: Int)(tree: Clustering.Tree[Marker])(implicit ctx: ActivityContext, appCtx: AppContext, ec: ExecutionContext): Future[Bitmap] = tree match {
+  def bitmap(maxSize: Int, cache: LruCache[Clustering.Tree[Marker], Future[Bitmap]])(tree: Clustering.Tree[Marker])(implicit ctx: ActivityContext, appCtx: AppContext, ec: ExecutionContext): Future[Bitmap] = tree match {
     case x @ Clustering.Leaf(Timed(_, _: Story.VoiceNote), _, _, _) ⇒ stock(R.drawable.ic_action_mic)
     case x @ Clustering.Leaf(Timed(_, _: Story.Sound), _, _, _) ⇒ stock(R.drawable.ic_action_volume_on)
     case x @ Clustering.Leaf(Timed(_, _: Story.TextNote), _, _, _) ⇒ stock(R.drawable.ic_action_view_as_list)
     case x @ Clustering.Leaf(Timed(_, _: Story.FoursquareVenue), _, _, _) ⇒ stock(R.drawable.foursquare)
 
     case x @ Clustering.Leaf(Timed(_, img: Story.Image), _, _, _) ⇒
-      bitmapCache.getOrPut(x)(img.data.map(_.bitmap(maxSize)))
+      cache.getOrPut(x)(img.data.map(_.bitmap(maxSize)))
 
     case x @ Clustering.Node(_, _, _, _) ⇒
       // no sense in caching composite bitmaps
-      bitmapCache.getOrElse(x) {
+      cache.getOrElse(x) {
         val bitmaps = x.leaves.groupBy(tp).toVector.sortBy(_._1.fold(0)(_ ⇒ 1)).flatMap {
           case (None, items) ⇒
-            items.map(bitmap(maxSize))
+            items.map(bitmap(maxSize, cache))
           case (_, items @ Vector(i)) ⇒
-            items.take(1).map(bitmap(maxSize))
+            items.take(1).map(bitmap(maxSize, cache))
           case (_, items @ Vector(i, j, _*)) ⇒
-            items.take(1).map(bitmap(maxSize))
+            items.take(1).map(bitmap(maxSize, cache))
         }
         Future.sequence(bitmaps).map(MagicGrid.create(_, maxSize))
       }

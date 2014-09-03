@@ -1,5 +1,7 @@
 package net.routestory.browsing.story
 
+import android.graphics.Bitmap
+import android.util.{ Log, LruCache }
 import com.google.android.gms.maps.model._
 import com.google.android.gms.maps.{ CameraUpdateFactory, GoogleMap }
 import com.javadocmd.simplelatlng.LatLngTool
@@ -15,12 +17,14 @@ import net.routestory.viewable.MarkerBitmaps
 
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean = true)(implicit ctx: ActivityContext, appCtx: AppContext) {
   var route: Option[Polyline] = None
   var startMarker: Option[Marker] = None
   var manMarker: Option[Marker] = None
 
+  val bitmapCache = new LruCache[Clustering.Tree[Marker], Future[Bitmap]](10)
   var markerTree: Option[Clustering.Tree[Marker]] = None
   var currentTrees: Vector[Clustering.Tree[Marker]] = Vector.empty
   var markers: Map[Marker, Clustering.Tree[Marker]] = Map.empty
@@ -74,7 +78,6 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
   import BitmapDescriptorFactory.{ fromBitmap ⇒ iconBitmap, fromResource ⇒ iconResource }
 
   def addMarkers(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]]) = Ui {
-    lastZoom = 0f
     markerTree = tree.map(_.map { x ⇒
       map.addMarker(new MarkerOptions()
         .position(x.location)
@@ -94,24 +97,26 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
 
   def markersAtScale(scale: Double) = Ui {
     markerTree foreach { t ⇒
-      val newCurrentTrees = t.childrenAtScale(scale)
-      (currentTrees diff newCurrentTrees).foreach { ct ⇒
+      val newTrees = t.childrenAtScale(scale)
+      (currentTrees diff newTrees).foreach { ct ⇒
         ct.data.setVisible(false)
+        ct.data.setAlpha(0)
         ct.data.setIcon(iconResource(R.drawable.ic_action_place))
         ct.data.setAnchor(0.5f, 1f)
       }
-      (newCurrentTrees diff currentTrees).foreach { ct ⇒
+      (newTrees diff currentTrees).foreach { ct ⇒
         // show a dummy marker only if there was nothing at all before
-        if (currentTrees.isEmpty) ct.data.setVisible(true)
-        MarkerBitmaps.bitmap(iconSize)(ct)
+        if (currentTrees.isEmpty) ct.data.setAlpha(iconAlpha)
+        ct.data.setVisible(true)
+        MarkerBitmaps.bitmap(iconSize, bitmapCache)(ct)
           .map(BitmapUtils.cardFrame)
           .foreachUi { bitmap ⇒
             if (centerIcons) ct.data.setAnchor(0.5f, 0.5f)
             ct.data.setIcon(iconBitmap(bitmap))
-            ct.data.setVisible(true)
+            ct.data.setAlpha(iconAlpha)
           }
       }
-      currentTrees = newCurrentTrees
+      currentTrees = newTrees
     }
   }
 
@@ -120,6 +125,8 @@ class MapManager(map: GoogleMap, iconAlpha: Float = 1.0f, centerIcons: Boolean =
     markers = Map.empty
     markerTree = None
     currentTrees = Vector.empty
+    bitmapCache.evictAll()
+    lastZoom = 0f
   }
 
   def remove() = removeRoute() ~ removeMarkers()
