@@ -5,6 +5,8 @@ import java.io.{ File, FileInputStream }
 import android.graphics.Bitmap.Config
 import android.graphics.Paint.Align
 import android.graphics._
+import android.media.ExifInterface
+import android.provider.MediaStore
 import android.support.v7.widget.CardView
 import macroid.{ AppContext, ActivityContext }
 import net.routestory.R
@@ -32,7 +34,29 @@ object BitmapUtils {
     val temp = BitmapFactory.decodeStream(new FileInputStream(f), null, o2)
     val scaled = createScaledBitmap(temp, size)
     if (scaled ne temp) temp.recycle()
-    scaled
+
+    getOrientation(f) match {
+      case ExifInterface.ORIENTATION_ROTATE_90 ⇒
+        rotateBitmap(scaled, 90)
+      case ExifInterface.ORIENTATION_ROTATE_270 ⇒
+        rotateBitmap(scaled, 270)
+      case ExifInterface.ORIENTATION_ROTATE_180 ⇒
+        rotateBitmap(scaled, 180)
+      case _ ⇒ scaled
+    }
+  }
+
+  def getOrientation(f: File) = {
+    val exif = new ExifInterface(f.getAbsolutePath)
+    exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+  }
+
+  def rotateBitmap(bitmap: Bitmap, degrees: Float) = {
+    val matrix = new Matrix
+    matrix.postRotate(degrees)
+    val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth, bitmap.getHeight, matrix, true)
+    if (rotated ne bitmap) bitmap.recycle()
+    rotated
   }
 
   def createScaledBitmap(bitmap: Bitmap, size: Int) = {

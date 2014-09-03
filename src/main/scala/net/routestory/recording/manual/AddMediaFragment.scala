@@ -36,7 +36,6 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
   }
 
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
-  val requestCodePhoto = 0
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     def clicker(factory: Ui[DialogFragment], tag: String) =
@@ -46,7 +45,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
       activity.lastPhotoFile = Some(photoFile)
       val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
       intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(activity.lastPhotoFile.get))
-      getActivity.startActivityForResult(intent, requestCodePhoto)
+      getActivity.startActivityForResult(intent, activity.requestCodePhoto)
     }
 
     val buttons = Seq(
