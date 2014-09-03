@@ -18,7 +18,7 @@ import macroid.contrib.{ TextTweaks, LpTweaks, PagerTweaks }
 import net.routestory.R
 import net.routestory.data.Story
 import net.routestory.editing.EditActivity
-import net.routestory.recording.manual.AddMediaFragment
+import net.routestory.recording.manual.{ AddEasiness, AddPhotoCaption, AddMediaFragment }
 import net.routestory.recording.suggest.SuggestionsFragment
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.Shortuuid
@@ -97,23 +97,6 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
     }
   }
 
-  def rateEasiness = {
-    var rating = slot[RatingBar]
-    dialog {
-      l[VerticalLinearLayout](
-        w[TextView] <~ text("How easy was it?") <~
-          TextTweaks.large <~ padding(all = 4 dp),
-        w[RatingBar] <~ wire(rating) <~
-          Tweak[RatingBar](_.setNumStars(5)) <~
-          LpTweaks.wrapContent
-      )
-    } <~
-      positiveOk {
-        Ui(typewriter.map(_ ! Typewriter.Easiness(rating.get.getRating))) ~~ save
-      } <~
-      speak
-  }
-
   def save = {
     val id = Shortuuid.make("story")
     val done = Promise[Unit]()
@@ -136,7 +119,7 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
     case R.id.finish ⇒
       runUi {
         dialog("Do you want to finish and save the story?") <~
-          positiveOk(rateEasiness) <~
+          positiveOk(f[AddEasiness].factory.map(_.show(getSupportFragmentManager, Tag.easiness))) <~
           negativeCancel(Ui.nop) <~
           speak
       }
@@ -168,20 +151,9 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
       lastPhotoFile foreach { file ⇒
         lastPhotoFile = None
         MediaScannerConnection.scanFile(getApplicationContext, Array(file.getAbsolutePath), null, null)
-        var caption = slot[EditText]
         runUi {
-          dialog {
-            w[EditText] <~ Tweak[EditText] { x ⇒
-              x.setHint("Type a caption here")
-              x.setMinLines(5)
-              x.setGravity(Gravity.TOP)
-            } <~ wire(caption)
-          } <~ positiveOk(Ui {
-            val cap = caption.map(_.getText.toString).filter(_.nonEmpty)
-            typewriter.foreach(_ ! Typewriter.Element(Story.Photo(cap, file)))
-          }) <~ negative("No caption")(Ui {
-            typewriter.foreach(_ ! Typewriter.Element(Story.Photo(None, file)))
-          }) <~ speak
+          f[AddPhotoCaption].pass("photoFile" → file.getAbsolutePath).factory
+            .map(_.show(getSupportFragmentManager, Tag.caption))
         }
       }
     }

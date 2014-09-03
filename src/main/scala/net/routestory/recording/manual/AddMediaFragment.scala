@@ -2,28 +2,26 @@ package net.routestory.recording.manual
 
 import java.io.File
 
+import akka.pattern.ask
 import akka.util.Timeout
-import android.app.Activity
 import android.content.{ DialogInterface, Intent }
-import android.media.{ MediaScannerConnection, MediaRecorder }
+import android.media.MediaRecorder
 import android.net.Uri
-import android.os.{ Environment, Bundle }
+import android.os.{ Bundle, Environment }
 import android.provider.MediaStore
 import android.support.v4.app.DialogFragment
-import android.util.Log
 import android.view.{ Gravity, LayoutInflater, ViewGroup }
 import android.widget._
 import macroid.FullDsl._
-import macroid.contrib.Layouts.HorizontalLinearLayout
-import macroid.contrib.{ LpTweaks, ImageTweaks, TextTweaks }
+import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
+import macroid.contrib.{ ImageTweaks, LpTweaks, TextTweaks }
 import macroid.viewable.Listable
 import macroid.{ IdGeneration, Transformer, Tweak, Ui }
 import net.routestory.R
 import net.routestory.data.Story
 import net.routestory.recording.logged.Dictaphone
-import net.routestory.recording.{ Typewriter, RecordFragment }
+import net.routestory.recording.{ RecordFragment, Typewriter }
 import net.routestory.ui.RouteStoryFragment
-import akka.pattern.ask
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -49,9 +47,9 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     }
 
     val buttons = Seq(
-      (R.drawable.ic_action_camera, "Take a picture", cameraClicker),
-      (R.drawable.ic_action_view_as_list, "Add a text note", clicker(f[AddTextNote].factory, Tag.noteDialog)),
-      (R.drawable.ic_action_mic, "Make a voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog))
+      (R.drawable.ic_action_camera, "Photo", cameraClicker),
+      (R.drawable.ic_action_view_as_list, "Text note", clicker(f[AddTextNote].factory, Tag.noteDialog)),
+      (R.drawable.ic_action_mic, "Voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog))
     )
 
     val listable = Listable[(Int, String, Ui[Unit])].tr {
@@ -89,6 +87,47 @@ class AddTextNote extends AddSomething {
   }) <~ negativeCancel(Ui.nop)).create()
 }
 
+class AddPhotoCaption extends AddSomething {
+  var input = slot[EditText]
+
+  lazy val photoFile = new File(getArguments.getString("photoFile"))
+
+  override def onCancel(dialog: DialogInterface) = {
+    typewriter.foreach(_ ! Typewriter.Element(Story.Photo(None, photoFile)))
+    super.onCancel(dialog)
+  }
+
+  override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
+    w[EditText] <~ Tweak[EditText] { x ⇒
+      x.setHint("Type a caption here")
+      x.setMinLines(5)
+      x.setGravity(Gravity.TOP)
+    } <~ wire(input)
+  } <~ positiveOk(Ui {
+    val cap = input.map(_.getText.toString).filter(_.nonEmpty)
+    typewriter.foreach(_ ! Typewriter.Element(Story.Photo(cap, photoFile)))
+  }) <~ negative("No caption")(Ui {
+    typewriter.foreach(_ ! Typewriter.Element(Story.Photo(None, photoFile)))
+  })).create()
+}
+
+class AddEasiness extends AddSomething {
+  setCancelable(false)
+  var rating = slot[RatingBar]
+
+  override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
+    l[VerticalLinearLayout](
+      w[TextView] <~ text("How easy was it?") <~
+        TextTweaks.large <~ padding(all = 4 dp),
+      w[RatingBar] <~ wire(rating) <~
+        Tweak[RatingBar](_.setNumStars(5)) <~
+        LpTweaks.wrapContent
+    )
+  } <~ positiveOk {
+    Ui(typewriter.map(_ ! Typewriter.Easiness(rating.get.getRating))) ~~ activity.save
+  }).create()
+}
+
 class AddVoiceNote extends AddSomething {
   implicit val dictaphoneSwitchOffTimeout = Timeout(2000)
   lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
@@ -111,9 +150,9 @@ class AddVoiceNote extends AddSomething {
     })
   }
 
-  override def onDismiss(dialog: DialogInterface) = {
+  override def onCancel(dialog: DialogInterface) = {
     stop.run
-    super.onDismiss(dialog)
+    super.onCancel(dialog)
   }
 
   override def onStart() = {

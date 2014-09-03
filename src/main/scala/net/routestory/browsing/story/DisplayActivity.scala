@@ -74,7 +74,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
     story // start loading
     (coordinator, timeliner, diver, previewer, astronaut, detailer) // start actors
 
-    setContentView(getUi(drawer(
+    setContentView(getUi(
       l[VerticalLinearLayout](
         activityProgress <~ wire(progress),
         getTabs(
@@ -84,7 +84,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
           "Details" → f[DetailsFragment].factory
         )
       )
-    )))
+    ))
 
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
