@@ -25,7 +25,7 @@ class Locator(implicit ctx: AppContext) {
 
   object connectionCallbacks extends ConnectionCallbacks {
     def onConnected(bundle: Bundle) = locationClient.requestLocationUpdates(request, pendingIntent)
-    def onDisconnected() = ()
+    def onDisconnected() = locationClient.removeLocationUpdates(pendingIntent)
   }
 
   object connectionFailedListener extends OnConnectionFailedListener {

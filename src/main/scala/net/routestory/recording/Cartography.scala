@@ -1,7 +1,6 @@
 package net.routestory.recording
 
 import akka.actor.{ ActorLogging, Props }
-import android.app.Activity
 import android.location.Location
 import android.os.Bundle
 import android.view.{ LayoutInflater, ViewGroup }
@@ -12,9 +11,9 @@ import macroid._
 import macroid.akkafragments.FragmentActor
 import net.routestory.browsing.story.MapManager
 import net.routestory.data.{ Clustering, Story }
-import net.routestory.recording.Cartographer.FirstPromise
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.Implicits._
+import akka.pattern.pipe
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Promise
@@ -52,7 +51,7 @@ object Cartographer {
   case class UpdateRoute(chapter: Story.Chapter)
   case class UpdateMarkers(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]])
   case object QueryLastLocation
-  case class FirstPromise(promise: Promise[Unit])
+  case object QueryFirstLocation
   def props = Props(new Cartographer)
 }
 
@@ -94,8 +93,8 @@ class Cartographer extends FragmentActor[CartographyFragment] with ActorLogging 
     case QueryLastLocation ⇒
       sender ! last
 
-    case FirstPromise(promise) ⇒
-      promise.tryCompleteWith(first.future)
+    case QueryFirstLocation ⇒
+      first.future.pipeTo(sender)
 
     case _ ⇒
   }

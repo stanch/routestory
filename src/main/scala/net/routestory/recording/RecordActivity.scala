@@ -3,6 +3,7 @@ package net.routestory.recording
 import java.io.File
 
 import akka.actor.ActorSystem
+import akka.util.Timeout
 import android.app.Activity
 import android.content.{ ComponentName, Context, Intent, ServiceConnection }
 import android.media.MediaScannerConnection
@@ -22,6 +23,7 @@ import net.routestory.recording.manual.{ AddEasiness, AddPhotoCaption, AddMediaF
 import net.routestory.recording.suggest.SuggestionsFragment
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.Shortuuid
+import akka.pattern.ask
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Promise
@@ -38,8 +40,8 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
   val actorSystem = Promise[ActorSystem]()
   val typewriter = actorSystem.future.map(_.actorSelection("/user/typewriter"))
   val cartographer = actorSystem.future.map(_.actorSelection("/user/cartographer"))
+  implicit val timeout = Timeout(60000)
 
-  val firstLocation = Promise[Unit]()
   var lastPhotoFile: Option[File] = None
   val requestCodePhoto = 0
 
@@ -76,12 +78,27 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
 
   override def onStart() = {
     super.onStart()
-    cartographer.foreach(_ ! Cartographer.FirstPromise(firstLocation))
+
+    // wait for first location
+    val firstLocation = cartographer.flatMap(_ ? Cartographer.QueryFirstLocation)
+
+    // bind to the service and display progress
     bindService(new Intent(this, classOf[RecordService]), serviceConnection, Context.BIND_AUTO_CREATE)
     runUi(
-      progress <~~ waitProgress(actorSystem.future) <~~ waitProgress(firstLocation.future),
+      progress <~~ waitProgress(actorSystem.future) <~~ waitProgress(firstLocation),
       pager <~ PagerTweaks.page(1)
     )
+
+    // if backup is available, suggest to restore
+    typewriter.flatMap(_ ? Typewriter.QueryBackup).mapTo[Boolean].map {
+      case false ⇒ // no big deal
+      case true ⇒ runUi {
+        dialog("Restore the story from a draft?") <~
+          positiveYes(Ui(typewriter.foreach(_ ! Typewriter.RestoreBackup))) <~
+          negativeNo(Ui(typewriter.foreach(_ ! Typewriter.DiscardBackup))) <~
+          speak
+      }
+    }
   }
 
   override def onStop() = {
@@ -90,24 +107,21 @@ class RecordActivity extends RouteStoryActivity with IdGeneration with FragmentP
   }
 
   def discard = {
-    val done = Promise[Unit]()
-    typewriter.foreach(_ ! Typewriter.Discard(done))
-    (progress <~~ waitProgress(done.future)) ~~ Ui {
+    val discarding = typewriter.flatMap(_ ? Typewriter.Discard)
+    (progress <~~ waitProgress(discarding)) ~~ Ui {
       finish()
     }
   }
 
   def save = {
     val id = Shortuuid.make("story")
-    val done = Promise[Unit]()
-    Ui(typewriter.foreach(_ ! Typewriter.Save(id, done))) ~
-      (progress <~~ waitProgress(done.future)) ~~
-      Ui {
-        val intent = new Intent(this, classOf[EditActivity])
-        intent.putExtra("id", id)
-        startActivity(intent)
-        finish()
-      }
+    val saving = typewriter.flatMap(_ ? Typewriter.Save(id))
+    (progress <~~ waitProgress(saving)) ~~ Ui {
+      val intent = new Intent(this, classOf[EditActivity])
+      intent.putExtra("id", id)
+      startActivity(intent)
+      finish()
+    }
   }
 
   override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
