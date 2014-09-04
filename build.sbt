@@ -1,5 +1,6 @@
 import android.Keys._
 import android.Dependencies.{apklib, aar}
+import android.PlainSigningConfig
 
 android.Plugin.androidBuild
 
@@ -54,7 +55,6 @@ libraryDependencies ++= Seq(
   "com.android.support" % "support-v4" % "20.0.0",
   "com.android.support" % "support-v13" % "19.1.0",
   "com.github.chrisbanes.photoview" % "library" % "1.2.2",
-  aar("com.applause" % "applause-sdk-preprod" % "2.2.0"),
   aar("com.android.support" % "cardview-v7" % "21.0.0-rc1"),
   aar("com.couchbase.lite" % "couchbase-lite-android" % "1.0.1"),
   aar("com.google.android.gms" % "play-services" % "5.0.77"),
@@ -77,11 +77,6 @@ debugIncludesTests in Android := false
 proguardScala in Android := true
 
 typedResources in Android := false
-
-//proguardCache in Android ++= Seq(
-//  ProguardCache("akka.actor") % "com.typesafe.akka",
-//  ProguardCache("android.support.v4") % "com.android.support"
-//)
 
 proguardCache in Android := Seq.empty
 
@@ -131,3 +126,10 @@ proguardOptions in Android ++= Seq(
   "-keep class macroid.akkafragments.AkkaAndroidLogger { *; }",
   "-keep class akka.event.Logging$LogExt { *; }"
 )
+
+apkSigningConfig in Android := Some(PlainSigningConfig(
+  file("routestory.keystore"),
+  "routestoryfishing",
+  "routestory",
+  Some("routestoryfishing")
+))
