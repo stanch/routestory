@@ -11,8 +11,6 @@ import macroid.AppContext
 import net.routestory.recording.{ Cartographer, RecordService }
 import net.routestory.util.PlayServicesResolution
 
-import scala.util.Try
-
 class Locator(implicit ctx: AppContext) {
   val locationClient = new LocationClient(ctx.get, connectionCallbacks, connectionFailedListener)
 
@@ -25,7 +23,7 @@ class Locator(implicit ctx: AppContext) {
 
   object connectionCallbacks extends ConnectionCallbacks {
     def onConnected(bundle: Bundle) = locationClient.requestLocationUpdates(request, pendingIntent)
-    def onDisconnected() = locationClient.removeLocationUpdates(pendingIntent)
+    def onDisconnected() = ()
   }
 
   object connectionFailedListener extends OnConnectionFailedListener {

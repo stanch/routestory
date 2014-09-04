@@ -34,8 +34,6 @@ class RecordService extends Service with AutoLogTag { self ⇒
     logW"RecordService created"()
     super.onCreate()
     addNotification()
-    (typewriter, cartographer, suggester, dictaphone)
-    locator.connect()
   }
 
   override def onDestroy() = {
@@ -66,9 +64,17 @@ class RecordService extends Service with AutoLogTag { self ⇒
     manager.cancel(0)
   }
 
+  var started = false
+
   override def onStartCommand(intent: Intent, flags: Int, startId: Int) = {
     super.onStartCommand(intent, flags, startId)
     if (intent == null) stopSelf()
+    else if (!started) {
+      started = true
+      logW"RecordService started"()
+      (typewriter, cartographer, suggester, dictaphone)
+      locator.connect()
+    }
     Service.START_STICKY
   }
 
