@@ -26,4 +26,7 @@ trait Needs { self: Endpoints with JsonRules ⇒
     Source[List[Resolvable[StoryPreview]]].from(LocalView(viewName))
       .flatMap(Resolvable.fromList)
   }
+
+  def restoreChapter(file: File): Resolvable[Story.Chapter] =
+    Source[Story.Chapter].from(FileJsonEndpoint(file))
 }

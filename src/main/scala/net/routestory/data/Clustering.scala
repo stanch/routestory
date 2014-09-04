@@ -181,12 +181,14 @@ object Clustering extends Trees {
     }
   }
 
-  def cluster(chapter: Story.Chapter) = chapter.knownElements match {
-    case Vector() ⇒ None
-    case Vector(e) ⇒ Some(Leaf(e, 0, chapter, ()))
-    case es ⇒
-      val leaves = es.zipWithIndex map { case (e, i) ⇒ Leaf(e, i, chapter, ()) }
-      Some(clusterRound(chapter, leaves, chapter.effectiveDuration.toDouble / 4))
+  def cluster(chapter: Story.Chapter) = if (chapter.locations.isEmpty) None else {
+    chapter.knownElements match {
+      case Vector() ⇒ None
+      case Vector(e) ⇒ Some(Leaf(e, 0, chapter, ()))
+      case es ⇒
+        val leaves = es.zipWithIndex map { case (e, i) ⇒ Leaf(e, i, chapter, ()) }
+        Some(clusterRound(chapter, leaves, chapter.effectiveDuration.toDouble / 4))
+    }
   }
 
   def appendLast(tree: Tree[Unit], chapter: Story.Chapter) = {

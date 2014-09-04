@@ -1,11 +1,15 @@
 package net.routestory.couch
 
+import java.io.FileInputStream
+
 import com.couchbase.lite.Database
+import org.apache.commons.io.IOUtils
 import org.codehaus.jackson.map.ObjectMapper
 import play.api.libs.json.{JsArray, Json, JsObject}
 import resolvable.EndpointLogger
 import resolvable.json.JsonEndpoint
 import scala.collection.JavaConversions._
+import java.io.File
 
 import scala.concurrent.{Future, ExecutionContext}
 
@@ -31,6 +35,13 @@ trait Endpoints extends JsonHelpers {
         q.setDescending(true)
         q.run().map(_.asJSONDictionary.toJsObject).toSeq
       }
+    }
+  }
+
+  case class FileJsonEndpoint(file: File) extends JsonEndpoint {
+    val logger = EndpointLogger.none
+    protected def fetch(implicit ec: ExecutionContext) = Future {
+      Json.parse(IOUtils.toString(new FileInputStream(file), "UTF-8"))
     }
   }
 }
