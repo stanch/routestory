@@ -70,9 +70,7 @@ object MarkerBitmaps {
         val bitmaps = x.leaves.groupBy(tp).toVector.sortBy(_._1.fold(0)(_ ⇒ 1)).flatMap {
           case (None, items) ⇒
             items.map(bitmap(maxSize, cache))
-          case (_, items @ Vector(i)) ⇒
-            items.take(1).map(bitmap(maxSize, cache))
-          case (_, items @ Vector(i, j, _*)) ⇒
+          case (_, items) ⇒
             items.take(1).map(bitmap(maxSize, cache))
         }
         Future.sequence(bitmaps).map(MagicGrid.create(_, maxSize))

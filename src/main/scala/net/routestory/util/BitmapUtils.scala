@@ -16,68 +16,6 @@ import macroid.Logging._
 import scala.annotation.tailrec
 
 object BitmapUtils {
-  def decodeBitmapSize(f: File) = {
-    val o = new BitmapFactory.Options
-    o.inJustDecodeBounds = true
-    BitmapFactory.decodeStream(new FileInputStream(f), null, o)
-    (o.outWidth, o.outHeight)
-  }
-
-  // see [http://stackoverflow.com/questions/477572/android-strange-out-of-memory-issue-while-loading-an-image-to-a-bitmap-object]
-  def decodeFile(f: File, size: Int) = {
-    val (width, height) = decodeBitmapSize(f)
-    var scale = 1
-    while (Math.max(width, height) / scale / 2 >= size) scale *= 2
-
-    val o2 = new BitmapFactory.Options
-    o2.inSampleSize = scale
-    val temp = BitmapFactory.decodeStream(new FileInputStream(f), null, o2)
-    val scaled = createScaledBitmap(temp, size)
-    if (scaled ne temp) temp.recycle()
-
-    getOrientation(f) match {
-      case ExifInterface.ORIENTATION_ROTATE_90 ⇒
-        rotateBitmap(scaled, 90)
-      case ExifInterface.ORIENTATION_ROTATE_270 ⇒
-        rotateBitmap(scaled, 270)
-      case ExifInterface.ORIENTATION_ROTATE_180 ⇒
-        rotateBitmap(scaled, 180)
-      case _ ⇒ scaled
-    }
-  }
-
-  def getOrientation(f: File) = {
-    val exif = new ExifInterface(f.getAbsolutePath)
-    exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-  }
-
-  def rotateBitmap(bitmap: Bitmap, degrees: Float) = {
-    val matrix = new Matrix
-    matrix.postRotate(degrees)
-    val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth, bitmap.getHeight, matrix, true)
-    if (rotated ne bitmap) bitmap.recycle()
-    rotated
-  }
-
-  def createScaledBitmap(bitmap: Bitmap, size: Int) = {
-    val landscape = bitmap.getWidth > bitmap.getHeight
-    val width = Math.max(1, if (landscape) size else size * bitmap.getWidth / bitmap.getHeight)
-    val height = Math.max(1, if (landscape) size * bitmap.getHeight / bitmap.getWidth else size)
-    Bitmap.createScaledBitmap(bitmap, width, height, true)
-  }
-
-  def createCountedBitmap(bitmap: Bitmap, count: Integer)(implicit appCtx: AppContext) = {
-    val target = Bitmap.createBitmap(bitmap.getWidth, bitmap.getHeight, Config.ARGB_8888)
-    val canvas = new Canvas(target)
-    val paint = new Paint
-    paint.setColor(appCtx.get.getResources.getColor(R.color.aquadark))
-    paint.setTextSize(bitmap.getHeight / 2)
-    paint.setTextAlign(Align.RIGHT)
-    canvas.drawBitmap(bitmap, 0, 0, null)
-    canvas.drawText(count.toString, bitmap.getWidth, bitmap.getHeight - 3, paint)
-    target
-  }
-
   def cardFrame(bitmap: Bitmap)(implicit ctx: ActivityContext) = {
     import android.view.View.MeasureSpec._
     val card = new CardView(ctx.get)
