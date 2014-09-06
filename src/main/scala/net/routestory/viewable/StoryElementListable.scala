@@ -50,35 +50,6 @@ object StoryElementListable {
       (view, slots)
     }
 
-    case class SnailingMutex[S](s: Future[S])
-    implicit def `CancellableFutureTweak can snail`[W, S, R, R1](implicit canTweak: CanTweak[W, Tweak[View], R1], canSnail: CanSnail[W, Future[S], R]) =
-      new CanSnail[W, SnailingMutex[S], R] {
-        def snail(w: W, s: SnailingMutex[S]) = {
-          lazy val promise = Promise[Nothing]()
-          val tagMagic = w <~ Tweak[View] { x ⇒
-            x.getTag match {
-              case p: Promise[_] ⇒
-                p.tryFailure(new InterruptedException)
-                x.setTag(promise)
-              case null ⇒
-                x.setTag(promise)
-              case _ ⇒
-            }
-          }
-          val snailing = w <~~ Future.firstCompletedOf(List(s.s, promise.future))
-          tagMagic ~ snailing
-        }
-      }
-
-    def testIcon = Future {
-      Thread.sleep(200)
-      val icons = List(
-        R.drawable.ic_action_camera,
-        R.drawable.ic_action_mic,
-        R.drawable.ic_action_place)
-      icons(Random.nextInt(3))
-    }
-
     def fillSlots(slots: Slots, data: Story.Image)(implicit ctx: ActivityContext, appCtx: AppContext) =
       (slots.caption <~ data.caption.map(text) <~ show(data.caption.isDefined)) ~
         (slots.progress <~ waitProgress(data.data)) ~

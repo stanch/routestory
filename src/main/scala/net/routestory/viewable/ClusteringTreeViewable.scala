@@ -8,7 +8,6 @@ import macroid.{ ActivityContext, AppContext }
 import net.routestory.data.{ Clustering, Story, Timed }
 import net.routestory.ui.Tweaks
 import scala.concurrent.ExecutionContext.Implicits.global
-import net.routestory.util.BitmapPool.Implicits._
 
 object ClusteringTreeViewable {
   def delegate(x: Story.KnownElement)(implicit ctx: ActivityContext, appCtx: AppContext) =

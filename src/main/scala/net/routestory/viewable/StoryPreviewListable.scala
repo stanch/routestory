@@ -8,14 +8,12 @@ import android.widget.{ ImageView, LinearLayout, TextView }
 import macroid.FullDsl._
 import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import macroid.contrib.{ LpTweaks, TextTweaks }
-import macroid.viewable.SlottedListable
 import macroid.{ ActivityContext, AppContext, Ui }
 import net.routestory.R
 import net.routestory.browsing.stories.SearchActivity
 import net.routestory.browsing.story.DisplayActivity
 import net.routestory.data.StoryPreview
 import net.routestory.ui.{ Tweaks, Styles }
-import net.routestory.util.BitmapPool.Implicits._
 import org.apmem.tools.layouts.FlowLayout
 import macroid.viewable._
 
