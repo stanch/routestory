@@ -37,7 +37,7 @@ class ElementsFragment extends RouteStoryFragment with AkkaFragment with Stagger
 
     val cards = CardListable.cardListable(
       new TimedListable(chapter).timedListable(
-        new StoryElementListable(displaySize(0) / 2).storyElementListable))
+        StoryElementListable.storyElementListable))
 
     val listable = Listable.combine(buttons, cards) { (l1, l2) ⇒
       l[HorizontalLinearLayout](l2 <~ lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT, 1.0f), l1)

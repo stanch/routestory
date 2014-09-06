@@ -50,9 +50,6 @@ object BitmapPool {
     implicit class FileBitmap(file: File) {
       def bitmap(maxSize: Int)(implicit ec: ExecutionContext) =
         BitmapPool.get(maxSize)(file)
-
-      def bitmapTweak(maxSize: Int)(implicit ec: ExecutionContext) =
-        BitmapPool.tweak(maxSize)(file)
     }
   }
 }

@@ -6,21 +6,21 @@ import macroid.contrib.{ LpTweaks, ImageTweaks }
 import macroid.viewable.Viewable
 import macroid.{ ActivityContext, AppContext }
 import net.routestory.data.{ Clustering, Story, Timed }
+import net.routestory.ui.Tweaks
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.util.BitmapPool.Implicits._
 
-class ClusteringTreeViewable[A](maxImageSize: Int) {
+object ClusteringTreeViewable {
   def delegate(x: Story.KnownElement)(implicit ctx: ActivityContext, appCtx: AppContext) =
-    new StoryElementViewable(maxImageSize).storyElementViewable.view(x)
+    StoryElementViewable.storyElementViewable.view(x)
 
   def imageViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.Image] { x ⇒
-    val bitmapTweak = x.data.flatMap(_.bitmapTweak(maxImageSize))
-    w[ImageView] <~ bitmapTweak <~
+    w[ImageView] <~ x.data.map(Tweaks.picasso) <~
       ImageTweaks.adjustBounds <~
       LpTweaks.matchParent
   }
 
-  implicit def clusteringTreeViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Clustering.Tree[A]] {
+  implicit def clusteringTreeViewable[A](implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Clustering.Tree[A]] {
     case Clustering.Leaf(Timed(_, x: Story.Image), _, _, _) ⇒ imageViewable.view(x)
     case Clustering.Leaf(Timed(_, x: Story.TextNote), _, _, _) ⇒ delegate(x)
 

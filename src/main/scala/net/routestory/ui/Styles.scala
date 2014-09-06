@@ -25,9 +25,6 @@ object Styles {
     R.color.swiper1, R.color.swiper2, R.color.swiper3, R.color.swiper4
   ))
 
-  val stopRefresh = Tweak[SwipeRefreshLayout](_.setRefreshing(false))
-  val startRefresh = Tweak[SwipeRefreshLayout](_.setRefreshing(true))
-
   def header(implicit ctx: AppContext) =
     TextTweaks.size(25) + TextTweaks.bold +
       TextTweaks.color(ctx.get.getResources.getColor(R.color.aquadark))

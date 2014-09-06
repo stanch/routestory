@@ -7,7 +7,7 @@ import com.etsy.android.grid.StaggeredGridView
 import macroid.FullDsl._
 import macroid.Ui
 import net.routestory.data.StoryPreview
-import net.routestory.ui.{ RouteStoryFragment, Styles }
+import net.routestory.ui.{ Tweaks, RouteStoryFragment, Styles }
 import net.routestory.viewable.StoryPreviewListable
 import macroid.viewable._
 
@@ -23,7 +23,7 @@ class OnlineFragment extends RouteStoryFragment {
 
   def viewStories(stories: List[StoryPreview]) = {
     import StoryPreviewListable._
-    (grid <~ stories.listAdapterTweak) ~ (swiper <~ Styles.stopRefresh)
+    (grid <~ stories.listAdapterTweak) ~ (swiper <~ Tweaks.stopRefresh)
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
@@ -35,14 +35,14 @@ class OnlineFragment extends RouteStoryFragment {
   override def onStart() = {
     super.onStart()
     runUi(
-      swiper <~ Styles.startRefresh,
+      swiper <~ Tweaks.startRefresh,
       refresh
     )
   }
 
   def refresh = Ui {
     fetchStories.map(viewStories(_).run).recover {
-      case NonFatal(t) ⇒ (swiper <~ Styles.stopRefresh).run
+      case NonFatal(t) ⇒ (swiper <~ Tweaks.stopRefresh).run
     }
   }
 

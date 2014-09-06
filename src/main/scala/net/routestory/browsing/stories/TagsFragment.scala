@@ -8,7 +8,7 @@ import macroid.FullDsl._
 import macroid.LogTag
 import macroid.Ui
 import net.routestory.ui.Styles._
-import net.routestory.ui.{ RouteStoryFragment, Styles }
+import net.routestory.ui.{ Tweaks, RouteStoryFragment, Styles }
 import net.routestory.viewable.StoryPreviewListable
 import org.apmem.tools.layouts.FlowLayout
 
@@ -45,7 +45,7 @@ class TagsFragment extends RouteStoryFragment {
       val views = shuffled.map(t ⇒ StoryPreviewListable.tag(t.tag, Some(n(t.count))))
       runUi(
         tags <~ addViews(views, removeOld = true),
-        swiper <~ Styles.stopRefresh
+        swiper <~ Tweaks.stopRefresh
       )
     } recover {
       case NonFatal(t) ⇒ t.printStackTrace()

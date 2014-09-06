@@ -15,7 +15,7 @@ import macroid.contrib.Layouts.VerticalLinearLayout
 import macroid.contrib.{ LpTweaks, TextTweaks }
 import net.routestory.data.Story
 import net.routestory.recording.{ RecordActivity, RecordFragment, Typewriter, Suggester }
-import net.routestory.ui.{ Styles, RouteStoryFragment }
+import net.routestory.ui.{ Styles, Tweaks, RouteStoryFragment }
 import net.routestory.viewable.{ StoryElementListable, CardListable, ElementAdderListable }
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -26,7 +26,7 @@ object ElementOrAdder {
   case class Adder(adder: ElementAdder) extends ElementOrAdder
 
   def listable(implicit ctx: ActivityContext, appCtx: AppContext) =
-    (new StoryElementListable(200 dp).storyElementListable
+    (StoryElementListable.storyElementListable
       .contraMap[Element](_.element)
       .toParent[ElementOrAdder] orElse
       ElementAdderListable.adderListable
@@ -64,7 +64,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
         }
       }
 
-    updateGrid ~ (swiper <~ Styles.stopRefresh)
+    updateGrid ~ (swiper <~ Tweaks.stopRefresh)
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {

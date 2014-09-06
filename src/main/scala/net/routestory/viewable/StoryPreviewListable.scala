@@ -14,7 +14,7 @@ import net.routestory.R
 import net.routestory.browsing.stories.SearchActivity
 import net.routestory.browsing.story.DisplayActivity
 import net.routestory.data.StoryPreview
-import net.routestory.ui.Styles
+import net.routestory.ui.{ Tweaks, Styles }
 import net.routestory.util.BitmapPool.Implicits._
 import org.apmem.tools.layouts.FlowLayout
 import macroid.viewable._
@@ -69,7 +69,7 @@ object StoryPreviewListable {
 
       // author
       val fillAuthor = story.author map { author ⇒
-        val pictureTweak = author.picture.map(_.flatMap(_.bitmapTweak(28 dp)))
+        val pictureTweak = author.picture.map(_.map(Tweaks.picasso))
         (slots.author <~ show) ~
           (slots.authorName <~ text(author.name)) ~
           (slots.authorPicture <~ pictureTweak)

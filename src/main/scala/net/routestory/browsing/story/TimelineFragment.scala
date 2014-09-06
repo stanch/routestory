@@ -21,7 +21,7 @@ class TimelineFragment extends RouteStoryFragment with AkkaFragment with Stagger
   def viewChapter(chapter: Story.Chapter) = {
     val listable = CardListable.cardListable(
       new TimedListable(chapter).timedListable(
-        new StoryElementListable(displaySize(0) / 2).storyElementListable))
+        StoryElementListable.storyElementListable))
 
     grid <~ listable.listAdapterTweak(chapter.knownElements) <~
       FuncOn.itemClick[StaggeredGridView] { (_: AdapterView[_], _: View, index: Int, _: Long) ⇒

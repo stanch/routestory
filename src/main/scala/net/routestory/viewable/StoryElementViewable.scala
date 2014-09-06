@@ -14,18 +14,17 @@ import macroid.{ Ui, AppContext, ActivityContext, Tweak }
 import macroid.contrib._
 import macroid.viewable.Viewable
 import net.routestory.data.Story
+import net.routestory.ui.Tweaks
 import uk.co.senab.photoview.PhotoView
-import net.routestory.util.BitmapPool.Implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.routestory.R
 import net.routestory.util.Implicits._
 import android.view.ViewGroup.LayoutParams._
 
-class StoryElementViewable(maxImageSize: Int) {
+object StoryElementViewable {
   def imageViewable(implicit ctx: ActivityContext, appCtx: AppContext): Viewable[Story.Image, LinearLayout] = Viewable[Story.Image] { x ⇒
-    val bitmapTweak = x.data.flatMap(_.bitmapTweak(maxImageSize))
     l[VerticalLinearLayout](
-      w[PhotoView] <~ bitmapTweak <~
+      w[PhotoView] <~ x.data.map(Tweaks.picasso) <~
         ImageTweaks.adjustBounds <~
         lp[LinearLayout](MATCH_PARENT, MATCH_PARENT, 1.0f),
       w[TextView] <~ x.caption.map(text).getOrElse(hide) <~

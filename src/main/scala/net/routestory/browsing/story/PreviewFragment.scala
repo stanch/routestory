@@ -22,8 +22,7 @@ class PreviewFragment extends RouteStoryFragment with AkkaFragment {
   var pager = slot[ViewPager]
 
   def viewTrees(trees: Vector[Clustering.Tree[Unit]]) = {
-    val viewable = new ClusteringTreeViewable[Unit](200 dp)
-    import viewable._
+    import ClusteringTreeViewable._
 
     pager <~ trees.pagerAdapterTweak <~ Tweak[ViewPager] { x ⇒
       x.setOnPageChangeListener(new OnPageChangeListener {

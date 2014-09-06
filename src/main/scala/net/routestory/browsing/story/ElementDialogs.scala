@@ -17,8 +17,7 @@ import net.routestory.viewable.{ CardListable, StoryElementListable, StoryElemen
 object ElementPager {
   def show[A](leaf: Clustering.Leaf[A], onCue: Int ⇒ Unit)(implicit ctx: ActivityContext, appCtx: AppContext) = {
     val elements = leaf.chapter.knownElements.map(_.data)
-    val viewable = new StoryElementViewable(300 dp)
-    import viewable._
+    import StoryElementViewable._
 
     dialog(android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
       w[ScrollableViewPager] <~ BgTweaks.color(Color.BLACK) <~ Styles.lowProfile <~
@@ -37,7 +36,8 @@ object ElementPager {
 object ElementChooser {
   def show[A](node: Clustering.Node[A], onCue: Int ⇒ Unit)(implicit ctx: ActivityContext, appCtx: AppContext) = {
     val elements = node.leaves.map(_.element.data)
-    val listable = CardListable.cardListable(new StoryElementListable(200 dp).storyElementListable)
+    val listable = CardListable.cardListable(
+      StoryElementListable.storyElementListable)
 
     dialog {
       w[StaggeredGridView] <~ Styles.grid <~

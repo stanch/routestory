@@ -55,6 +55,7 @@ libraryDependencies ++= Seq(
   "com.android.support" % "support-v4" % "20.0.0",
   "com.android.support" % "support-v13" % "19.1.0",
   "com.github.chrisbanes.photoview" % "library" % "1.2.2",
+  "com.squareup.picasso" % "picasso" % "2.3.4",
   aar("com.android.support" % "cardview-v7" % "21.0.0-rc1"),
   aar("com.couchbase.lite" % "couchbase-lite-android" % "1.0.1"),
   aar("com.google.android.gms" % "play-services" % "5.0.77"),

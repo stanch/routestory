@@ -7,11 +7,10 @@ import android.widget.{ TextView, ProgressBar, FrameLayout }
 import com.etsy.android.grid.StaggeredGridView
 import macroid.Ui
 import net.routestory.data.{ StoryPreview, Story }
-import net.routestory.ui.{ Styles, RouteStoryFragment }
+import net.routestory.ui.{ Styles, Tweaks, RouteStoryFragment }
 import net.routestory.viewable.StoryPreviewListable
 import macroid.FullDsl._
 import macroid.viewable._
-import macroid.contrib._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
@@ -26,7 +25,7 @@ class LocalFragment extends RouteStoryFragment {
     import StoryPreviewListable._
     (grid <~ stories.listAdapterTweak) ~
       (empty <~ show(stories.isEmpty)) ~
-      (swiper <~ Styles.stopRefresh)
+      (swiper <~ Tweaks.stopRefresh)
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
@@ -42,14 +41,14 @@ class LocalFragment extends RouteStoryFragment {
   override def onStart() = {
     super.onStart()
     runUi(
-      swiper <~ Styles.startRefresh,
+      swiper <~ Tweaks.startRefresh,
       refresh
     )
   }
 
   def refresh = Ui {
     fetchStories.map(viewStories(_).run).recover {
-      case NonFatal(t) ⇒ (swiper <~ Styles.stopRefresh).run
+      case NonFatal(t) ⇒ (swiper <~ Tweaks.stopRefresh).run
     }
   }
 

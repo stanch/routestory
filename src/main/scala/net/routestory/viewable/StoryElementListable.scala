@@ -1,27 +1,26 @@
 package net.routestory.viewable
 
-import java.io.FileInputStream
+import java.io.{ File, FileInputStream }
 
-import android.graphics.Color
 import android.media.MediaPlayer
 import android.view.ViewGroup.LayoutParams._
 import android.view.{ Gravity, View }
 import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
-import macroid.contrib.{ BgTweaks, ImageTweaks, TextTweaks }
+import macroid.contrib.{ ImageTweaks, TextTweaks }
 import macroid.viewable.{ Listable, SlottedListable }
 import macroid._
 import net.routestory.R
 import net.routestory.data.Story
-import net.routestory.ui.Styles
-import net.routestory.util.BitmapPool.Implicits._
+import net.routestory.ui.{ Styles, Tweaks }
 import net.routestory.ui.SquareImageView
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ Promise, Future }
+import scala.util.Random
 
-class StoryElementListable(maxImageSize: Int) {
+object StoryElementListable {
   object imageListable extends SlottedListable[Story.Image] {
     class Slots {
       var imageView = slot[ImageView]
@@ -35,18 +34,18 @@ class StoryElementListable(maxImageSize: Int) {
     def makeSlots(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = {
       val slots = new Slots
       val view = l[VerticalLinearLayout](
+        w[TextView] <~
+          wire(slots.caption) <~
+          TextTweaks.medium <~ hide <~
+          padding(left = 4 dp, bottom = 4 dp, right = 4 dp),
         l[FrameLayout](
           w[ProgressBar](null, android.R.attr.progressBarStyleLarge) <~
             wire(slots.progress) <~
             lp[FrameLayout](WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER),
           w[SquareImageView] <~
             wire(slots.imageView) <~
-            ImageTweaks.adjustBounds <~ invisible
-        ),
-        w[TextView] <~
-          wire(slots.caption) <~
-          TextTweaks.medium <~ hide <~
-          padding(all = 4 dp)
+            ImageTweaks.adjustBounds
+        )
       )
       (view, slots)
     }
@@ -71,12 +70,19 @@ class StoryElementListable(maxImageSize: Int) {
         }
       }
 
+    def testIcon = Future {
+      Thread.sleep(200)
+      val icons = List(
+        R.drawable.ic_action_camera,
+        R.drawable.ic_action_mic,
+        R.drawable.ic_action_place)
+      icons(Random.nextInt(3))
+    }
+
     def fillSlots(slots: Slots, data: Story.Image)(implicit ctx: ActivityContext, appCtx: AppContext) =
       (slots.caption <~ data.caption.map(text) <~ show(data.caption.isDefined)) ~
         (slots.progress <~ waitProgress(data.data)) ~
-        (slots.imageView <~ invisible <~ cancelAnim <~~ SnailingMutex {
-          data.data.flatMap(_.bitmapTweak(maxImageSize))
-        } <~ fadeIn(200))
+        (slots.imageView <~ data.data.map(Tweaks.picasso))
   }
 
   def textNoteListable(implicit ctx: ActivityContext, appCtx: AppContext) =
