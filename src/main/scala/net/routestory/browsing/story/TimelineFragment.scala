@@ -49,7 +49,6 @@ class Timeliner extends FragmentActor[TimelineFragment] with ActorLogging {
       coordinator ! Remind
 
     case UpdateChapter(c) ⇒
-      log.debug("Updating")
       withUi(_.viewChapter(c))
 
     case _ ⇒

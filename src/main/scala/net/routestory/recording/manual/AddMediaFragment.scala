@@ -2,92 +2,110 @@ package net.routestory.recording.manual
 
 import java.io.File
 
-import akka.pattern.ask
-import akka.util.Timeout
-import android.content.{ DialogInterface, Intent }
-import android.media.MediaRecorder
-import android.net.Uri
-import android.os.{ Bundle, Environment }
-import android.provider.MediaStore
-import android.support.v4.app.DialogFragment
-import android.view.{ Gravity, LayoutInflater, ViewGroup }
+import android.content.DialogInterface
+import android.os.Bundle
+import android.support.v4.widget.SwipeRefreshLayout
+import android.view.{ Gravity, View, LayoutInflater, ViewGroup }
 import android.widget._
+import com.etsy.android.grid.StaggeredGridView
 import macroid.FullDsl._
-import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import macroid.contrib.{ ImageTweaks, LpTweaks, TextTweaks }
-import macroid.viewable.Listable
-import macroid.{ IdGeneration, Transformer, Tweak, Ui }
-import net.routestory.R
+import macroid._
+import macroid.akkafragments.FragmentActor
+import macroid.contrib.Layouts.VerticalLinearLayout
+import macroid.contrib.{ LpTweaks, TextTweaks }
 import net.routestory.data.Story
-import net.routestory.recording.logged.Dictaphone
-import net.routestory.recording.{ RecordFragment, Typewriter }
-import net.routestory.ui.RouteStoryFragment
+import net.routestory.recording.{ RecordActivity, RecordFragment, Typewriter, Suggester }
+import net.routestory.ui.{ Styles, RouteStoryFragment }
+import net.routestory.viewable.{ StoryElementListable, CardListable, ElementAdderListable }
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+
+sealed trait ElementOrAdder
+object ElementOrAdder {
+  case class Element(element: Story.KnownElement) extends ElementOrAdder
+  case class Adder(adder: ElementAdder) extends ElementOrAdder
+
+  def listable(implicit ctx: ActivityContext, appCtx: AppContext) =
+    (new StoryElementListable(200 dp).storyElementListable
+      .contraMap[Element](_.element)
+      .toParent[ElementOrAdder] orElse
+      ElementAdderListable.adderListable
+      .contraMap[Adder](_.adder)
+      .toParent[ElementOrAdder]).toTotal
+}
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordFragment {
-  def photoFile = {
-    val root = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "RouteStory")
-    root.mkdirs()
-    File.createTempFile("photo", ".jpg", root)
-  }
-
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
+  lazy val suggester = actorSystem.map(_.actorSelection("/user/suggester"))
+
+  var grid = slot[StaggeredGridView]
+  var swiper = slot[SwipeRefreshLayout]
+
+  def adders = List(
+    ElementAdder.Photo(),
+    ElementAdder.TextNote(),
+    ElementAdder.VoiceNote()
+  ).map(ElementOrAdder.Adder)
+
+  def showSuggestions(suggestions: List[Story.KnownElement], initial: Boolean = false) = {
+    if (!initial) {
+      typewriter.foreach(_ ! Typewriter.Suggestions(suggestions.length))
+    }
+
+    val listable = CardListable.cardListable(ElementOrAdder.listable)
+    val stuff = adders ::: suggestions.map(ElementOrAdder.Element)
+
+    val updateGrid = grid <~ listable.listAdapterTweak(stuff) <~
+      FuncOn.itemClick[StaggeredGridView] { (_: AdapterView[_], _: View, index: Int, _: Long) ⇒
+        stuff(index) match {
+          case ElementOrAdder.Adder(adder) ⇒ adder.onClick
+          case ElementOrAdder.Element(element) ⇒
+            Ui(typewriter.foreach(_ ! Typewriter.Element(element)))
+        }
+      }
+
+    updateGrid ~ (swiper <~ Styles.stopRefresh)
+  }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
-    def clicker(factory: Ui[DialogFragment], tag: String) =
-      factory.map(_.show(getChildFragmentManager, tag))
+    l[SwipeRefreshLayout](
+      w[StaggeredGridView] <~ Styles.grid <~ wire(grid)
+    ) <~ Styles.swiper <~ wire(swiper) <~ On.refresh[SwipeRefreshLayout](Ui {
+        suggester.foreach(_ ! Suggester.Update)
+      })
+  }
 
-    val cameraClicker = Ui {
-      activity.lastPhotoFile = Some(photoFile)
-      val intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-      intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(activity.lastPhotoFile.get))
-      getActivity.startActivityForResult(intent, activity.requestCodePhoto)
-    }
+  override def onStart() = {
+    super.onStart()
+    if (grid.get.getAdapter == null) showSuggestions(Nil, initial = true).run
+    suggester.foreach(_ ! FragmentActor.AttachUi(this))
+  }
 
-    val buttons = Seq(
-      (R.drawable.ic_action_camera, "Photo", cameraClicker),
-      (R.drawable.ic_action_view_as_list, "Text note", clicker(f[AddTextNote].factory, Tag.noteDialog)),
-      (R.drawable.ic_action_mic, "Voice note", clicker(f[AddVoiceNote].factory, Tag.voiceDialog))
-    )
-
-    val listable = Listable[(Int, String, Ui[Unit])].tr {
-      l[HorizontalLinearLayout](
-        w[ImageView],
-        w[TextView] <~ TextTweaks.large
-      ) <~ padding(top = 12 dp, bottom = 12 dp, left = 8 dp)
-    }(button ⇒ Transformer {
-      case img: ImageView ⇒ img <~ ImageTweaks.res(button._1)
-      case txt: TextView ⇒ txt <~ text(button._2)
-      case l @ Transformer.Layout(_*) ⇒ l <~ On.click(button._3)
-    })
-
-    w[ListView] <~ listable.listAdapterTweak(buttons)
+  override def onStop() = {
+    super.onStop()
+    suggester.foreach(_ ! FragmentActor.DetachUi(this))
   }
 }
 
-class AddSomething extends DialogFragment with RouteStoryFragment with RecordFragment {
-  lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
-}
-
-class AddTextNote extends AddSomething {
-  var input = slot[EditText]
+class AddEasiness extends AdderDialog {
+  setCancelable(false)
+  var rating = slot[RatingBar]
 
   override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
-    w[EditText] <~ Tweak[EditText] { x ⇒
-      x.setHint(R.string.message_typenotehere)
-      x.setMinLines(5)
-      x.setGravity(Gravity.TOP)
-    } <~ wire(input)
-  } <~ positiveOk(Ui {
-    input.map(_.getText.toString).filter(_.nonEmpty).foreach { text ⇒
-      typewriter.foreach(_ ! Typewriter.Element(Story.TextNote(text)))
-    }
-  }) <~ negativeCancel(Ui.nop)).create()
+    l[VerticalLinearLayout](
+      w[TextView] <~ text("How easy was it?") <~
+        TextTweaks.large <~ padding(all = 4 dp),
+      w[RatingBar] <~ wire(rating) <~
+        Tweak[RatingBar](_.setNumStars(5)) <~
+        LpTweaks.wrapContent
+    )
+  } <~ positiveOk {
+    Ui(typewriter.map(_ ! Typewriter.Easiness(rating.get.getRating))) ~~
+      Ui(getActivity.asInstanceOf[RecordActivity].save.get) // fix eagerness!
+  }).create()
 }
 
-class AddPhotoCaption extends AddSomething {
+class AddPhotoCaption extends AdderDialog {
   var input = slot[EditText]
 
   lazy val photoFile = new File(getArguments.getString("photoFile"))
@@ -109,75 +127,4 @@ class AddPhotoCaption extends AddSomething {
   }) <~ negative("No caption")(Ui {
     typewriter.foreach(_ ! Typewriter.Element(Story.Photo(None, photoFile)))
   })).create()
-}
-
-class AddEasiness extends AddSomething {
-  setCancelable(false)
-  var rating = slot[RatingBar]
-
-  override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
-    l[VerticalLinearLayout](
-      w[TextView] <~ text("How easy was it?") <~
-        TextTweaks.large <~ padding(all = 4 dp),
-      w[RatingBar] <~ wire(rating) <~
-        Tweak[RatingBar](_.setNumStars(5)) <~
-        LpTweaks.wrapContent
-    )
-  } <~ positiveOk {
-    Ui(typewriter.map(_ ! Typewriter.Easiness(rating.get.getRating))) ~~ activity.save
-  }).create()
-}
-
-class AddVoiceNote extends AddSomething {
-  implicit val dictaphoneSwitchOffTimeout = Timeout(2000)
-  lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
-
-  var mediaRecorder: Option[Future[MediaRecorder]] = None
-
-  lazy val voiceNoteFile = {
-    val root = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "RouteStory")
-    root.mkdirs()
-    File.createTempFile("voice-note", ".mp4", root)
-  }
-
-  def stop = Ui {
-    dictaphone.foreach(_ ! Dictaphone.SwitchOn)
-    mediaRecorder.foreach(_.foreachUi { m ⇒
-      m.stop()
-      m.reset()
-      m.release()
-      mediaRecorder = None
-    })
-  }
-
-  override def onCancel(dialog: DialogInterface) = {
-    stop.run
-    super.onCancel(dialog)
-  }
-
-  override def onStart() = {
-    super.onStart()
-    mediaRecorder = Some {
-      dictaphone.flatMap(_ ? Dictaphone.SwitchOff)
-        .mapUi(_ ⇒ new MediaRecorder {
-          setAudioSource(AudioSource.MIC)
-          setOutputFormat(OutputFormat.MPEG_4)
-          setAudioEncoder(AudioEncoder.AAC)
-          setOutputFile(voiceNoteFile.getAbsolutePath)
-          prepare()
-          start()
-        })
-    }
-  }
-
-  override def onCreateDialog(savedInstanceState: Bundle) = getUi(dialog {
-    l[HorizontalLinearLayout](
-      w[ImageView] <~ ImageTweaks.res(R.drawable.ic_action_mic),
-      w[TextView] <~ TextTweaks.large <~ text("Recording...")
-    ) <~ LpTweaks.matchParent <~
-      Tweak[LinearLayout](_.setGravity(Gravity.CENTER)) <~
-      padding(top = 12 dp)
-  } <~ positive("Finish")(stop ~ Ui {
-    typewriter.foreach(_ ! Typewriter.Element(Story.VoiceNote(voiceNoteFile)))
-  }) <~ negativeCancel(stop)).create()
 }

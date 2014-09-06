@@ -2,21 +2,24 @@ package net.routestory.viewable
 
 import java.io.FileInputStream
 
+import android.graphics.Color
 import android.media.MediaPlayer
 import android.view.ViewGroup.LayoutParams._
 import android.view.{ Gravity, View }
 import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
-import macroid.contrib.{ ImageTweaks, TextTweaks }
+import macroid.contrib.{ BgTweaks, ImageTweaks, TextTweaks }
 import macroid.viewable.{ Listable, SlottedListable }
-import macroid.{ ActivityContext, AppContext, Tweak }
+import macroid._
 import net.routestory.R
 import net.routestory.data.Story
 import net.routestory.ui.Styles
 import net.routestory.util.BitmapPool.Implicits._
+import net.routestory.ui.SquareImageView
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ Promise, Future }
 
 class StoryElementListable(maxImageSize: Int) {
   object imageListable extends SlottedListable[Story.Image] {
@@ -26,28 +29,54 @@ class StoryElementListable(maxImageSize: Int) {
       var caption = slot[TextView]
     }
 
+    val invisible = Tweak[View](_.setVisibility(View.INVISIBLE))
+    val cancelAnim = Tweak[View](_.clearAnimation())
+
     def makeSlots(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = {
       val slots = new Slots
       val view = l[VerticalLinearLayout](
         l[FrameLayout](
-          w[ImageView] <~ wire(slots.imageView) <~
-            ImageTweaks.adjustBounds <~ padding(top = 4 dp, bottom = 4 dp) <~ hide,
-          w[ProgressBar](null, android.R.attr.progressBarStyleLarge) <~ wire(slots.progress) <~
-            lp[FrameLayout](WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER)
+          w[ProgressBar](null, android.R.attr.progressBarStyleLarge) <~
+            wire(slots.progress) <~
+            lp[FrameLayout](WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER),
+          w[SquareImageView] <~
+            wire(slots.imageView) <~
+            ImageTweaks.adjustBounds <~ invisible
         ),
-        w[TextView] <~ wire(slots.caption) <~
+        w[TextView] <~
+          wire(slots.caption) <~
           TextTweaks.medium <~ hide <~
           padding(all = 4 dp)
       )
       (view, slots)
     }
 
+    case class SnailingMutex[S](s: Future[S])
+    implicit def `CancellableFutureTweak can snail`[W, S, R, R1](implicit canTweak: CanTweak[W, Tweak[View], R1], canSnail: CanSnail[W, Future[S], R]) =
+      new CanSnail[W, SnailingMutex[S], R] {
+        def snail(w: W, s: SnailingMutex[S]) = {
+          lazy val promise = Promise[Nothing]()
+          val tagMagic = w <~ Tweak[View] { x ⇒
+            x.getTag match {
+              case p: Promise[_] ⇒
+                p.tryFailure(new InterruptedException)
+                x.setTag(promise)
+              case null ⇒
+                x.setTag(promise)
+              case _ ⇒
+            }
+          }
+          val snailing = w <~~ Future.firstCompletedOf(List(s.s, promise.future))
+          tagMagic ~ snailing
+        }
+      }
+
     def fillSlots(slots: Slots, data: Story.Image)(implicit ctx: ActivityContext, appCtx: AppContext) =
       (slots.caption <~ data.caption.map(text) <~ show(data.caption.isDefined)) ~
-        (slots.progress <~ show) ~
-        (slots.imageView <~~ data.data.map(_.bitmapTweak(maxImageSize))) ~~
-        (slots.progress <~~ fadeOut(200)) ~
-        (slots.imageView <~ fadeIn(500))
+        (slots.progress <~ waitProgress(data.data)) ~
+        (slots.imageView <~ invisible <~ cancelAnim <~~ SnailingMutex {
+          data.data.flatMap(_.bitmapTweak(maxImageSize))
+        } <~ fadeIn(200))
   }
 
   def textNoteListable(implicit ctx: ActivityContext, appCtx: AppContext) =

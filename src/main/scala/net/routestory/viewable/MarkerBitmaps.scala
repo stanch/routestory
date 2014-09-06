@@ -13,13 +13,12 @@ import net.routestory.util.BitmapUtils.MagicGrid
 import scala.concurrent.{ ExecutionContext, Future }
 
 object MarkerBitmaps {
-  val stockCache = new LruCache[Int, Bitmap](4)
+  val stockCache = new LruCache[Int, Future[Bitmap]](4)
 
-  def stock(res: Int)(implicit appCtx: AppContext) = Future.successful {
-    stockCache.getOrPut(res, !_.isRecycled) {
-      BitmapFactory.decodeResource(appCtx.get.getResources, res)
-    }
-  }
+  def stock(res: Int)(implicit appCtx: AppContext, ec: ExecutionContext) =
+    stockCache.getOrPut(res, !_.isRecycled)(Future {
+      scala.concurrent.blocking(BitmapFactory.decodeResource(appCtx.get.getResources, res))
+    })
 
   def tp[A](leaf: Clustering.Leaf[A]) = leaf.element.data match {
     case _: Story.VoiceNote ⇒ Some(R.drawable.ic_action_mic)
@@ -36,7 +35,7 @@ object MarkerBitmaps {
     case x @ Clustering.Leaf(Timed(_, _: Story.FoursquareVenue), _, _, _) ⇒ stock(R.drawable.foursquare)
 
     case x @ Clustering.Leaf(Timed(_, img: Story.Image), _, _, _) ⇒
-      cache.getOrPut(x)(img.data.map(_.bitmap(maxSize)))
+      cache.getOrPut(x)(img.data.flatMap(_.bitmap(maxSize)))
 
     case x @ Clustering.Node(_, _, _, _) ⇒
       // no sense in caching composite bitmaps

@@ -69,7 +69,7 @@ object StoryPreviewListable {
 
       // author
       val fillAuthor = story.author map { author ⇒
-        val pictureTweak = author.picture.map(_.map(_.bitmapTweak(28 dp)))
+        val pictureTweak = author.picture.map(_.flatMap(_.bitmapTweak(28 dp)))
         (slots.author <~ show) ~
           (slots.authorName <~ text(author.name)) ~
           (slots.authorPicture <~ pictureTweak)

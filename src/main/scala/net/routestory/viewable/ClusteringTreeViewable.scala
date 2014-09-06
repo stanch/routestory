@@ -14,7 +14,7 @@ class ClusteringTreeViewable[A](maxImageSize: Int) {
     new StoryElementViewable(maxImageSize).storyElementViewable.view(x)
 
   def imageViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.Image] { x ⇒
-    val bitmapTweak = x.data.map(_.bitmapTweak(maxImageSize))
+    val bitmapTweak = x.data.flatMap(_.bitmapTweak(maxImageSize))
     w[ImageView] <~ bitmapTweak <~
       ImageTweaks.adjustBounds <~
       LpTweaks.matchParent

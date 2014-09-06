@@ -23,7 +23,7 @@ import android.view.ViewGroup.LayoutParams._
 
 class StoryElementViewable(maxImageSize: Int) {
   def imageViewable(implicit ctx: ActivityContext, appCtx: AppContext): Viewable[Story.Image, LinearLayout] = Viewable[Story.Image] { x ⇒
-    val bitmapTweak = x.data.map(_.bitmapTweak(maxImageSize))
+    val bitmapTweak = x.data.flatMap(_.bitmapTweak(maxImageSize))
     l[VerticalLinearLayout](
       w[PhotoView] <~ bitmapTweak <~
         ImageTweaks.adjustBounds <~
