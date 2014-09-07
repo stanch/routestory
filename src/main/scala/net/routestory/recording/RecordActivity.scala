@@ -17,9 +17,7 @@ import macroid.FullDsl._
 import macroid.{ Tweak, IdGeneration, Ui }
 import macroid.contrib.Layouts.VerticalLinearLayout
 import net.routestory.R
-import net.routestory.data.Story
 import net.routestory.editing.EditActivity
-import net.routestory.recording.manual.{ AddPhotoCaption, AddEasiness, AddMediaFragment }
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.Shortuuid
 import akka.pattern.ask

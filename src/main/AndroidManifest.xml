@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="net.routestory"
-    android:versionCode="3"
+    android:versionCode="4"
     android:versionName="1.0" >
 
     <uses-sdk
@@ -39,7 +39,7 @@
             android:launchMode="singleTop">
         </activity>
         <service android:name=".recording.RecordService" />
-        <receiver android:name=".recording.logged.LocationBroadcastReceiver" />
+        <receiver android:name=".recording.LocationBroadcastReceiver" />
         <activity android:name=".editing.EditActivity">
         </activity>
         <activity android:name=".util.PlayServicesResolutionActivity">

@@ -1,4 +1,4 @@
-package net.routestory.recording.logged
+package net.routestory.recording
 
 import akka.actor.{ ActorLogging, Props, FSM, Actor }
 import net.routestory.data.Story
@@ -11,7 +11,6 @@ import java.nio.{ ByteOrder, ByteBuffer }
 import com.todoroo.aacenc.AACEncoder
 import macroid.AppContext
 import scala.concurrent.duration._
-import net.routestory.recording.Typewriter
 
 object Dictaphone {
   sealed trait State

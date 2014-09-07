@@ -8,7 +8,6 @@ import android.support.v4.app.NotificationCompat
 import com.typesafe.config.ConfigFactory
 import macroid.FullDsl._
 import macroid.{ AppContext, AutoLogTag }
-import net.routestory.recording.logged.{ Dictaphone, Locator }
 import net.routestory.{ R, RouteStoryApp }
 
 class RecordService extends Service with AutoLogTag { self ⇒

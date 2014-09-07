@@ -34,9 +34,9 @@ object Styles {
       TextTweaks.color(ctx.get.getResources.getColor(R.color.aquadark))
 
   def empty(implicit ctx: AppContext) =
-    TextTweaks.size(25) + TextTweaks.italic + TextTweaks.serif +
+    TextTweaks.size(20) + TextTweaks.italic + TextTweaks.serif +
       TextTweaks.color(ctx.get.getResources.getColor(R.color.aquadark)) +
-      LpTweaks.matchParent + Tweak[TextView](_.setGravity(Gravity.CENTER))
+      Tweak[TextView](_.setGravity(Gravity.BOTTOM))
 
   def tag(implicit ctx: AppContext) =
     TextTweaks.medium + TextTweaks.serif +

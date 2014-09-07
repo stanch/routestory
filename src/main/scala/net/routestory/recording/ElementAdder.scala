@@ -1,4 +1,4 @@
-package net.routestory.recording.manual
+package net.routestory.recording
 
 import java.io.File
 
@@ -8,21 +8,20 @@ import android.media.MediaRecorder
 import android.os.{ Environment, Bundle }
 import android.support.v4.app.{ DialogFragment, FragmentManager, Fragment }
 import android.view.Gravity
-import android.widget.{ LinearLayout, TextView, ImageView, EditText }
+import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.{ LpTweaks, TextTweaks, ImageTweaks }
 import macroid.contrib.Layouts.HorizontalLinearLayout
 import macroid.{ Tweak, FragmentManagerContext, ActivityContext, Ui }
 import net.routestory.R
 import net.routestory.data.Story
-import net.routestory.recording.logged.Dictaphone
-import net.routestory.recording.{ Typewriter, RecordFragment, RecordActivity }
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.TakePhotoActivity
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.pattern.ask
 
 import scala.concurrent.Future
+import scala.util.Random
 
 sealed trait ElementAdder {
   def onClick: Ui[Any]
@@ -44,6 +43,13 @@ object ElementAdder {
   case class VoiceNote(implicit ctx: ActivityContext, manager: FragmentManagerContext[Fragment, FragmentManager]) extends ElementAdder {
     def onClick = f[VoiceNoteDialog].factory
       .map(_.show(manager.get, "addVoiceNote"))
+  }
+
+  case class AmbientSound(implicit ctx: ActivityContext, manager: FragmentManagerContext[Fragment, FragmentManager]) extends ElementAdder {
+    val state = rx.Var(Future.successful(false))
+    def onClick = Ui {
+      state.update(Future.successful(Random.nextBoolean()))
+    }
   }
 }
 

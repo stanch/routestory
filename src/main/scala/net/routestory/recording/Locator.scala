@@ -1,14 +1,13 @@
-package net.routestory.recording.logged
+package net.routestory.recording
 
 import android.app.PendingIntent
 import android.content._
 import android.location.Location
 import android.os.Bundle
-import com.google.android.gms.common.{ GooglePlayServicesUtil, ConnectionResult }
+import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GooglePlayServicesClient.{ ConnectionCallbacks, OnConnectionFailedListener }
 import com.google.android.gms.location.{ LocationClient, LocationRequest }
 import macroid.AppContext
-import net.routestory.recording.{ Cartographer, RecordService }
 import net.routestory.util.PlayServicesResolution
 
 class Locator(implicit ctx: AppContext) {

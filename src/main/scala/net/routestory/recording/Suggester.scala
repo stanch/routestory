@@ -6,7 +6,6 @@ import android.location.Location
 import macroid.akkafragments.FragmentActor
 import net.routestory.Apis
 import net.routestory.data.Story
-import net.routestory.recording.manual.AddMediaFragment
 import net.routestory.util.Implicits._
 import scala.concurrent.duration._
 
