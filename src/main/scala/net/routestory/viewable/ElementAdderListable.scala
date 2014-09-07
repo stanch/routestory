@@ -42,8 +42,7 @@ object ElementAdderListable {
           TextTweaks.large <~ TextTweaks.bold <~
           padding(right = 8 dp),
         w[Switch] <~
-          wire(slots.switch) <~
-          disable
+          wire(slots.switch)
       ) <~ Styles.p8dding
       (view, slots)
     }
@@ -51,7 +50,7 @@ object ElementAdderListable {
     def checked(checked: Boolean) = Tweak[Switch](_.setChecked(checked))
 
     override def fillSlots(slots: Slots, data: ElementAdder.AmbientSound)(implicit ctx: ActivityContext, appCtx: AppContext) = {
-      slots.switch <~ data.state.map(_.map(checked))
+      slots.switch <~ data.state.map(_.map(checked)) <~ On.click(data.onClick)
     }
   }
 

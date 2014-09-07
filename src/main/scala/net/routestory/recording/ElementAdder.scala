@@ -2,6 +2,7 @@ package net.routestory.recording
 
 import java.io.File
 
+import akka.actor.ActorSelection
 import akka.util.Timeout
 import android.content.{ DialogInterface, Intent }
 import android.media.MediaRecorder
@@ -12,16 +13,18 @@ import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.{ LpTweaks, TextTweaks, ImageTweaks }
 import macroid.contrib.Layouts.HorizontalLinearLayout
-import macroid.{ Tweak, FragmentManagerContext, ActivityContext, Ui }
+import macroid.viewable.Listable
+import macroid._
 import net.routestory.R
 import net.routestory.data.Story
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.TakePhotoActivity
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.pattern.ask
+import scala.concurrent.duration._
+import android.view.ViewGroup.LayoutParams._
 
 import scala.concurrent.Future
-import scala.util.Random
 
 sealed trait ElementAdder {
   def onClick: Ui[Any]
@@ -45,16 +48,52 @@ object ElementAdder {
       .map(_.show(manager.get, "addVoiceNote"))
   }
 
-  case class AmbientSound(implicit ctx: ActivityContext, manager: FragmentManagerContext[Fragment, FragmentManager]) extends ElementAdder {
-    val state = rx.Var(Future.successful(false))
+  case class AmbientSound(dictaphone: Future[ActorSelection])(implicit ctx: ActivityContext, appCtx: AppContext, manager: FragmentManagerContext[Fragment, FragmentManager]) extends ElementAdder {
+    implicit val timeout = Timeout(2 seconds)
+
+    def queryState = dictaphone.flatMap(_ ? Dictaphone.QueryState).mapTo[Boolean]
+    val state = rx.Var(queryState)
+
+    var numberPicker = slot[NumberPicker]
+
     def onClick = Ui {
-      state.update(Future.successful(Random.nextBoolean()))
+      state.now.mapUi { s ⇒
+        if (s) {
+          dictaphone
+            .flatMap(_ ? Dictaphone.SwitchOff)
+            .foreach(_ ⇒ state.update(queryState))
+        } else {
+          runUi {
+            dialog {
+              l[HorizontalLinearLayout](
+                w[TextView] <~
+                  text("Automatically record sound every") <~
+                  TextTweaks.large <~
+                  Tweak[TextView](_.setGravity(Gravity.CENTER_VERTICAL)) <~
+                  lp[LinearLayout](WRAP_CONTENT, MATCH_PARENT, 1.0f) <~
+                  padding(left = 8 dp),
+                w[NumberPicker] <~ wire(numberPicker) <~ Tweak[NumberPicker] { x ⇒
+                  x.setMinValue(0)
+                  x.setMaxValue(3)
+                  x.setValue(2)
+                  x.setDisplayedValues(Array("1 minute", "3 minutes", "5 minutes", "10 minutes"))
+                } <~ lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT, 1.0f)
+              )
+            } <~ positiveOk(Ui {
+              dictaphone
+                .flatMap(_ ? Dictaphone.SwitchOn(Array(1, 3, 5, 10)(numberPicker.get.getValue)))
+                .foreach(_ ⇒ state.update(queryState))
+            }) <~ negativeCancel(Ui.nop) <~ speak
+          }
+        }
+      }
     }
   }
 }
 
 class AdderDialog extends DialogFragment with RouteStoryFragment with RecordFragment {
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
+  lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
 }
 
 class TextNoteDialog extends AdderDialog {
@@ -75,7 +114,6 @@ class TextNoteDialog extends AdderDialog {
 
 class VoiceNoteDialog extends AdderDialog {
   implicit val dictaphoneSwitchOffTimeout = Timeout(2000)
-  lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
 
   var mediaRecorder: Option[Future[MediaRecorder]] = None
 
@@ -86,7 +124,7 @@ class VoiceNoteDialog extends AdderDialog {
   }
 
   def stop = Ui {
-    dictaphone.foreach(_ ! Dictaphone.SwitchOn)
+    dictaphone.foreach(_ ! Dictaphone.Resume)
     mediaRecorder.foreach(_.foreachUi { m ⇒
       m.stop()
       m.reset()
@@ -103,7 +141,7 @@ class VoiceNoteDialog extends AdderDialog {
   override def onStart() = {
     super.onStart()
     mediaRecorder = Some {
-      dictaphone.flatMap(_ ? Dictaphone.SwitchOff)
+      dictaphone.flatMap(_ ? Dictaphone.Pause)
         .mapUi(_ ⇒ new MediaRecorder {
           setAudioSource(AudioSource.MIC)
           setOutputFormat(OutputFormat.MPEG_4)

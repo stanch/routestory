@@ -37,6 +37,7 @@ class RecordService extends Service with AutoLogTag { self ⇒
   override def onDestroy() = {
     logW"RecordService destroyed"()
     locator.disconnect()
+    dictaphone ! Dictaphone.SwitchOff
     actorSystem.shutdown()
     removeNotification()
     super.onDestroy()

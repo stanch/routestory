@@ -15,6 +15,7 @@ import scala.concurrent.duration._
 object Dictaphone {
   sealed trait State
   case object Off extends State
+  case object Paused extends State
   case object Idle extends State
   case object Recording extends State
 
@@ -23,16 +24,17 @@ object Dictaphone {
   case class RecordingData(ar: AudioRecord, offset: Int) extends Data
 
   def ms(v: Int) = (44.100 * v).toInt
-  val gapDuration = 230.seconds
   val fadeLength = ms(1500) // 1.5s
   val pieceLength = ms(10000) // 10s
   val frameSize = ms(10) * 2 // 10 ms * 2B per Float
   val bufferSize = pieceLength * 2 // * 2B per Float
   val buffer = new Array[Byte](bufferSize)
 
-  case object SwitchOn
+  case class SwitchOn(gapDuration: Int)
   case object SwitchOff
-  case object SwitchedOff
+  case object QueryState
+  case object Pause
+  case object Resume
   case object ReadFrame
 
   def processPiece(pcmFile: File)(implicit ctx: AppContext, ec: ExecutionContext) = future {
@@ -71,22 +73,66 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
 
   lazy val typewriter = context.actorSelection("../typewriter")
 
-  startWith(Idle, NoData)
+  startWith(Off, NoData)
 
   when(Off) {
-    case Event(SwitchOn, _) ⇒
-      log.debug("Switching on")
+    case Event(SwitchOn(gapDuration), _) ⇒
+      sender ! ()
+      log.debug(s"Switching on, interval = $gapDuration minutes")
+      setStateTimeout(Idle, Some(gapDuration.minutes))
+      self ! StateTimeout
       goto(Idle)
     case Event(SwitchOff, _) ⇒
-      sender ! SwitchedOff; stay()
+      sender ! ()
+      stay()
+    case Event(Pause, _) ⇒
+      sender ! ()
+      stay()
+    case Event(Resume, _) ⇒
+      sender ! ()
+      stay()
+    case Event(ReadFrame, _) ⇒
+      stay()
+    case Event(QueryState, _) ⇒
+      sender ! false
+      stay()
     case _ ⇒ stay()
   }
 
-  when(Idle, stateTimeout = gapDuration) {
+  when(Paused) {
+    case Event(SwitchOn(_), _) ⇒
+      sender ! ()
+      stay()
     case Event(SwitchOff, _) ⇒
-      sender ! SwitchedOff
+      sender ! ()
       log.debug("Switching off")
       goto(Off)
+    case Event(Pause, _) ⇒
+      sender ! ()
+      stay()
+    case Event(Resume, _) ⇒
+      sender ! ()
+      log.debug("Resuming")
+      goto(Idle)
+    case Event(ReadFrame, _) ⇒
+      stay()
+    case Event(QueryState, _) ⇒
+      sender ! true
+      stay()
+  }
+
+  when(Idle) {
+    case Event(SwitchOn(_), _) ⇒
+      sender ! ()
+      stay()
+    case Event(SwitchOff, _) ⇒
+      sender ! ()
+      log.debug("Switching off")
+      goto(Off)
+    case Event(Pause, _) ⇒
+      sender ! ()
+      log.debug("Pausing")
+      goto(Paused)
     case Event(StateTimeout, _) ⇒
       log.debug("Start recording")
       val audioRecord = new AudioRecord(
@@ -96,6 +142,9 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
       audioRecord.startRecording()
       self ! ReadFrame
       goto(Recording) using RecordingData(audioRecord, 0)
+    case Event(QueryState, _) ⇒
+      sender ! true
+      stay()
     case _ ⇒
       stay()
   }
@@ -119,9 +168,18 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
     case Event(SwitchOff, RecordingData(ar, _)) ⇒
       ar.stop()
       ar.release()
-      sender ! SwitchedOff
+      sender ! ()
       log.debug("Switching off")
       goto(Off) using NoData
+    case Event(Pause, RecordingData(ar, _)) ⇒
+      ar.stop()
+      ar.release()
+      sender ! ()
+      log.debug("Pausing")
+      goto(Paused) using NoData
+    case Event(QueryState, _) ⇒
+      sender ! true
+      stay()
   }
 
   initialize()

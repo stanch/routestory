@@ -36,6 +36,7 @@ object ElementOrAdder {
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordFragment {
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
   lazy val suggester = actorSystem.map(_.actorSelection("/user/suggester"))
+  lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
 
   var grid = slot[StaggeredGridView]
   var swiper = slot[SwipeRefreshLayout]
@@ -44,7 +45,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     ElementAdder.Photo(),
     ElementAdder.TextNote(),
     ElementAdder.VoiceNote(),
-    ElementAdder.AmbientSound()
+    ElementAdder.AmbientSound(dictaphone)
   ).map(ElementOrAdder.Adder)
 
   def showSuggestions(suggestions: List[Story.KnownElement], initial: Boolean = false) = {

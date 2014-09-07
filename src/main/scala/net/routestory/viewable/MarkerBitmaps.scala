@@ -51,16 +51,16 @@ object MarkerBitmaps {
 
   def bitmap(maxSize: Int, cache: LruCache[Clustering.Tree[Marker], Future[Bitmap]])(tree: Clustering.Tree[Marker])(implicit ctx: ActivityContext, appCtx: AppContext, ec: ExecutionContext): Future[Bitmap] = tree match {
     case x @ Clustering.Leaf(Timed(_, _: Story.VoiceNote), _, _, _) ⇒
-      bitmapFromResource(maxSize)(R.drawable.ic_action_mic)
+      bitmapFromResource(64)(R.drawable.ic_action_mic)
 
     case x @ Clustering.Leaf(Timed(_, _: Story.Sound), _, _, _) ⇒
-      bitmapFromResource(maxSize)(R.drawable.ic_action_volume_on)
+      bitmapFromResource(64)(R.drawable.ic_action_volume_on)
 
     case x @ Clustering.Leaf(Timed(_, _: Story.TextNote), _, _, _) ⇒
-      bitmapFromResource(maxSize)(R.drawable.ic_action_view_as_list)
+      bitmapFromResource(64)(R.drawable.ic_action_view_as_list)
 
     case x @ Clustering.Leaf(Timed(_, _: Story.FoursquareVenue), _, _, _) ⇒
-      bitmapFromResource(maxSize)(R.drawable.foursquare)
+      bitmapFromResource(64)(R.drawable.foursquare)
 
     case x @ Clustering.Leaf(Timed(_, img: Story.Image), _, _, _) ⇒
       img.data.flatMap(bitmapFromFile(maxSize))
