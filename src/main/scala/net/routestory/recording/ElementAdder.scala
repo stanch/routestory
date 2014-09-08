@@ -4,9 +4,9 @@ import java.io.File
 
 import akka.actor.ActorSelection
 import akka.util.Timeout
-import android.content.{Context, DialogInterface, Intent}
+import android.content.{ Context, DialogInterface, Intent }
 import android.media.MediaRecorder
-import android.os.{Vibrator, Environment, Bundle}
+import android.os.{ Vibrator, Environment, Bundle }
 import android.support.v4.app.{ DialogFragment, FragmentManager, Fragment }
 import android.view.Gravity
 import android.widget._
@@ -18,7 +18,7 @@ import macroid._
 import net.routestory.R
 import net.routestory.data.Story
 import net.routestory.ui.RouteStoryFragment
-import net.routestory.util.{Preferences, TakePhotoActivity}
+import net.routestory.util.{ Preferences, TakePhotoActivity }
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.pattern.ask
 import scala.concurrent.duration._
@@ -80,14 +80,16 @@ object ElementAdder {
                 } <~ lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT, 1.0f)
               )
             } <~ positiveOk(Ui {
-              Preferences.onlyOnce("dictaphoneVibration") {
+              if (Preferences.undefined("explainedDictaphone")) {
                 val vibrator = appCtx.get.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator]
                 if (vibrator.hasVibrator) {
                   runUi {
                     dialog("Your device will vibrate every time the sound recording starts.") <~
-                      positive("Got it!")(Ui.nop) <~
+                      positive("Got it!")(Ui(Preferences.define("explainedDictaphone"))) <~
                       speak
                   }
+                } else {
+                  Preferences.define("explainedDictaphone")
                 }
               }
               dictaphone
@@ -98,6 +100,10 @@ object ElementAdder {
         }
       }
     }
+  }
+
+  case class Suggestion(element: Story.KnownElement) extends ElementAdder {
+    def onClick = Ui.nop
   }
 }
 

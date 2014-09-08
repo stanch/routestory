@@ -54,6 +54,9 @@ object ElementAdderListable {
     }
   }
 
+  def suggestionAdderListable(implicit ctx: ActivityContext, appCtx: AppContext) =
+    StoryElementListable.storyElementListable.contraMap[ElementAdder.Suggestion](_.element)
+
   object mostAddersListable extends SlottedListable[ElementAdder] {
     class Slots {
       var icon = slot[ImageView]
@@ -82,7 +85,8 @@ object ElementAdderListable {
     }
   }
 
-  val adderListable =
+  def adderListable(implicit ctx: ActivityContext, appCtx: AppContext) =
     (ambientSoundListable.toParent[ElementAdder] orElse
+      suggestionAdderListable.toParent[ElementAdder] orElse
       mostAddersListable.toPartial).toTotal
 }

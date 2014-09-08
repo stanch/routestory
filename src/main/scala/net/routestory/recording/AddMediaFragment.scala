@@ -15,23 +15,10 @@ import macroid.contrib.Layouts.VerticalLinearLayout
 import macroid.contrib.{ LpTweaks, TextTweaks }
 import net.routestory.data.Story
 import net.routestory.ui.{ Styles, Tweaks, RouteStoryFragment }
+import net.routestory.util.Preferences
 import net.routestory.viewable.{ StoryElementListable, CardListable, ElementAdderListable }
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
-sealed trait ElementOrAdder
-object ElementOrAdder {
-  case class Element(element: Story.KnownElement) extends ElementOrAdder
-  case class Adder(adder: ElementAdder) extends ElementOrAdder
-
-  def listable(implicit ctx: ActivityContext, appCtx: AppContext) =
-    (StoryElementListable.storyElementListable
-      .contraMap[Element](_.element)
-      .toParent[ElementOrAdder] orElse
-      ElementAdderListable.adderListable
-      .contraMap[Adder](_.adder)
-      .toParent[ElementOrAdder]).toTotal
-}
 
 class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordFragment {
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
@@ -46,26 +33,28 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     ElementAdder.TextNote(),
     ElementAdder.VoiceNote(),
     ElementAdder.AmbientSound(dictaphone)
-  ).map(ElementOrAdder.Adder)
+  )
 
   def showSuggestions(suggestions: List[Story.KnownElement], initial: Boolean = false) = {
     if (!initial) {
       typewriter.foreach(_ ! Typewriter.Suggestions(suggestions.length))
     }
 
-    val listable = CardListable.cardListable(ElementOrAdder.listable)
-    val stuff = adders ::: suggestions.map(ElementOrAdder.Element)
+    val listable = CardListable.cardListable(ElementAdderListable.adderListable)
+    val stuff = adders ::: suggestions.map(ElementAdder.Suggestion)
 
     val updateGrid = grid <~ listable.listAdapterTweak(stuff) <~
       FuncOn.itemClick[StaggeredGridView] { (_: AdapterView[_], _: View, index: Int, _: Long) ⇒
-        stuff(index) match {
-          case ElementOrAdder.Adder(adder) ⇒ adder.onClick
-          case ElementOrAdder.Element(element) ⇒
-            Ui(typewriter.foreach(_ ! Typewriter.Element(element)))
-        }
+        stuff(index).onClick
       }
 
-    updateGrid ~ (swiper <~ Tweaks.stopRefresh)
+    val showPopup = if (!initial && Preferences.undefined("explainedSuggestions")) {
+      dialog("We’ve got suggestions for you! Enrich your story and save some precious time by adding Foursquare venues or photos from Instagram and Flickr! Pull down to refresh the suggestions.") <~
+        positive("Got it!")(Ui(Preferences.define("explainedSuggestions"))) <~
+        speak
+    } else Ui.nop
+
+    updateGrid ~ (swiper <~ Tweaks.stopRefresh) ~ showPopup
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
