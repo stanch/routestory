@@ -3,21 +3,12 @@ package net.routestory.util
 import java.io.File
 
 import android.app.Activity
-import android.content.{ Intent, DialogInterface }
+import android.content.Intent
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.{ Environment, Bundle }
 import android.provider.MediaStore
-import android.util.Log
-import android.view.Gravity
-import android.widget.EditText
-import macroid.FullDsl._
-import macroid.{ Tweak, Ui }
-import net.routestory.data.Story
-import net.routestory.recording.Typewriter
-import net.routestory.recording.manual.AdderDialog
 import net.routestory.ui.RouteStoryActivity
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class TakePhotoActivity extends RouteStoryActivity {
   def newPhotoFile = {

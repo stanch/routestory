@@ -7,11 +7,10 @@ import akka.util.Timeout
 import android.app.Activity
 import android.content.{ ComponentName, Context, Intent, ServiceConnection }
 import android.graphics.Color
-import android.media.MediaScannerConnection
 import android.os.{ Bundle, IBinder }
 import android.support.v4.app.Fragment
 import android.support.v4.widget.SlidingPaneLayout
-import android.view.{ Menu, MenuItem }
+import android.view.{ View, Menu, MenuItem }
 import android.widget._
 import macroid.FullDsl._
 import macroid.{ Tweak, IdGeneration, Ui }
@@ -21,6 +20,7 @@ import net.routestory.editing.EditActivity
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
 import net.routestory.util.Shortuuid
 import akka.pattern.ask
+import android.view.ViewGroup.LayoutParams._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Promise

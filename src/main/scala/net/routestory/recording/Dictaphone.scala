@@ -1,6 +1,8 @@
 package net.routestory.recording
 
 import akka.actor.{ ActorLogging, Props, FSM, Actor }
+import android.content.Context
+import android.os.Vibrator
 import net.routestory.data.Story
 import scala.concurrent._
 import android.media.AudioRecord
@@ -72,6 +74,7 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
   import context.dispatcher
 
   lazy val typewriter = context.actorSelection("../typewriter")
+  lazy val vibrator = ctx.get.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator]
 
   startWith(Off, NoData)
 
@@ -140,6 +143,7 @@ class Dictaphone(implicit ctx: AppContext) extends Actor with FSM[Dictaphone.Sta
         AudioRecord.getMinBufferSize(44100, CHANNEL_IN_MONO, ENCODING_PCM_16BIT) * 10
       )
       audioRecord.startRecording()
+      vibrator.vibrate(300)
       self ! ReadFrame
       goto(Recording) using RecordingData(audioRecord, 0)
     case Event(QueryState, _) ⇒
