@@ -8,7 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.nfc.{ NdefMessage, NfcAdapter }
 import android.os.Bundle
-import android.view.{ Menu, MenuItem }
+import android.view.{ Window, Menu, MenuItem }
 import android.widget.{ FrameLayout, ProgressBar }
 import macroid.FullDsl._
 import macroid.akkafragments.AkkaActivity
