@@ -4,8 +4,9 @@ import android.graphics.Color
 import android.media.MediaPlayer
 import android.media.MediaPlayer.{ OnCompletionListener, OnSeekCompleteListener }
 import android.os.Handler
-import android.view.{ View, Gravity }
-import android.webkit.{ WebViewClient, WebView }
+import android.view.View.OnKeyListener
+import android.view.{ KeyEvent, View, Gravity }
+import android.webkit.{ WebChromeClient, WebViewClient, WebView }
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget._
 import macroid.FullDsl._
@@ -123,19 +124,45 @@ object StoryElementViewable {
   }
 
   def foursquareVenueViewable(implicit ctx: ActivityContext, appCtx: AppContext) = Viewable[Story.FoursquareVenue] { x ⇒
-    w[WebView] <~
-      LpTweaks.matchParent <~
-      Tweak[WebView] { v ⇒
-        v.setWebViewClient(new WebViewClient {
-          override def shouldOverrideUrlLoading(view: WebView, url: String) = {
-            view.loadUrl(url)
-            true
-          }
-        })
-        v.getSettings.setJavaScriptEnabled(true)
-        v.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY)
-        v.loadUrl(s"https://foursquare.com/v/${x.id}")
-      }
+    var progress = slot[ProgressBar]
+    l[VerticalLinearLayout](
+      w[ProgressBar](null, android.R.attr.progressBarStyleHorizontal) <~
+        Tweak[ProgressBar] { x ⇒
+          x.setMax(100)
+          x.setIndeterminate(false)
+        } <~
+        LpTweaks.matchWidth <~
+        wire(progress),
+      w[WebView] <~
+        LpTweaks.matchParent <~
+        Tweak[WebView] { v ⇒
+          v.setWebChromeClient(new WebChromeClient {
+            override def onProgressChanged(view: WebView, newProgress: Int) = {
+              super.onProgressChanged(view, newProgress)
+              runUi {
+                progress <~ Tweak[ProgressBar](_.setProgress(newProgress)) <~ show(newProgress < 100)
+              }
+            }
+          })
+          v.setWebViewClient(new WebViewClient {
+            override def shouldOverrideUrlLoading(view: WebView, url: String) = {
+              view.loadUrl(url)
+              true
+            }
+          })
+          v.setOnKeyListener(new OnKeyListener {
+            override def onKey(view: View, keyCode: Int, event: KeyEvent) = {
+              if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction == KeyEvent.ACTION_DOWN && v.canGoBack) {
+                v.goBack()
+                true
+              } else false
+            }
+          })
+          v.getSettings.setJavaScriptEnabled(true)
+          v.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY)
+          v.loadUrl(s"https://foursquare.com/v/${x.id}")
+        }
+    )
   }
 
   implicit def storyElementViewable(implicit ctx: ActivityContext, appCtx: AppContext) =

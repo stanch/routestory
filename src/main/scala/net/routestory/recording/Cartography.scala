@@ -14,11 +14,13 @@ import net.routestory.data.{ Clustering, Story }
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.Implicits._
 import akka.pattern.pipe
+import scala.concurrent.duration._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Promise
 
 class CartographyFragment extends RouteStoryFragment with IdGeneration with RecordFragment with AutoLogTag {
+  import scala.concurrent.ExecutionContext.Implicits.global
+
   lazy val actor = actorSystem.map(_.actorSelection("/user/cartographer"))
   lazy val map = this.findFrag[SupportMapFragment](Tag.map).get.get.getMap
   lazy val mapManager = new MapManager(map, iconAlpha = 0.7f, centerIcons = false)
@@ -52,24 +54,41 @@ object Cartographer {
   case class UpdateMarkers(chapter: Story.Chapter, tree: Option[Clustering.Tree[Unit]])
   case object QueryLastLocation
   case object QueryFirstLocation
-  def props = Props(new Cartographer)
+  case object Notify
+  def props(implicit ctx: AppContext) = Props(new Cartographer)
 }
 
 /** An actor that updates the map with the chapter data, as well as current location */
-class Cartographer extends FragmentActor[CartographyFragment] with ActorLogging {
+class Cartographer(implicit ctx: AppContext) extends FragmentActor[CartographyFragment] with ActorLogging {
   import macroid.akkafragments.FragmentActor._
   import net.routestory.recording.Cartographer._
+  import context.dispatcher
 
   var last: Option[Location] = None
   val first = Promise[Unit]()
 
   lazy val typewriter = context.actorSelection("../typewriter")
 
+  var notifications = Option(context.system.scheduler
+    .schedule(3 seconds, 10 seconds, self, Notify))
+  var notified = false
+  first.future.foreach { _ ⇒
+    notifications.foreach(_.cancel())
+    notifications = None
+  }
+
   def receive = receiveUi andThen {
     case AttachUi(_) ⇒
       typewriter ! Typewriter.Remind
       withUi { f ⇒
         last.fold(Ui.nop)(f.positionMap)
+      }
+
+    case Notify ⇒
+      val msg = if (!notified) "Searching for location..." else "Still searching for location..."
+      notified = true
+      runUi {
+        toast(msg) <~ fry
       }
 
     case UpdateRoute(chapter) ⇒
