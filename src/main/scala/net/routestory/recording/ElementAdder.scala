@@ -8,17 +8,19 @@ import android.content.{ Context, DialogInterface, Intent }
 import android.media.MediaRecorder
 import android.os.{ Vibrator, Environment, Bundle }
 import android.support.v4.app.{ DialogFragment, FragmentManager, Fragment }
-import android.view.Gravity
+import android.view.{ View, Gravity }
 import android.widget._
 import macroid.FullDsl._
 import macroid.contrib.{ LpTweaks, TextTweaks, ImageTweaks }
-import macroid.contrib.Layouts.HorizontalLinearLayout
-import macroid.viewable.Listable
+import macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
+import macroid.viewable.{ SlottedListable, Listable }
 import macroid._
 import net.routestory.R
 import net.routestory.data.Story
+import net.routestory.data.Story.KnownElement
 import net.routestory.ui.RouteStoryFragment
 import net.routestory.util.{ Preferences, TakePhotoActivity }
+import net.routestory.viewable.{ StoryElementListable, TimedListable, CardListable }
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.pattern.ask
 import scala.concurrent.duration._
@@ -54,7 +56,37 @@ object ElementAdder {
     def queryState = dictaphone.flatMap(_ ? Dictaphone.QueryState).mapTo[Boolean]
     val state = rx.Var(queryState)
 
+    def showHint = {
+      val vibrator = appCtx.get.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator]
+      if (vibrator.hasVibrator && Preferences.undefined("explainedDictaphone")) {
+        dialog("Your device will vibrate every time the sound recording starts.") <~
+          positive("Got it!")(Ui(Preferences.define("explainedDictaphone"))) <~
+          speak
+      } else Ui.nop
+    }
+
     var numberPicker = slot[NumberPicker]
+
+    def showSettings = dialog {
+      l[HorizontalLinearLayout](
+        w[TextView] <~
+          text("Automatically record sound every") <~
+          TextTweaks.large <~
+          Tweak[TextView](_.setGravity(Gravity.CENTER_VERTICAL)) <~
+          lp[LinearLayout](WRAP_CONTENT, MATCH_PARENT, 1.0f) <~
+          padding(left = 8 dp),
+        w[NumberPicker] <~ wire(numberPicker) <~ Tweak[NumberPicker] { x ⇒
+          x.setMinValue(0)
+          x.setMaxValue(3)
+          x.setValue(2)
+          x.setDisplayedValues(Array("1 minute", "3 minutes", "5 minutes", "10 minutes"))
+        } <~ lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT, 1.0f)
+      )
+    } <~ positiveOk(showHint ~ Ui {
+      dictaphone
+        .flatMap(_ ? Dictaphone.SwitchOn(Array(1, 3, 5, 10)(numberPicker.get.getValue)))
+        .foreach(_ ⇒ state.update(queryState))
+    }) <~ negativeCancel(Ui.nop) <~ speak
 
     def onClick = Ui {
       state.now.mapUi { s ⇒
@@ -63,40 +95,7 @@ object ElementAdder {
             .flatMap(_ ? Dictaphone.SwitchOff)
             .foreach(_ ⇒ state.update(queryState))
         } else {
-          runUi {
-            dialog {
-              l[HorizontalLinearLayout](
-                w[TextView] <~
-                  text("Automatically record sound every") <~
-                  TextTweaks.large <~
-                  Tweak[TextView](_.setGravity(Gravity.CENTER_VERTICAL)) <~
-                  lp[LinearLayout](WRAP_CONTENT, MATCH_PARENT, 1.0f) <~
-                  padding(left = 8 dp),
-                w[NumberPicker] <~ wire(numberPicker) <~ Tweak[NumberPicker] { x ⇒
-                  x.setMinValue(0)
-                  x.setMaxValue(3)
-                  x.setValue(2)
-                  x.setDisplayedValues(Array("1 minute", "3 minutes", "5 minutes", "10 minutes"))
-                } <~ lp[LinearLayout](MATCH_PARENT, WRAP_CONTENT, 1.0f)
-              )
-            } <~ positiveOk(Ui {
-              if (Preferences.undefined("explainedDictaphone")) {
-                val vibrator = appCtx.get.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator]
-                if (vibrator.hasVibrator) {
-                  runUi {
-                    dialog("Your device will vibrate every time the sound recording starts.") <~
-                      positive("Got it!")(Ui(Preferences.define("explainedDictaphone"))) <~
-                      speak
-                  }
-                } else {
-                  Preferences.define("explainedDictaphone")
-                }
-              }
-              dictaphone
-                .flatMap(_ ? Dictaphone.SwitchOn(Array(1, 3, 5, 10)(numberPicker.get.getValue)))
-                .foreach(_ ⇒ state.update(queryState))
-            }) <~ negativeCancel(Ui.nop) <~ speak
-          }
+          runUi(showSettings)
         }
       }
     }
@@ -104,6 +103,8 @@ object ElementAdder {
 
   case class Suggestion(element: Story.KnownElement) extends ElementAdder {
     def onClick = Ui.nop
+    def onAdd = Ui.nop
+    def onRemove = Ui.nop
   }
 }
 

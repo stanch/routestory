@@ -42,19 +42,15 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
 
     val listable = CardListable.cardListable(ElementAdderListable.adderListable)
     val stuff = adders ::: suggestions.map(ElementAdder.Suggestion)
+    val updateGrid = grid <~ listable.listAdapterTweak(stuff)
 
-    val updateGrid = grid <~ listable.listAdapterTweak(stuff) <~
-      FuncOn.itemClick[StaggeredGridView] { (_: AdapterView[_], _: View, index: Int, _: Long) ⇒
-        stuff(index).onClick
-      }
-
-    val showPopup = if (!initial && Preferences.undefined("explainedSuggestions")) {
+    val showHint = if (!initial && Preferences.undefined("explainedSuggestions")) {
       dialog("We’ve got suggestions for you! Enrich your story and save some precious time by adding Foursquare venues or photos from Instagram and Flickr! Pull down to refresh the suggestions.") <~
         positive("Got it!")(Ui(Preferences.define("explainedSuggestions"))) <~
         speak
     } else Ui.nop
 
-    updateGrid ~ (swiper <~ Tweaks.stopRefresh) ~ showPopup
+    updateGrid ~ (swiper <~ Tweaks.stopRefresh) ~ showHint
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {

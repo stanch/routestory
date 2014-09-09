@@ -5,7 +5,7 @@
           android:showAsAction="always" />
     <item android:id="@+id/finish"
         android:title="Finish"
-        android:icon="@drawable/ic_action_accept"
+        android:icon="@drawable/accept"
         android:orderInCategory="100"
         android:showAsAction="always" />
     <item android:id="@+id/discard"

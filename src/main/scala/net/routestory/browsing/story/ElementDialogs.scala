@@ -10,7 +10,7 @@ import macroid.FullDsl._
 import macroid.contrib.{ PagerTweaks, BgTweaks }
 import macroid.viewable._
 import macroid.{ ActivityContext, AppContext, Tweak }
-import net.routestory.data.Clustering
+import net.routestory.data.{ Story, Clustering }
 import net.routestory.ui.{ ScrollableViewPager, Styles }
 import net.routestory.viewable.{ CardListable, StoryElementListable, StoryElementViewable }
 
@@ -30,6 +30,16 @@ object ElementPager {
           })
         }
     } <~ speak
+  }
+}
+
+object ElementViewer {
+  def show(element: Story.KnownElement)(implicit ctx: ActivityContext, appCtx: AppContext) = {
+    import StoryElementViewable._
+
+    dialog(android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
+      element.view <~ BgTweaks.color(Color.BLACK) <~ Styles.lowProfile
+    }
   }
 }
 
