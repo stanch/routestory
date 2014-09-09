@@ -19,6 +19,9 @@ object Suggester {
   case class FlickrPhotos(photos: List[Story.FlickrPhoto])
   case class InstagramPhotos(photos: List[Story.InstagramPhoto])
 
+  case class Add(element: Story.KnownElement)
+  case class Dismiss(element: Story.KnownElement)
+
   def props(apis: Apis) = Props(new Suggester(apis))
 }
 
@@ -29,7 +32,7 @@ class Suggester(apis: Apis) extends FragmentActor[AddMediaFragment] with ActorLo
   lazy val typewriter = context.actorSelection("../typewriter")
   lazy val cartographer = context.actorSelection("../cartographer")
 
-  var suggest = List.empty[Story.KnownElement]
+  var dismissed = Set.empty[Story.KnownElement]
 
   def interleave[A](lists: List[List[A]]): List[A] = lists.flatMap(_.take(1)) match {
     case Nil ⇒ Nil
@@ -49,6 +52,15 @@ class Suggester(apis: Apis) extends FragmentActor[AddMediaFragment] with ActorLo
     case Update ⇒
       cartographer ! Cartographer.QueryLastLocation
 
+    case Add(element) ⇒
+      typewriter ! Typewriter.Element(element)
+      dismissed += element
+      withUi(_.hideSuggestion(element))
+
+    case Dismiss(element) ⇒
+      dismissed += element
+      withUi(_.hideSuggestion(element))
+
     case None ⇒
       // backoff
       context.system.scheduler.scheduleOnce(5 seconds, self, Update)
@@ -62,7 +74,11 @@ class Suggester(apis: Apis) extends FragmentActor[AddMediaFragment] with ActorLo
       venues zip flickrPhotos zip instagramPhotos pipeTo self
 
     case ((FoursquareVenues(venues), FlickrPhotos(flickrPhotos)), InstagramPhotos(instagramPhotos)) ⇒
-      val elements = interleave(List(venues, flickrPhotos, instagramPhotos)).take(10)
+      val elements = interleave(List(
+        venues.filterNot(dismissed),
+        flickrPhotos.filterNot(dismissed),
+        instagramPhotos.filterNot(dismissed)
+      )).take(10)
       withUi(_.showSuggestions(elements))
 
     case _ ⇒

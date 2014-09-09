@@ -33,7 +33,7 @@ class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPag
 
     (editor, metadata, elemental) // init actors
 
-    setContentView(getUi(drawer(
+    setContentView(getUi(
       l[VerticalLinearLayout](
         activityProgress <~ wire(progress) <~ waitProgress(story),
         getTabs(
@@ -41,7 +41,7 @@ class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPag
           "Elements" → f[ElementsFragment].factory
         )
       )
-    )))
+    ))
 
     story foreach { s ⇒
       editor ! Editor.Init(s)
@@ -73,6 +73,9 @@ class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPag
       save.run
       true
     case R.id.discard ⇒
+      discard.run
+      true
+    case android.R.id.home ⇒
       discard.run
       true
     case _ ⇒ super.onOptionsItemSelected(item)

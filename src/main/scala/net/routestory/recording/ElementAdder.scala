@@ -16,6 +16,7 @@ import macroid.contrib.Layouts.{ VerticalLinearLayout, HorizontalLinearLayout }
 import macroid.viewable.{ SlottedListable, Listable }
 import macroid._
 import net.routestory.R
+import net.routestory.browsing.story.ElementViewer
 import net.routestory.data.Story
 import net.routestory.data.Story.KnownElement
 import net.routestory.ui.RouteStoryFragment
@@ -101,10 +102,10 @@ object ElementAdder {
     }
   }
 
-  case class Suggestion(element: Story.KnownElement) extends ElementAdder {
-    def onClick = Ui.nop
-    def onAdd = Ui.nop
-    def onRemove = Ui.nop
+  case class Suggestion(element: Story.KnownElement)(suggester: Future[ActorSelection])(implicit ctx: ActivityContext, appCtx: AppContext) extends ElementAdder {
+    def onClick = ElementViewer.show(element)
+    def onAdd = Ui(suggester.foreach(_ ! Suggester.Add(element)))
+    def onRemove = Ui(suggester.foreach(_ ! Suggester.Dismiss(element)))
   }
 }
 

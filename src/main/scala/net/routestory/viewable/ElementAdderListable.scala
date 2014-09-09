@@ -67,9 +67,6 @@ object ElementAdderListable {
       var remove = slot[Button]
     }
 
-    def leftDrawable(drawable: Int) =
-      Tweak[Button](_.setCompoundDrawablesWithIntrinsicBounds(drawable, 0, 0, 0))
-
     override def makeSlots(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = {
       val slots = new Slots
       val view = w[LinearLayout](null, android.R.attr.buttonBarStyle) <~ addViews(List(
@@ -92,10 +89,26 @@ object ElementAdderListable {
     }
   }
 
+  implicit class RichListable[A, W <: View](listable: Listable[A, W]) {
+    def addFillView(fill: (Ui[W], A) ⇒ Ui[W]) =
+      new Listable[A, W] {
+        def viewTypeCount = listable.viewTypeCount
+        def viewType(data: A) = listable.viewType(data)
+        def makeView(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = listable.makeView(viewType)
+        def fillView(view: Ui[W], data: A)(implicit ctx: ActivityContext, appCtx: AppContext) =
+          listable.fillView(view, data) ~ fill(view, data)
+      }
+  }
+
+  def suggestionListable(implicit ctx: ActivityContext, appCtx: AppContext) =
+    StoryElementListable.storyElementListable
+      .contraMap[ElementAdder.Suggestion](_.element)
+      .addFillView((view, adder) ⇒ view <~ On.click(adder.onClick))
+
   def suggestionAdderListable(implicit ctx: ActivityContext, appCtx: AppContext) =
-    Listable.combine(StoryElementListable.storyElementListable, suggestionButtons) { (l1, l2) ⇒
+    Listable.combine(suggestionListable, suggestionButtons) { (l1, l2) ⇒
       l[VerticalLinearLayout](l1, l2)
-    }.contraMap[ElementAdder.Suggestion](a ⇒ (a.element, a))
+    }.contraMap[ElementAdder.Suggestion](a ⇒ (a, a))
 
   object mostAddersListable extends SlottedListable[ElementAdder] {
     class Slots {

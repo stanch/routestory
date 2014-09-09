@@ -139,6 +139,9 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
         progress <~ waitProgress(writing)
       }
       true
+    case android.R.id.home ⇒
+      finish()
+      true
     case _ ⇒ super.onOptionsItemSelected(item)
   }
 

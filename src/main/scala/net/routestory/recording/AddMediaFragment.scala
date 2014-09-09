@@ -16,7 +16,7 @@ import macroid.contrib.{ LpTweaks, TextTweaks }
 import net.routestory.data.Story
 import net.routestory.ui.{ Styles, Tweaks, RouteStoryFragment }
 import net.routestory.util.Preferences
-import net.routestory.viewable.{ StoryElementListable, CardListable, ElementAdderListable }
+import net.routestory.viewable.{ CardListable, ElementAdderListable }
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -41,7 +41,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     }
 
     val listable = CardListable.cardListable(ElementAdderListable.adderListable)
-    val stuff = adders ::: suggestions.map(ElementAdder.Suggestion)
+    val stuff = adders ::: suggestions.map(s ⇒ ElementAdder.Suggestion(s)(suggester))
     val updateGrid = grid <~ listable.listAdapterTweak(stuff)
 
     val showHint = if (!initial && Preferences.undefined("explainedSuggestions")) {
@@ -51,6 +51,15 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
     } else Ui.nop
 
     updateGrid ~ (swiper <~ Tweaks.stopRefresh) ~ showHint
+  }
+
+  def hideSuggestion(suggestion: Story.KnownElement) = Ui {
+    grid.flatMap(g ⇒ Option(g.getAdapter))
+      .map(_.asInstanceOf[ArrayAdapter[ElementAdder]])
+      .map { a ⇒
+        a.remove(ElementAdder.Suggestion(suggestion)(suggester))
+        a.notifyDataSetChanged()
+      }
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {

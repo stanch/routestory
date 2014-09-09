@@ -7,7 +7,7 @@ import android.view.View
 import android.widget.AdapterView
 import com.etsy.android.grid.StaggeredGridView
 import macroid.FullDsl._
-import macroid.contrib.{ PagerTweaks, BgTweaks }
+import macroid.contrib.{ LpTweaks, PagerTweaks, BgTweaks }
 import macroid.viewable._
 import macroid.{ ActivityContext, AppContext, Tweak }
 import net.routestory.data.{ Story, Clustering }
@@ -38,8 +38,10 @@ object ElementViewer {
     import StoryElementViewable._
 
     dialog(android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
-      element.view <~ BgTweaks.color(Color.BLACK) <~ Styles.lowProfile
-    }
+      element.view <~
+        BgTweaks.color(Color.BLACK) <~
+        Styles.lowProfile
+    } <~ speak
   }
 }
 
