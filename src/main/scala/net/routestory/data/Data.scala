@@ -23,6 +23,13 @@ object Story {
     def url: String
     def data: Future[File]
     def withFile(file: File): MediaElement
+
+    override def equals(o: scala.Any) = o match {
+      case x: MediaElement ⇒ url == x.url
+      case _ ⇒ false
+    }
+
+    override def hashCode() = url.hashCode()
   }
 
   sealed trait Audio extends MediaElement
@@ -132,6 +139,7 @@ case class Story(id: String, meta: Story.Meta, chapters: List[Story.Chapter], au
   def withChapter(chapter: Story.Chapter) = copy(chapters = chapters :+ chapter)
   def withMeta(meta: Story.Meta) = copy(meta = meta)
   def withStudyInfo(studyInfo: Story.StudyInfo) = copy(studyInfo = Some(studyInfo))
+  def withAuthor(author: Option[Author]) = copy(author = author)
 
   def preview = StoryPreview(id, meta.title, meta.tags, author)
 }
