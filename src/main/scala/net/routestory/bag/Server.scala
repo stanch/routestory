@@ -46,6 +46,7 @@ trait RouteStoryService extends HttpService
   with AuthorRoutes
   with TagRoutes {
 
+  implicit def actorSystem: ActorSystem
   implicit val executionContext = actorRefFactory.dispatcher
   implicit val timeout: Timeout = 10.seconds
 

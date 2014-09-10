@@ -11,7 +11,8 @@ packageArchetype.java_application
 
 resolvers ++= Seq(
 	"spray repo" at "http://repo.spray.io",
-	"typesafe repo" at "http://repo.typesafe.com/typesafe/releases/"
+	"typesafe repo" at "http://repo.typesafe.com/typesafe/releases/",
+  "rediscala" at "http://dl.bintray.com/etaty/maven"
 )
 
 libraryDependencies ++= Seq(
@@ -23,5 +24,6 @@ libraryDependencies ++= Seq(
 	"com.typesafe.play" %% "play-json" % "2.3.0",
 	"com.typesafe.akka" %% "akka-actor" % "2.3.4",
   "org.scala-lang.modules" %% "scala-async" % "0.9.2",
-	"org.scalatest" %% "scalatest" % "2.2.1" % "test"
+	"org.scalatest" %% "scalatest" % "2.2.1" % "test",
+  "com.etaty.rediscala" %% "rediscala" % "1.3.1"
 )
