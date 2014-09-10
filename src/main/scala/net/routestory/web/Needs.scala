@@ -9,7 +9,8 @@ import play.api.data.mapping.json.Rules._
 
 trait Needs { self: Endpoints with JsonRules ⇒
   def author(id: String): Resolvable[Author] =
-    Source[Author].from(RemoteAuthor(id))
+    Source[Author].from(RemoteAuthor(id)) orElse
+    Resolvable.resolved(Author(id, "", None, None))
 
   def story(id: String): Resolvable[Story] =
     Source[Story].from(RemoteStory(id))
