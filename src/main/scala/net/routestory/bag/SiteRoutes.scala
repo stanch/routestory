@@ -23,7 +23,7 @@ trait SiteRoutes { self: RouteStoryService ⇒
     )
   )
 
-  val redis = RedisClient(
+  lazy val redis = RedisClient(
     "redis://rediscloud@pub-redis-17158.eu-west-1-1.2.ec2.garantiadata.com:17158", 17158,
     Some("ElNpNkQqUUS6LLoV")
   )
@@ -43,10 +43,13 @@ trait SiteRoutes { self: RouteStoryService ⇒
     } ~
     (path("register") & get & parameter('id)) { id ⇒
       complete(async {
-        val registered = await(redis.setnx(id, Random.nextBoolean().toString))
-        val value = await(redis.get[String](id))
-        if (registered) msg(s"$id: $value")
-        value
+        val rand = Random.nextBoolean().toString
+        if (await(redis.setnx(id, rand))) {
+          msg(s"$id: $rand")
+          rand
+        } else {
+          await(redis.get[String](id)).get
+        }
       })
     } ~
     pathPrefix("static") {

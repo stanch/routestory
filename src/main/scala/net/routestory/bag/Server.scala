@@ -23,7 +23,7 @@ object Main extends App {
 }
 
 class RouteStoryServiceActor extends HttpServiceActor with RouteStoryService {
-  implicit val actorSystem = context.system
+  implicit lazy val actorSystem = context.system
   implicit val ectx = executionContext
 
   val connector = IO(Http).ask(Http.HostConnectorSetup(host = "routestory.cloudant.com", port = 443, sslEncryption = true)) map {
