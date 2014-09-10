@@ -8,7 +8,7 @@ import android.app.AlertDialog
 import com.javadocmd.simplelatlng.LatLng
 import macroid.{ Ui, AppContext }
 import macroid.FullDsl._
-import net.routestory.Apis
+import net.routestory.{ RouteStoryApp, Apis }
 import net.routestory.data.{ Clustering, Story, Timed }
 import org.apache.commons.io.IOUtils
 import play.api.data.mapping.To
@@ -35,11 +35,11 @@ object Typewriter {
   case object DiscardBackup
   case class Restored(chapter: Story.Chapter)
 
-  def props(service: RecordService, apis: Apis)(implicit ctx: AppContext) = Props(new Typewriter(service, apis))
+  def props(service: RecordService, app: RouteStoryApp)(implicit ctx: AppContext) = Props(new Typewriter(service, app))
 }
 
 /** An actor that maintains the chapter being recorded */
-class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) extends Actor with ActorLogging {
+class Typewriter(service: RecordService, app: RouteStoryApp)(implicit ctx: AppContext) extends Actor with ActorLogging {
   import Typewriter._
 
   def cartographer = context.actorSelection("../cartographer")
@@ -113,8 +113,8 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
 
     case Save(id) ⇒
       // TODO: add to existing story
-      val story = Story.empty(id).withChapter(chapter.finish).withStudyInfo(studyInfo)
-      apis.hybridApi.createStory(story)
+      val story = Story.empty(id).withChapter(chapter.finish).withStudyInfo(studyInfo).withAuthor(app.author)
+      app.hybridApi.createStory(story)
       sender ! ()
       saved = true
       backupFile.delete()
@@ -134,7 +134,7 @@ class Typewriter(service: RecordService, apis: Apis)(implicit ctx: AppContext) e
 
     case RestoreBackup ⇒
       restoreSuggested = true
-      apis.hybridApi.restoreChapter(backupFile).go
+      app.hybridApi.restoreChapter(backupFile).go
         .map(Restored)
         .pipeTo(self)
 
