@@ -92,7 +92,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
 
     story mapUi { s ⇒
       bar.setTitle(s.meta.title.filter(!_.isEmpty).getOrElse(getResources.getString(R.string.untitled)))
-      s.author.map(_.name).foreach(name ⇒ bar.setSubtitle("by " + name))
+      s.author.map(_.name).filter(_.nonEmpty).foreach(name ⇒ bar.setSubtitle("by " + name))
       coordinator ! Coordinator.UpdateChapter(s.chapters(0))
       coordinator ! Coordinator.UpdateMeta(s.meta)
     } onFailureUi {
