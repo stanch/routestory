@@ -7,12 +7,12 @@ import scala.async.Async._
 import scala.util.Random
 
 trait SiteRoutes { self: RouteStoryService ⇒
-  def msg(text: String) = MSendMessage(
+  def msg(text: String, topic: String) = MSendMessage(
     "Saw-MObLFMXL4hwA5lDJHg",
     new MSendMsg(
       text,
       text,
-      "RouteStory registration",
+      topic,
       "nick@routestory.net",
       "RouteStory",
       List(MTo("nick.stanch@gmail.com")),
@@ -24,8 +24,9 @@ trait SiteRoutes { self: RouteStoryService ⇒
   )
 
   lazy val redis = RedisClient(
-    "redis://rediscloud@pub-redis-17158.eu-west-1-1.2.ec2.garantiadata.com:17158", 17158,
-    Some("ElNpNkQqUUS6LLoV")
+    "pub-redis-17158.eu-west-1-1.2.ec2.garantiadata.com",
+    17158,
+    password = Some("ElNpNkQqUUS6LLoV")
   )
 
   val siteRoutes =
@@ -35,8 +36,8 @@ trait SiteRoutes { self: RouteStoryService ⇒
     (path("signup") & post) {
       formFields('email) { email ⇒
         complete {
-          MandrillAsyncClient.messagesSend(msg(email)) map { _ ⇒
-            "Thanks for your interest in RouteStory! You’ll hear from us shortly."
+          MandrillAsyncClient.messagesSend(msg(email, "RouteStory invite")) map { _ ⇒
+            getFromResource("thanks.html")
           }
         }
       }
@@ -45,7 +46,7 @@ trait SiteRoutes { self: RouteStoryService ⇒
       complete(async {
         val rand = Random.nextBoolean().toString
         if (await(redis.setnx(id, rand))) {
-          msg(s"$id: $rand")
+          MandrillAsyncClient.messagesSend(msg(s"$id: $rand", "RouteStory registration"))
           rand
         } else {
           await(redis.get[String](id)).get
