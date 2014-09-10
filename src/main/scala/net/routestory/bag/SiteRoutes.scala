@@ -3,6 +3,8 @@ package net.routestory.bag
 import com.joypeg.scamandrill.client.MandrillAsyncClient
 import com.joypeg.scamandrill.models.{MTo, MSendMsg, MSendMessage}
 import redis.RedisClient
+import spray.http.StatusCodes.Redirection
+import spray.http.{StatusCodes, Uri}
 import scala.async.Async._
 import scala.util.Random
 
@@ -33,12 +35,13 @@ trait SiteRoutes { self: RouteStoryService ⇒
     pathEndOrSingleSlash {
       getFromResource("index.html")
     } ~
+    path("thanks") {
+      getFromResource("thanks.html")
+    } ~
     (path("signup") & post) {
-      formFields('email) { email ⇒
-        complete {
-          MandrillAsyncClient.messagesSend(msg(email, "RouteStory invite")) map { _ ⇒
-            getFromResource("thanks.html")
-          }
+      formFields('email) { email ⇒ ctx ⇒
+        MandrillAsyncClient.messagesSend(msg(email, "RouteStory invite")) map { _ ⇒
+          ctx.redirect(Uri.from(path = "/thanks"), StatusCodes.Found)
         }
       }
     } ~
