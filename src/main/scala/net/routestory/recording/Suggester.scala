@@ -4,10 +4,12 @@ import akka.actor._
 import akka.pattern.pipe
 import android.location.Location
 import macroid.akkafragments.FragmentActor
-import net.routestory.Apis
+import net.routestory.ui.Tweaks
+import net.routestory.{ RouteStoryApp, Apis }
 import net.routestory.data.Story
 import net.routestory.util.Implicits._
 import scala.concurrent.duration._
+import macroid.Tweaking._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ ExecutionContext, Future }
@@ -22,10 +24,10 @@ object Suggester {
   case class Add(element: Story.KnownElement)
   case class Dismiss(element: Story.KnownElement)
 
-  def props(apis: Apis) = Props(new Suggester(apis))
+  def props(app: RouteStoryApp) = Props(new Suggester(app))
 }
 
-class Suggester(apis: Apis) extends FragmentActor[AddMediaFragment] with ActorLogging {
+class Suggester(app: RouteStoryApp) extends FragmentActor[AddMediaFragment] with ActorLogging {
   import FragmentActor._
   import Suggester._
 
@@ -50,7 +52,11 @@ class Suggester(apis: Apis) extends FragmentActor[AddMediaFragment] with ActorLo
       self ! Update
 
     case Update ⇒
-      cartographer ! Cartographer.QueryLastLocation
+      if (app.suggestionsEnabled) {
+        cartographer ! Cartographer.QueryLastLocation
+      } else {
+        withUi(_.swiper <~ Tweaks.stopRefresh)
+      }
 
     case Add(element) ⇒
       typewriter ! Typewriter.Element(element)
@@ -68,9 +74,9 @@ class Suggester(apis: Apis) extends FragmentActor[AddMediaFragment] with ActorLo
     case Some(location: Location) ⇒
       log.debug("Calling external APIs")
 
-      val venues = apis.foursquareApi.nearbyVenues(location, 100).go.recoverWithNil.map(FoursquareVenues)
-      val flickrPhotos = apis.flickrApi.nearbyPhotos(location, 1).go.recoverWithNil.map(FlickrPhotos)
-      val instagramPhotos = apis.instagramApi.nearbyPhotos(location, 100).go.recoverWithNil.map(InstagramPhotos)
+      val venues = app.foursquareApi.nearbyVenues(location, 100).go.recoverWithNil.map(FoursquareVenues)
+      val flickrPhotos = app.flickrApi.nearbyPhotos(location, 1).go.recoverWithNil.map(FlickrPhotos)
+      val instagramPhotos = app.instagramApi.nearbyPhotos(location, 100).go.recoverWithNil.map(InstagramPhotos)
       venues zip flickrPhotos zip instagramPhotos pipeTo self
 
     case ((FoursquareVenues(venues), FlickrPhotos(flickrPhotos)), InstagramPhotos(instagramPhotos)) ⇒

@@ -66,7 +66,7 @@ object StoryPreviewListable {
       val fillTitle = slots.title <~ text(title)
 
       // author
-      val fillAuthor = story.author map { author ⇒
+      val fillAuthor = story.author.filter(_.name.nonEmpty) map { author ⇒
         val pictureTweak = author.picture.map(_.map(Tweaks.picasso))
         (slots.author <~ show) ~
           (slots.authorName <~ text(author.name)) ~
