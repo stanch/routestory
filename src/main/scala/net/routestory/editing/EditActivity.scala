@@ -124,7 +124,7 @@ class Editor(apis: Apis)(implicit ctx: AppContext) extends Actor {
         val without = chapter.copy(elements = chapter.elements diff Vector(element))
         s.copy(chapters = List(without))
       }
-      story.foreach(s ⇒ elemental ! Init(s))
+      story.foreach(s ⇒ elemental ! RemoveElement(element))
 
     case Save(done) ⇒
       story.foreach(s ⇒ apis.hybridApi.updateStory(s))
