@@ -15,14 +15,12 @@ object Styles {
 
   val card = Tweak[CardView](_.setRadius(4))
 
-  def gridColumns(count: Int) = Tweak[StaggeredGridView](_.setColumnCount(count))
-
   def grid(implicit ctx: AppContext) = Tweak[StaggeredGridView] { x ⇒
     val field = x.getClass.getDeclaredField("mItemMargin")
     field.setAccessible(true)
     field.set(x, 8 dp)
   } + {
-    narrowerThan(400 dp) ? gridColumns(1) | Tweak.blank
+    (narrowerThan(400 dp) & portrait) ? Tweak[StaggeredGridView](_.setColumnCountPortrait(1)) | Tweak.blank
   }
 
   val swiper = Tweak[SwipeRefreshLayout](_.setColorSchemeResources(

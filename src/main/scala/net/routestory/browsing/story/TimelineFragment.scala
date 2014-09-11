@@ -11,7 +11,7 @@ import macroid.akkafragments.{ AkkaFragment, FragmentActor }
 import macroid.contrib.ListTweaks
 import net.routestory.data.{ Timed, Clustering, Story }
 import net.routestory.ui._
-import net.routestory.viewable.{ CardListable, TimedListable, StoryElementListable }
+import net.routestory.viewable.{ CardListable, TimedListable, StoryElementListable, ElementAdderListable }
 import macroid.viewable._
 
 class TimelineFragment extends RouteStoryFragment with AkkaFragment with StaggeredFragment {
@@ -23,13 +23,16 @@ class TimelineFragment extends RouteStoryFragment with AkkaFragment with Stagger
       new TimedListable(chapter).timedListable(
         StoryElementListable.storyElementListable))
 
-    grid <~ listable.listAdapterTweak(chapter.knownElements) <~
-      FuncOn.itemClick[StaggeredGridView] { (_: AdapterView[_], _: View, index: Int, _: Long) ⇒
+    val clickable = listable
+      .contraMap[(Timed[Story.KnownElement], Int)](_._1)
+      .addFillView((ui, d) ⇒ ui <~ On.click {
         ElementPager.show(
-          Clustering.Leaf(chapter.knownElements(index), index, chapter, ()),
+          Clustering.Leaf(d._1, d._2, chapter, ()),
           f ⇒ coordinator ! Coordinator.UpdateFocus(chapter, f)
         )
-      }
+      })
+
+    grid <~ clickable.listAdapterTweak(chapter.knownElements.zipWithIndex)
   }
 }
 

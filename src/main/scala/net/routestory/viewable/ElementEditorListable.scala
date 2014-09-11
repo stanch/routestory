@@ -11,17 +11,6 @@ import net.routestory.data.Story
 import net.routestory.editing.ElementEditor
 
 class ElementEditorListable(chapter: Story.Chapter) extends TimedListable(chapter) {
-  implicit class RichListable[A, W <: View](listable: Listable[A, W]) {
-    def addFillView(fill: (Ui[W], A) ⇒ Ui[W]) =
-      new Listable[A, W] {
-        def viewTypeCount = listable.viewTypeCount
-        def viewType(data: A) = listable.viewType(data)
-        def makeView(viewType: Int)(implicit ctx: ActivityContext, appCtx: AppContext) = listable.makeView(viewType)
-        def fillView(view: Ui[W], data: A)(implicit ctx: ActivityContext, appCtx: AppContext) =
-          listable.fillView(view, data) ~ fill(view, data)
-      }
-  }
-
   object elementButtons extends SlottedListable[ElementEditor] {
     class Slots {
       var remove = slot[Button]

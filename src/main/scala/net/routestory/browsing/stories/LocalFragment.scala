@@ -30,7 +30,6 @@ class LocalFragment extends RouteStoryFragment {
   var grid = slot[StaggeredGridView]
   var swiper = slot[SwipeRefreshLayout]
   var empty = slot[LinearLayout]
-  var gridParent = slot[FrameLayout]
 
   def viewStories(stories: List[StoryPreview]) = {
     import StoryPreviewListable._
@@ -42,9 +41,7 @@ class LocalFragment extends RouteStoryFragment {
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = getUi {
     l[SwipeRefreshLayout](
       l[FrameLayout](
-        l[FrameLayout](
-          w[StaggeredGridView] <~ wire(grid) <~ Styles.grid
-        ) <~ wire(gridParent),
+        w[StaggeredGridView] <~ wire(grid) <~ Styles.grid,
         l[VerticalLinearLayout](
           w[TextView] <~ text("No stories yet!") <~ Styles.empty,
           l[HorizontalLinearLayout](
@@ -77,12 +74,5 @@ class LocalFragment extends RouteStoryFragment {
     override def onLoaderReset(loader: Loader[List[StoryPreview]]) = ()
     override def onLoadFinished(loader: Loader[List[StoryPreview]], data: List[StoryPreview]) =
       runUi(viewStories(data))
-  }
-
-  override def onConfigurationChanged(newConfig: Configuration) = {
-    super.onConfigurationChanged(newConfig)
-    val adapter = grid.flatMap(g ⇒ Option(g.getAdapter))
-    val newGrid = w[StaggeredGridView] <~ wire(grid) <~ Styles.grid <~ adapter.map(ListTweaks.adapter)
-    runUi(gridParent <~ addViews(Seq(newGrid), removeOld = true))
   }
 }

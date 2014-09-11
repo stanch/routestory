@@ -38,7 +38,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   aar("org.macroid" %% "macroid" % "2.0.0-SNAPSHOT"),
-  aar("org.macroid" %% "macroid-viewable" % "2.0.0-M3"),
+  aar("org.macroid" %% "macroid-viewable" % "2.0.0-SNAPSHOT"),
   aar("org.macroid" %% "macroid-akka-fragments" % "2.0.0-M3"),
   compilerPlugin("org.brianmckenna" %% "wartremover" % "0.10"),
   "org.resolvable" %% "resolvable" % "2.0.0-M6",
