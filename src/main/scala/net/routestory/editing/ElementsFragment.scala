@@ -1,21 +1,13 @@
 package net.routestory.editing
 
 import akka.actor.Props
-import android.view.{ ViewGroup, View }
 import android.widget._
-import com.etsy.android.grid.StaggeredGridView
 import macroid.FullDsl._
 import macroid.Ui
 import macroid.akkafragments.{ AkkaFragment, FragmentActor }
-import macroid.contrib.{ ImageTweaks, LpTweaks, BgTweaks }
-import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import macroid.viewable.Listable
-import net.routestory.browsing.story.ElementPager
-import net.routestory.data.{ Timed, Clustering, Story }
+import net.routestory.data.{ Timed, Story }
 import net.routestory.ui.{ RouteStoryFragment, StaggeredFragment }
-import net.routestory.viewable.{ ElementEditorListable, CardListable, StoryElementListable, TimedListable }
-import android.view.ViewGroup.LayoutParams._
-import net.routestory.R
+import net.routestory.viewable.{ ElementEditorListable, CardListable }
 
 class ElementsFragment extends RouteStoryFragment with AkkaFragment with StaggeredFragment {
   lazy val actor = Some(actorSystem.actorSelection("/user/elemental"))

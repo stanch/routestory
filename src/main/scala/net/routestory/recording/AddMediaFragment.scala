@@ -14,19 +14,16 @@ import macroid.akkafragments.FragmentActor
 import macroid.contrib.Layouts.VerticalLinearLayout
 import macroid.contrib.{ LpTweaks, TextTweaks }
 import net.routestory.data.Story
-import net.routestory.ui.{ Styles, Tweaks, RouteStoryFragment }
+import net.routestory.ui.{ SwipingStaggeredFragment, Styles, Tweaks, RouteStoryFragment }
 import net.routestory.util.Preferences
 import net.routestory.viewable.{ CardListable, ElementAdderListable }
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordFragment {
+class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordFragment with SwipingStaggeredFragment {
   lazy val typewriter = actorSystem.map(_.actorSelection("/user/typewriter"))
   lazy val suggester = actorSystem.map(_.actorSelection("/user/suggester"))
   lazy val dictaphone = actorSystem.map(_.actorSelection("/user/dictaphone"))
-
-  var grid = slot[StaggeredGridView]
-  var swiper = slot[SwipeRefreshLayout]
 
   def adders = List(
     ElementAdder.Photo(),
@@ -62,13 +59,7 @@ class AddMediaFragment extends RouteStoryFragment with IdGeneration with RecordF
       }
   }
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
-    l[SwipeRefreshLayout](
-      w[StaggeredGridView] <~ Styles.grid <~ wire(grid)
-    ) <~ Styles.swiper <~ wire(swiper) <~ On.refresh[SwipeRefreshLayout](Ui {
-        suggester.foreach(_ ! Suggester.Update)
-      })
-  }
+  def refresh = Ui(suggester.foreach(_ ! Suggester.Update))
 
   override def onStart() = {
     super.onStart()

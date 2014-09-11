@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="net.routestory"
-    android:versionCode="8"
+    android:versionCode="9"
     android:versionName="1.0" >
 
     <uses-sdk
@@ -35,19 +35,23 @@
             android:name="android.app.default_searchable"
             android:value="net.routestory.browsing.SearchActivity" />
 
-        <activity
-            android:name=".recording.RecordActivity"
-            android:launchMode="singleTop">
-        </activity>
         <service android:name=".recording.RecordService" />
         <receiver android:name=".recording.LocationBroadcastReceiver" />
-        <activity android:name=".editing.EditActivity">
+
+        <activity
+            android:name=".recording.RecordActivity"
+            android:launchMode="singleTop"
+            android:configChanges="keyboardHidden|orientation|screenSize">
         </activity>
-        <activity android:name=".util.PlayServicesResolutionActivity">
+
+        <activity
+            android:name=".editing.EditActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize">
         </activity>
-        <activity android:name=".util.TakePhotoActivity">
-        </activity>
-        <activity android:name=".browsing.story.DisplayActivity">
+
+        <activity
+            android:name=".browsing.story.DisplayActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize">
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -62,20 +66,18 @@
 			    <action android:name="android.intent.action.VIEW" />
 			</intent-filter>
         </activity>
-        <activity android:name=".browsing.stories.SearchActivity">
-        	<intent-filter>
-                <action android:name="android.intent.action.SEARCH" />
-            </intent-filter>
-            <meta-data
-                android:name="android.app.searchable"
-                android:resource="@xml/searchable" />
-        </activity>
-        <activity android:name=".browsing.stories.BrowseActivity">
+
+        <activity
+            android:name=".browsing.stories.BrowseActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".util.PlayServicesResolutionActivity" />
+        <activity android:name=".util.TakePhotoActivity" />
     </application>
 
 </manifest>

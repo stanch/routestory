@@ -2,7 +2,10 @@ package net.routestory.editing
 
 import akka.actor.{ Actor, Props }
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
+import android.support.v4.app.LoaderManager
+import android.support.v4.content.Loader
 import android.view.{ Menu, MenuItem }
 import android.widget._
 import macroid.FullDsl._
@@ -10,6 +13,7 @@ import macroid.akkafragments.AkkaActivity
 import macroid.contrib.Layouts.VerticalLinearLayout
 import macroid.{ AppContext, IdGeneration, Ui }
 import net.routestory.browsing.story.DisplayActivity
+import net.routestory.util.ResolvableLoader
 import net.routestory.{ Apis, R }
 import net.routestory.data.{ Timed, Story }
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
@@ -24,28 +28,38 @@ class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPag
   lazy val elemental = actorSystem.actorOf(Elemental.props, "elemental")
 
   lazy val storyId = getIntent.getStringExtra("id")
-  lazy val story = app.hybridApi.story(storyId).go
+  val storyPromise = Promise[Story]()
+  val story = storyPromise.future
 
   var progress = slot[ProgressBar]
+
+  def layout = l[VerticalLinearLayout](
+    activityProgress <~ wire(progress) <~ waitProgress(story),
+    getTabs(
+      "Details" → f[MetadataFragment].factory,
+      "Elements" → f[ElementsFragment].factory
+    )
+  )
 
   override def onCreate(savedInstanceState: Bundle) = {
     super.onCreate(savedInstanceState)
 
+    getSupportLoaderManager.initLoader(0, null, loaderCallbacks)
     (editor, metadata, elemental) // init actors
 
-    setContentView(getUi(
-      l[VerticalLinearLayout](
-        activityProgress <~ wire(progress) <~ waitProgress(story),
-        getTabs(
-          "Details" → f[MetadataFragment].factory,
-          "Elements" → f[ElementsFragment].factory
-        )
-      )
-    ))
+    setContentView(getUi(layout))
 
     story foreach { s ⇒
       editor ! Editor.Init(s)
     }
+  }
+
+  object loaderCallbacks extends LoaderManager.LoaderCallbacks[Story] {
+    override def onCreateLoader(id: Int, args: Bundle) =
+      new ResolvableLoader(app.hybridApi.story(storyId))
+    override def onLoaderReset(loader: Loader[Story]) = ()
+    override def onLoadFinished(loader: Loader[Story], data: Story) =
+      storyPromise.success(data)
   }
 
   def save = {
@@ -92,7 +106,6 @@ object Editor {
 
   case class Init(story: Story)
   case class Meta(meta: Story.Meta)
-  // TODO: this should be index-based instead!
   case class RemoveElement(element: Timed[Story.KnownElement])
   case class Save(done: Promise[Unit])
   case object Remind

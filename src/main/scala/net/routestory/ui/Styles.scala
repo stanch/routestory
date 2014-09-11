@@ -3,7 +3,7 @@ package net.routestory.ui
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.widget.CardView
 import android.view.{ Gravity, View }
-import android.widget.TextView
+import android.widget.{ ArrayAdapter, TextView }
 import com.etsy.android.grid.StaggeredGridView
 import macroid.FullDsl._
 import macroid.contrib.{ LpTweaks, TextTweaks }
@@ -15,11 +15,15 @@ object Styles {
 
   val card = Tweak[CardView](_.setRadius(4))
 
+  def gridColumns(count: Int) = Tweak[StaggeredGridView](_.setColumnCount(count))
+
   def grid(implicit ctx: AppContext) = Tweak[StaggeredGridView] { x ⇒
     val field = x.getClass.getDeclaredField("mItemMargin")
     field.setAccessible(true)
     field.set(x, 8 dp)
-  } + (narrowerThan(400 dp) ? Tweak[StaggeredGridView](_.setColumnCount(1)) | Tweak.blank)
+  } + {
+    narrowerThan(400 dp) ? gridColumns(1) | Tweak.blank
+  }
 
   val swiper = Tweak[SwipeRefreshLayout](_.setColorSchemeResources(
     R.color.swiper1, R.color.swiper2, R.color.swiper3, R.color.swiper4

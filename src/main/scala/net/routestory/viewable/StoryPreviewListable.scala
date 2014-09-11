@@ -10,7 +10,6 @@ import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
 import macroid.contrib.{ LpTweaks, TextTweaks }
 import macroid.{ ActivityContext, AppContext, Ui }
 import net.routestory.R
-import net.routestory.browsing.stories.SearchActivity
 import net.routestory.browsing.story.DisplayActivity
 import net.routestory.data.StoryPreview
 import net.routestory.ui.{ Tweaks, Styles }
@@ -26,14 +25,7 @@ object StoryPreviewListable {
 
   def tag(name: String, size: Option[Double])(implicit ctx: ActivityContext, appCtx: AppContext) =
     w[TextView] <~ Styles.tag <~ text(underlined(name)) <~
-      size.map(s ⇒ TextTweaks.size(20 + (s * 20).toInt)) //<~
-  //      On.click(Ui {
-  //        ctx.activity.get map { a ⇒
-  //          val intent = new Intent(a, classOf[SearchActivity])
-  //          intent.putExtra("tag", name)
-  //          a.startActivityForResult(intent, 0)
-  //        }
-  //      })
+      size.map(s ⇒ TextTweaks.size(20 + (s * 20).toInt))
 
   implicit object storyPreviewListable extends SlottedListable[StoryPreview] {
     class Slots {

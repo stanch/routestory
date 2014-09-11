@@ -5,23 +5,27 @@ import java.io.File
 import akka.actor._
 import akka.pattern.pipe
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.nfc.{ NdefMessage, NfcAdapter }
 import android.os.Bundle
+import android.support.v4.app.LoaderManager
+import android.support.v4.content.Loader
 import android.view.{ Window, Menu, MenuItem }
 import android.widget.{ FrameLayout, ProgressBar }
 import macroid.FullDsl._
 import macroid.akkafragments.AkkaActivity
 import macroid.contrib.Layouts.VerticalLinearLayout
-import macroid.{ AppContext, IdGeneration, Ui }
+import macroid.{ ActivityContext, AppContext, IdGeneration, Ui }
 import net.routestory.R
 import net.routestory.data.{ Clustering, Story, Timed }
 import net.routestory.editing.EditActivity
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import net.routestory.util.ResolvableLoader
 
 import scala.async.Async._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ Promise, Future }
 
 object DisplayActivity {
   object NfcIntent {
@@ -63,28 +67,29 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
       finish(); ""
   }
 
-  lazy val story = app.hybridApi.story(storyId).go
+  val storyPromise = Promise[Story]()
+  val story = storyPromise.future
 
   var progress = slot[ProgressBar]
   var view = slot[FrameLayout]
 
+  def layout = l[VerticalLinearLayout](
+    activityProgress <~ wire(progress),
+    getTabs(
+      "Dive" → f[DiveFragment].factory,
+      "Space" → f[SpaceFragment].factory,
+      "Timeline" → f[TimelineFragment].factory,
+      "Details" → f[DetailsFragment].factory
+    )
+  )
+
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
 
-    story // start loading
+    getSupportLoaderManager.initLoader(0, null, loaderCallbacks)
     (coordinator, timeliner, diver, previewer, astronaut, detailer) // start actors
 
-    setContentView(getUi(
-      l[VerticalLinearLayout](
-        activityProgress <~ wire(progress),
-        getTabs(
-          "Dive" → f[DiveFragment].factory,
-          "Space" → f[SpaceFragment].factory,
-          "Timeline" → f[TimelineFragment].factory,
-          "Details" → f[DetailsFragment].factory
-        )
-      )
-    ))
+    setContentView(getUi(layout))
 
     bar.setDisplayShowHomeEnabled(true)
     bar.setDisplayHomeAsUpEnabled(true)
@@ -106,6 +111,14 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
   override def onDestroy() = {
     super.onDestroy()
     actorSystem.shutdown()
+  }
+
+  object loaderCallbacks extends LoaderManager.LoaderCallbacks[Story] {
+    override def onCreateLoader(id: Int, args: Bundle) =
+      new ResolvableLoader(app.hybridApi.story(storyId))
+    override def onLoaderReset(loader: Loader[Story]) = ()
+    override def onLoadFinished(loader: Loader[Story], data: Story) =
+      storyPromise.success(data)
   }
 
   override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {

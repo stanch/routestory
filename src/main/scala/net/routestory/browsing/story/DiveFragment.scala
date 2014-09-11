@@ -1,6 +1,7 @@
 package net.routestory.browsing.story
 
 import akka.actor.{ ActorLogging, Props }
+import android.content.res.Configuration
 import android.graphics.Color
 import android.os.{ Bundle, Handler, SystemClock }
 import android.view.ViewGroup.LayoutParams._
@@ -15,8 +16,7 @@ import macroid.FullDsl._
 import macroid.akkafragments.{ AkkaFragment, FragmentActor }
 import macroid.contrib.{ SeekTweaks, LpTweaks, BgTweaks }
 import macroid.contrib.Layouts.{ HorizontalLinearLayout, VerticalLinearLayout }
-import macroid.Ui
-import macroid.{ IdGeneration, Tweak }
+import macroid.{ Transformer, Ui, IdGeneration, Tweak }
 import net.routestory.R
 import net.routestory.data.{ Story, Timed, Pruning, Clustering }
 import net.routestory.data.Story.Chapter
@@ -43,7 +43,10 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
   var seeking = false
 
   // widgets
-  var layout = slot[LinearLayout]
+  var layoutSlot = slot[LinearLayout]
+  var mapSlot = slot[FrameLayout]
+  var previewSlot = slot[FrameLayout]
+
   var playBig = slot[Button]
   var play = slot[Button]
   var pause = slot[Button]
@@ -57,10 +60,12 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
           wire(playBig) <~
           lp[FrameLayout](80 dp, 80 dp, Gravity.CENTER) <~
           BgTweaks.res(R.drawable.play_big)
-      )
+      ) <~ mapSlotParams <~ wire(mapSlot)
 
     val previewLayout =
-      f[PreviewFragment].framed(Id.preview, Tag.preview)
+      f[PreviewFragment].framed(Id.preview, Tag.preview) <~
+        previewSlotParams <~
+        wire(previewSlot)
 
     val controlsLayout =
       l[HorizontalLinearLayout](
@@ -79,24 +84,35 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
       ) <~ padding(left = 16 dp, right = 8 dp, top = 8 dp, bottom = 8 dp) <~
         BgTweaks.color(Color.BLACK)
 
-    val portraitLayout =
-      l[VerticalLinearLayout](
-        mapLayout <~ lp[LinearLayout](WRAP_CONTENT, 0, 2.0f),
-        previewLayout <~ lp[LinearLayout](WRAP_CONTENT, 0, 1.0f),
-        controlsLayout
-      )
+    val layout =
+      l[LinearLayout](mapLayout, previewLayout) <~
+        lp[LinearLayout](WRAP_CONTENT, 0, 1.0f) <~
+        layoutSlotParams <~
+        wire(layoutSlot)
 
-    val landscapeLayout =
-      l[VerticalLinearLayout](
-        l[HorizontalLinearLayout](
-          mapLayout <~ lp[LinearLayout](0, WRAP_CONTENT, 1.0f),
-          previewLayout <~ lp[LinearLayout](0, WRAP_CONTENT, 1.0f)
-        ) <~ lp[LinearLayout](WRAP_CONTENT, 0, 1.0f),
-        controlsLayout
-      )
+    val fullLayout = l[VerticalLinearLayout](layout, controlsLayout)
+    getUi(fullLayout <~ Styles.lowProfile)
+  }
 
-    val fullLayout = portrait ? portraitLayout | landscapeLayout
-    getUi(fullLayout <~ wire(layout) <~ Styles.lowProfile)
+  def mapSlotParams = landscape ?
+    lp[LinearLayout](0, WRAP_CONTENT, 1.0f) |
+    lp[LinearLayout](WRAP_CONTENT, 0, 2.0f)
+
+  def previewSlotParams = landscape ?
+    lp[LinearLayout](0, WRAP_CONTENT, 1.0f) |
+    lp[LinearLayout](WRAP_CONTENT, 0, 1.0f)
+
+  def layoutSlotParams = landscape ?
+    horizontal |
+    vertical
+
+  override def onConfigurationChanged(newConfig: Configuration) = {
+    super.onConfigurationChanged(newConfig)
+    runUi(
+      mapSlot <~ mapSlotParams,
+      previewSlot <~ previewSlotParams,
+      layoutSlot <~ layoutSlotParams
+    )
   }
 
   override def onStart() = {
@@ -194,7 +210,7 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
     playBig <~ hide,
     play <~ hide,
     pause <~ show,
-    layout <~ immerse,
+    layoutSlot <~ immerse,
     walk(chapter),
     move(chapter)
   )
@@ -202,7 +218,7 @@ class DiveFragment extends RouteStoryFragment with AkkaFragment with IdGeneratio
   def stop = Ui.sequence(
     pause <~ hide,
     play <~ show,
-    layout <~ unImmerse,
+    layoutSlot <~ unImmerse,
     Ui(handler.removeCallbacksAndMessages(null))
   )
 
