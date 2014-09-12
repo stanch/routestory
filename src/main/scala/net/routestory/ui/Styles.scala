@@ -20,7 +20,9 @@ object Styles {
     field.setAccessible(true)
     field.set(x, 8 dp)
   } + {
-    (narrowerThan(400 dp) & portrait) ? Tweak[StaggeredGridView](_.setColumnCountPortrait(1)) | Tweak.blank
+    ((narrowerThan(400 dp) & portrait) | (lowerThan(400 dp) & landscape)) ?
+      Tweak[StaggeredGridView](_.setColumnCountPortrait(1)) |
+      Tweak.blank
   }
 
   val swiper = Tweak[SwipeRefreshLayout](_.setColorSchemeResources(

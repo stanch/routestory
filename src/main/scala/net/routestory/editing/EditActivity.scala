@@ -1,6 +1,7 @@
 package net.routestory.editing
 
 import akka.actor.{ Actor, Props }
+import akka.util.Timeout
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
@@ -11,18 +12,20 @@ import android.widget._
 import macroid.FullDsl._
 import macroid.akkafragments.AkkaActivity
 import macroid.contrib.Layouts.VerticalLinearLayout
-import macroid.{ AppContext, IdGeneration, Ui }
+import macroid.{ ActivityContext, AppContext, IdGeneration, Ui }
 import net.routestory.browsing.story.DisplayActivity
 import net.routestory.util.ResolvableLoader
 import net.routestory.{ Apis, R }
 import net.routestory.data.{ Timed, Story }
 import net.routestory.ui.{ FragmentPaging, RouteStoryActivity }
+import akka.pattern.ask
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Promise
 
 class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPaging with AkkaActivity {
   val actorSystemName = "StoryActorSystem"
+  implicit val timeout = Timeout(60000)
   lazy val editor = actorSystem.actorOf(Editor.props(app), "editor")
   lazy val metadata = actorSystem.actorOf(Metadata.props, "metadata")
   lazy val elemental = actorSystem.actorOf(Elemental.props, "elemental")
@@ -63,9 +66,8 @@ class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPag
   }
 
   def save = {
-    val done = Promise[Unit]()
-    editor ! Editor.Save(done)
-    (progress <~~ waitProgress(done.future)) ~~ Ui {
+    val done = editor ? Editor.Save
+    (progress <~~ waitProgress(done)) ~~ Ui {
       val intent = new Intent(this, classOf[DisplayActivity])
       intent.putExtra("id", storyId)
       startActivity(intent)
@@ -102,16 +104,17 @@ class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPag
 }
 
 object Editor {
-  def props(apis: Apis)(implicit ctx: AppContext) = Props(new Editor(apis))
+  def props(apis: Apis)(implicit ctx: ActivityContext) = Props(new Editor(apis))
 
   case class Init(story: Story)
   case class Meta(meta: Story.Meta)
   case class RemoveElement(element: Timed[Story.KnownElement])
-  case class Save(done: Promise[Unit])
+  case object Finish
+  case object Save
   case object Remind
 }
 
-class Editor(apis: Apis)(implicit ctx: AppContext) extends Actor {
+class Editor(apis: Apis)(implicit ctx: ActivityContext) extends Actor {
   import net.routestory.editing.Editor._
 
   lazy val metadata = context.actorSelection("../metadata")
@@ -139,8 +142,12 @@ class Editor(apis: Apis)(implicit ctx: AppContext) extends Actor {
       }
       story.foreach(s ⇒ elemental ! RemoveElement(element))
 
-    case Save(done) ⇒
+    case Save ⇒
       story.foreach(s ⇒ apis.hybridApi.updateStory(s))
-      done.success(())
+      sender ! ()
+
+    case Finish ⇒
+      // TODO: wtf man?!
+      runUi(ctx.get.asInstanceOf[EditActivity].save)
   }
 }

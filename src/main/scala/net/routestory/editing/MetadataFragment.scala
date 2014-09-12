@@ -3,7 +3,8 @@ package net.routestory.editing
 import akka.actor.{ TypedProps, TypedActor, Props, Actor }
 import android.os.Bundle
 import android.support.v7.widget.CardView
-import android.text.InputType
+import android.text.{ Editable, TextWatcher, InputType }
+import android.view.inputmethod.EditorInfo
 import android.view.{ KeyEvent, View, ViewGroup, LayoutInflater }
 import android.widget.TextView.OnEditorActionListener
 import android.widget._
@@ -31,8 +32,10 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
   def multiAutoCompleteAdapterTweak(adapter: ListAdapter with Filterable) =
     Tweak[MultiAutoCompleteTextView](_.setAdapter(adapter))
 
+  def append(text: String) = Tweak[EditText](_.append(text))
+
   def viewMeta(meta: Story.Meta) = {
-    (title <~ meta.title.map(text)) ~
+    (title <~ text("") <~ meta.title.map(append)) ~
       (description <~ meta.description.map(text)) ~
       (tags <~ text(meta.tags.mkString(", ")))
   }
@@ -50,7 +53,17 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
     l[LinearLayout](l[CardView](w) <~ Styles.card <~ Styles.p8dding <~ LpTweaks.matchParent) <~
       padding(top = 8 dp, left = 8 dp, right = 8 dp)
 
-  def hook = On.focusChange[EditText](grabMeta)
+  def whenDone(ui: Ui[Any]) = FuncOn.editorAction[EditText] { (v: TextView, actionId: Int, event: KeyEvent) ⇒
+    if (actionId == EditorInfo.IME_ACTION_DONE) {
+      ui ~ Ui(true)
+    } else Ui(false)
+  }
+
+  def hook = Tweak[EditText](_.addTextChangedListener(new TextWatcher {
+    def beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) = ()
+    def onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) = ()
+    def afterTextChanged(s: Editable) = runUi(grabMeta)
+  }))
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle) = getUi {
     l[ScrollView](
@@ -59,8 +72,8 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
           l[VerticalLinearLayout](
             w[TextView] <~
               text("Title") <~ Styles.header,
-            w[EditText] <~ wire(title) <~ LpTweaks.matchWidth <~ hook <~
-              inputType(InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE) <~
+            w[EditText] <~ wire(title) <~ LpTweaks.matchWidth <~
+              inputType(InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE) <~ hook <~
               Tweak[EditText](_.setHint("Untitled"))
           )
         ),
@@ -69,8 +82,8 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
           l[VerticalLinearLayout](
             w[TextView] <~
               text("Description") <~ Styles.header,
-            w[EditText] <~ wire(description) <~ LpTweaks.matchWidth <~ hook <~
-              inputType(InputType.TYPE_TEXT_FLAG_MULTI_LINE)
+            w[EditText] <~ wire(description) <~ LpTweaks.matchWidth <~
+              inputType(InputType.TYPE_TEXT_FLAG_MULTI_LINE) <~ hook
           )
         ),
 
@@ -78,8 +91,9 @@ class MetadataFragment extends RouteStoryFragment with AkkaFragment {
           l[VerticalLinearLayout](
             w[TextView] <~
               text("Tags") <~ Styles.header,
-            w[MultiAutoCompleteTextView] <~ wire(tags) <~ LpTweaks.matchWidth <~ hook <~
-              inputType(InputType.TYPE_CLASS_TEXT) <~ Tweak[MultiAutoCompleteTextView] { x ⇒
+            w[MultiAutoCompleteTextView] <~ wire(tags) <~ LpTweaks.matchWidth <~
+              inputType(InputType.TYPE_CLASS_TEXT) <~ hook <~
+              whenDone(Ui(editor ! Editor.Finish)) <~ Tweak[MultiAutoCompleteTextView] { x ⇒
                 x.setHint("Lisbon, nice weather, tour")
                 x.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer)
               }
