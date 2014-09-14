@@ -35,6 +35,9 @@ trait SiteRoutes { self: RouteStoryService ⇒
     pathEndOrSingleSlash {
       getFromResource("index.html")
     } ~
+    path("eula") {
+      getFromResource("eula.html")
+    } ~
     path("thanks") {
       getFromResource("thanks.html")
     } ~
