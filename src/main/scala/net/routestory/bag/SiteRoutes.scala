@@ -50,7 +50,7 @@ trait SiteRoutes { self: RouteStoryService ⇒
     } ~
     (path("register") & get & parameter('id)) { id ⇒
       complete(async {
-        val rand = "false"//Random.nextBoolean().toString
+        val rand = Random.nextBoolean().toString
         if (await(redis.setnx(id, rand))) {
           MandrillAsyncClient.messagesSend(msg(s"$id: $rand", "RouteStory registration"))
           rand
