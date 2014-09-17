@@ -73,6 +73,8 @@ object Story {
       case (Timed(_, ll1), Timed(_, ll2)) ⇒ LatLngTool.distance(ll1, ll2, LengthUnit.METER)
     }.sum
 
+    lazy val density = elements.length.toFloat / locations.length
+
     lazy val knownElements = elements flatMap {
       case x @ Timed(_, e: KnownElement) ⇒ Vector(x.copy(data = e))
       case _ ⇒ Vector.empty
@@ -86,6 +88,8 @@ object Story {
     def withElement(element: Timed[Element]) = copy(elements = elements :+ element)
     def withLocation(location: Timed[LatLng]) = copy(locations = locations :+ location)
     def finish = copy(duration = ts)
+
+    def withElements(elements: Vector[Timed[Element]]) = copy(elements = elements)
 
     def ts = (System.currentTimeMillis / 1000 - start).toInt
 

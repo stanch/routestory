@@ -4,7 +4,7 @@ import java.io.{BufferedOutputStream, File, FileOutputStream, InputStream}
 import java.util.concurrent.Executors
 import java.util.zip.ZipFile
 
-import net.routestory.data.{Author, Story}
+import net.routestory.data.{Author, Story, Timed}
 import net.routestory.json.JsonRules
 import org.apache.commons.io.IOUtils
 import play.api.libs.json.{JsValue, Json}
@@ -49,7 +49,7 @@ trait Endpoints {
 }
 
 trait Needs { self: Endpoints with JsonRules ⇒
-  def author(id: String) = Resolvable.resolved(Author(id, "Doctor Who", None, None))
+  def author(id: String) = Resolvable.resolved(Author(id, "", None, None))
   def media(url: String) = Source[File].from(ZipMedia(url))
   def story = Source[Story].from(ZipStory())
 }
@@ -61,6 +61,15 @@ object Load {
   def apply(input: File, unpackTo: File) = {
     val archive = new ZipFile(input)
     val api = Api(archive, unpackTo)
-    api.story.go map { s ⇒ archive.close(); s }
+    api.story map { s ⇒
+      val media = s.chapters.toVector flatMap { c ⇒
+        c.elements flatMap {
+          case Timed(_, m: Story.MediaElement) ⇒ Vector(m.data)
+          case _ ⇒ Vector.empty
+        }
+      }
+      Future.sequence(media).foreach(_ ⇒ archive.close())
+      s
+    }
   }
 }
