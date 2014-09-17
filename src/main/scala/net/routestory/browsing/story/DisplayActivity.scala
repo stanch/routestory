@@ -28,20 +28,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ Promise, Future }
 
 object DisplayActivity {
-  object NfcIntent {
-    def unapply(i: Intent) = Option(i).filter(_.getAction == NfcAdapter.ACTION_NDEF_DISCOVERED).flatMap { intent ⇒
-      Option(intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)) map { rawMsgs ⇒
-        val msg = rawMsgs(0).asInstanceOf[NdefMessage]
-        val rec = msg.getRecords()(0)
-        Uri.parse(new String(rec.getPayload))
-      }
-    }
+  object IdIntent {
+    def unapply(i: Intent) = Option(i)
+      .filter(_.hasExtra("id"))
+      .map(_.getStringExtra("id"))
   }
-  object ViewIntent {
-    def unapply(i: Intent) = Option(i).filter(_.getAction == Intent.ACTION_VIEW).map(_.getData)
-  }
-  object PlainIntent {
-    def unapply(i: Intent) = Option(i).filter(_.hasExtra("id")).map(_.getStringExtra("id"))
+  object FileIntent {
+    def unapply(i: Intent) = Option(i)
+      .filter(Set(Intent.ACTION_VIEW, Intent.ACTION_SEND) contains _.getAction)
+      .map(_.getData)
   }
 }
 
@@ -56,15 +51,9 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
   lazy val astronaut = actorSystem.actorOf(Astronaut.props, "astronaut")
   lazy val detailer = actorSystem.actorOf(Detailer.props, "detailer")
 
-  lazy val storyId = getIntent match {
-    case NfcIntent(uri) ⇒
-      "story-" + uri.getLastPathSegment
-    case ViewIntent(uri) ⇒
-      "story-" + uri.getLastPathSegment
-    case PlainIntent(i) ⇒
-      i
-    case _ ⇒
-      finish(); ""
+  lazy val (source, storyId) = getIntent match {
+    case IdIntent(i) ⇒ (bundle("id" → i), Some(i))
+    case FileIntent(uri) ⇒ (bundle("file" → uri.getPath), None)
   }
 
   val storyPromise = Promise[Story]()
@@ -86,7 +75,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
 
-    getSupportLoaderManager.initLoader(0, null, loaderCallbacks)
+    getSupportLoaderManager.initLoader(0, source, loaderCallbacks)
     (coordinator, timeliner, diver, previewer, astronaut, detailer) // start actors
 
     setContentView(getUi(layout))
@@ -114,32 +103,41 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
   }
 
   object loaderCallbacks extends LoaderManager.LoaderCallbacks[Story] {
-    override def onCreateLoader(id: Int, args: Bundle) =
-      new ResolvableLoader(app.hybridApi.story(storyId))
+    override def onCreateLoader(id: Int, args: Bundle) = if (args.containsKey("id")) {
+      new ResolvableLoader(app.hybridApi.story(args.getString("id")))
+    } else {
+      val zip = net.routestory.zip.Load(new File(args.getString("file")), getExternalCacheDir)
+      new ResolvableLoader(zip)
+    }
+
     override def onLoaderReset(loader: Loader[Story]) = ()
     override def onLoadFinished(loader: Loader[Story], data: Story) =
-      storyPromise.success(data)
+      storyPromise.trySuccess(data)
   }
 
   override def onOptionsItemSelected(item: MenuItem) = item.getItemId match {
     case R.id.edit ⇒
-      val intent = new Intent(this, classOf[EditActivity])
-      intent.putExtra("id", storyId)
-      startActivity(intent)
-      finish()
+      storyId foreach { id ⇒
+        val intent = new Intent(this, classOf[EditActivity])
+        intent.putExtra("id", id)
+        startActivity(intent)
+        finish()
+      }
       true
     case R.id.delete ⇒
-      runUi {
-        dialog("Do you want to delete this story?") <~
-          positiveOk(Ui(app.hybridApi.deleteStory(storyId)) ~ Ui(finish())) <~
-          negativeCancel(Ui.nop) <~
-          speak
+      storyId foreach { id ⇒
+        runUi {
+          dialog("Do you want to delete this story?") <~
+            positiveOk(Ui(app.hybridApi.deleteStory(id)) ~ Ui(finish())) <~
+            negativeCancel(Ui.nop) <~
+            speak
+        }
       }
       true
     case R.id.share ⇒
       val writing = async {
         val s = await(story)
-        val file = File.createTempFile(s.meta.title.getOrElse("Untitled story"), ".zip", getExternalCacheDir)
+        val file = File.createTempFile(s.meta.title.getOrElse("Untitled story"), ".story", getExternalCacheDir)
         await(net.routestory.zip.Save(s, file))
         val emailIntent = new Intent(android.content.Intent.ACTION_SEND)
           .setType("plain/text")
@@ -160,7 +158,7 @@ class DisplayActivity extends RouteStoryActivity with AkkaActivity with Fragment
 
   override def onCreateOptionsMenu(menu: Menu) = {
     getMenuInflater.inflate(R.menu.activity_display, menu)
-    val editable = app.hybridApi.isLocal(storyId)
+    val editable = storyId.exists(app.hybridApi.isLocal)
     menu.findItem(R.id.edit).setVisible(editable)
     menu.findItem(R.id.delete).setVisible(editable)
     true

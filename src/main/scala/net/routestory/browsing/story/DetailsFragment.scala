@@ -58,5 +58,7 @@ class Detailer extends FragmentActor[DetailsFragment] {
 
     case UpdateMeta(meta) ⇒
       withUi(_.viewDetails(meta))
+
+    case _ ⇒
   }
 }

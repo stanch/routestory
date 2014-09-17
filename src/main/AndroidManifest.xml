@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="net.routestory"
-    android:versionCode="9"
-    android:versionName="1.0" >
+    android:versionCode="10"
+    android:versionName="1.4" >
 
     <uses-sdk
         android:minSdkVersion="15"
@@ -53,18 +53,12 @@
             android:name=".browsing.story.DisplayActivity"
             android:configChanges="keyboardHidden|orientation|screenSize">
             <intent-filter>
-                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:host="routestory.net" android:pathPrefix="/story" android:scheme="http" />
-                <data android:host="www.routestory.net" android:pathPrefix="/story" android:scheme="http" />
+                <data android:scheme="file" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.story" />
             </intent-filter>
-            <intent-filter>
-			    <data android:host="routestory.net" android:pathPrefix="/story" android:scheme="http" />
-			    <data android:host="www.routestory.net" android:pathPrefix="/story" android:scheme="http" />
-			    <category android:name="android.intent.category.DEFAULT" />
- 				<category android:name="android.intent.category.BROWSABLE" />
-			    <action android:name="android.intent.action.VIEW" />
-			</intent-filter>
         </activity>
 
         <activity

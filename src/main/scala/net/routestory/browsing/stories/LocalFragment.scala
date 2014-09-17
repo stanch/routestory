@@ -58,7 +58,7 @@ class LocalFragment extends RouteStoryFragment {
 
   override def onStart() = {
     super.onStart()
-    getLoaderManager.initLoader(0, null, loaderCallbacks)
+    getLoaderManager.restartLoader(0, null, loaderCallbacks)
     runUi(swiper <~ Tweaks.startRefresh)
   }
 

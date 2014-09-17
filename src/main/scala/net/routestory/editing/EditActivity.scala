@@ -62,7 +62,7 @@ class EditActivity extends RouteStoryActivity with IdGeneration with FragmentPag
       new ResolvableLoader(app.hybridApi.story(storyId))
     override def onLoaderReset(loader: Loader[Story]) = ()
     override def onLoadFinished(loader: Loader[Story], data: Story) =
-      storyPromise.success(data)
+      storyPromise.trySuccess(data)
   }
 
   def save = {
