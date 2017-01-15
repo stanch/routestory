@@ -1,0 +1,16 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/addStuff"
+          android:title="Add stuff"
+          android:icon="@drawable/create"
+          android:showAsAction="always" />
+    <item android:id="@+id/finish"
+        android:title="Finish"
+        android:icon="@drawable/accept"
+        android:orderInCategory="100"
+        android:showAsAction="always" />
+    <item android:id="@+id/discard"
+          android:title="Discard"
+          android:icon="@drawable/delete"
+          android:orderInCategory="200"
+          android:showAsAction="always" />
+</menu>

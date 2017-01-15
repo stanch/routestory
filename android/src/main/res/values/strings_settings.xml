@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_activity_settings">Settings</string>
+    
+    <string name="menu_settings">Settings</string>
+    <string name="recorddefaults">Recording defaults</string>
+    <string name="pref_autoaudio">Record ambient sound</string>
+    <string name="pref_hint_autoaudio">Allow automatic audio recording</string>
+    <string name="pref_makeprivate">Make stories private</string>
+    <string name="pref_hint_makeprivate">Private stories do not appear in search results. Nobody will see them unless you share.</string>
+</resources>

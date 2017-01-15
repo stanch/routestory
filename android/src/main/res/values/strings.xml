@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">RouteStory</string>
+    
+    <string name="title_dialog_selectaccount">Please select an account</string>
+    <string name="title_tab_storypreview">Dive</string>
+    <string name="title_tab_storydescription">Details</string>
+    <string name="title_tab_storyoverview">Explore</string>
+    <string name="title_tab_resultslist">List</string>
+    <string name="title_tab_resultsmap">Map</string>
+    <string name="title_tab_byme">By me</string>
+    <string name="title_tab_saved">Saved stories</string>
+    
+    <string name="account_policy">
+        Want to <i>share</i> your stories and always have them backed up in the <i>cloud</i>?\n
+        What about commenting and rating?\n
+        RouteStory lets you sign in with your existing <i>Google account</i> to enjoy these benefits.\n
+        Once you sign in, all your recorded content will be synchronized with the cloud.
+    </string>
+    <string name="message_preparingaccount">Just a moment, preparing your profile…</string>
+    <string name="toast_signingin">Signing in…</string>
+    <string name="toast_synchronizing">Synchronizing…</string>
+    
+    <string name="empty_mystories">No stories yet… Time to record one!</string>
+    <string name="empty_savedstories">You have not saved any stories so far.</string>
+    <string name="empty_search">Unfortunately, nothing was found.</string>
+    
+    <string name="search">Search</string>
+    
+    <string name="signin">Sign In</string>
+    <string name="signout">Sign Out</string>
+    <string name="view_stories">My stories</string>
+    <string name="untitled">Untitled</string>
+    <string name="title">Title</string>
+    <string name="description">Description</string>
+    <string name="tags">Tags</string>
+    <string name="makeprivate">Make private (nobody will dig it… unless you share!)</string>
+    <string name="tags_hint">tour, fun, nice weather</string>
+    <string name="tagged">tagged</string>
+    <string name="by">by</string>
+    <string name="me">me</string>
+    <string name="done">Done</string>
+    
+    <string name="play">Play</string>
+    <string name="play_sound">Play the sound</string>
+    <string name="feel_heartbeat">Feel the heartbeat</string>
+    <string name="nothing_found_nearby">No stories nearby… Time to go somewhere else!</string>
+    <string name="show_on_the_map"><u>Show on the map</u></string>
+    <string name="hide_overlays">Hide overlays</string>
+    <string name="show_overlays">Show overlays</string>
+    <string name="explore_tags">Popular tags</string>
+    <string name="explore_lateststories">The latest stories</string>
+    <string name="explore_nearbystories">Stories nearby</string>
+    <string name="explore_search">Search</string>
+    <string name="search_this_area">Search in this area</string>
+    <string name="search_results_for">Search results for:</string>
+    <string name="search_results_tag">Search results for tag:</string>
+    <string name="search_results_area">Search results for the selected area</string>
+    <string name="share_subject">Check out this route story</string>
+    <string name="share_body">I think this route story is fantastic! Check it out :)</string>
+    <string name="share_chooser">Choose the best way to share</string>
+    <string name="menu_display_storenfc">Store in an NFC tag</string>
+    <string name="menu_display_follow">Follow</string>
+    <string name="menu_display_share">Share</string>
+    <string name="menu_display_delete">Delete</string>
+    <string name="menu_create">New story</string>
+    <string name="menu_main_settings">Settings</string>
+    <string name="message_needgps">We absolutely need to know, where you are! Could you please turn GPS on?</string>
+    <string name="settings">Go to settings</string>
+    <string name="message_neednet">Internet does not seem to be available… Could you take a look at the settings?</string>
+    
+    <string name="message_deletestory">Do you really want to delete this story?</string>
+
+</resources>

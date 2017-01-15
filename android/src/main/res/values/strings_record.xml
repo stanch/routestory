@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_activity_record">Recording</string>
+    
+    <string name="message_waitingforlocation">Just a moment, trying to see, where you are…</string>
+    <string name="message_giveup">Do you really want to give up?</string>
+    <string name="message_stoprecord">Are we done?</string>
+    <string name="message_typenotehere">Type the note here</string>
+    <string name="message_pulsehowto">Place your fingers on your neck or wrist to feel the pulse. Then tap on the button in the rhythm of your pulse. When you get stable BPM value you can save your pulse.</string>
+    <string name="message_finishing">Hold on, we are almost there!</string>
+    
+    <string name="menu_stoprecord">Stop &amp; Save</string>
+    <string name="menu_audioon">Ambient sound: ON</string>
+    <string name="menu_audiooff">Ambient sound: OFF</string>
+</resources>
